@@ -1,0 +1,3 @@
+[submodule "src-tauri/engine"]
+	path = src-tauri/engine
+	url = https://github.com/cliptzy/engine
