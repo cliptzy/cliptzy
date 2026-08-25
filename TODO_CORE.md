@@ -373,15 +373,15 @@ impl From<CliptzyError> for String {
 
 ### 3.0.1 Unified Error Types
 
-- [ ] Buat `src/error.rs` dengan `CliptzyError` enum (lihat §2.2)
-- [ ] Tambah `thiserror` ke `Cargo.toml`
-- [ ] Refactor semua `Result<T, String>` di `commands.rs` → `Result<T, CliptzyError>`
-- [ ] Implement `From<CliptzyError> for String` agar kompatibel dengan Tauri
+- [x] Buat `src/error.rs` dengan `CliptzyError` enum (lihat §2.2)
+- [x] Tambah `thiserror` ke `Cargo.toml`
+- [x] Refactor semua `Result<T, String>` di `commands.rs` → `Result<T, CliptzyError>`
+- [x] Implement `From<CliptzyError> for String` agar kompatibel dengan Tauri
 
 ### 3.0.2 Configuration Models (Strongly-Typed)
 
-- [ ] Buat `src/config/mod.rs` dengan `AppConfig` struct
-- [ ] Buat `src/config/models.rs`:
+- [x] Buat `src/config/mod.rs` dengan `AppConfig` struct
+- [x] Buat `src/config/models.rs`:
   ```rust
   #[derive(Serialize, Deserialize, Clone, Debug)]
   pub struct SubtitleConfig {
@@ -432,13 +432,13 @@ impl From<CliptzyError> for String {
       pub crop_mode: String,
   }
   ```
-- [ ] Buat `src/config/defaults.rs` dengan implementasi `Default` untuk setiap struct
-- [ ] Migrasi `save_config_file` dan `load_config` dari `commands.rs` ke `config/mod.rs`
+- [x] Buat `src/config/defaults.rs` dengan implementasi `Default` untuk setiap struct
+- [x] Migrasi `save_config_file` dan `load_config` dari `commands.rs` ke `config/mod.rs`
 
 ### 3.0.3 Progress & Cancellation Infrastructure
 
-- [ ] Tambah `tokio-util` ke `Cargo.toml` (untuk `CancellationToken`)
-- [ ] Buat progress event types di `src/orchestrator/pipeline.rs`:
+- [x] Tambah `tokio-util` ke `Cargo.toml` (untuk `CancellationToken`)
+- [x] Buat progress event types di `src/orchestrator/pipeline.rs`:
   ```rust
   #[derive(Serialize, Clone, Debug)]
   pub struct ProgressEvent {
@@ -449,7 +449,7 @@ impl From<CliptzyError> for String {
       pub detail: Option<String>,
   }
   ```
-- [ ] Implement emit helper yang mengirim ke Tauri window:
+- [x] Implement emit helper yang mengirim ke Tauri window:
   ```rust
   pub fn emit_progress(handle: &tauri::AppHandle, event: &ProgressEvent) {
       let _ = handle.emit("clip-progress", event);
@@ -458,7 +458,7 @@ impl From<CliptzyError> for String {
 
 ### 3.0.4 Constants & Embedded Assets
 
-- [ ] Buat `src/constants/mod.rs`:
+- [x] Buat `src/constants/mod.rs`:
   ```rust
   pub const VALID_EMOTIONS: &[&str] = &[
       "neutral", "happy", "angry", "shock", "fear", "sad", "confused"
@@ -466,19 +466,19 @@ impl From<CliptzyError> for String {
 
   pub static EFFECTS_CATALOG: &str = include_str!("../../assets/video_effects.json");
   ```
-- [ ] Copy `core/constant/video_effects.json` → `src-tauri/assets/video_effects.json`
-- [ ] Embed via `include_str!` — zero file I/O at runtime
+- [x] Copy `core/constant/video_effects.json` → `src-tauri/assets/video_effects.json`
+- [x] Embed via `include_str!` — zero file I/O at runtime
 
 ### 3.0.5 Refactor commands.rs → commands/
 
-- [ ] Split `commands.rs` monolith menjadi per-domain modules:
+- [x] Split `commands.rs` monolith menjadi per-domain modules:
   - `commands/system.rs` → `get_system_metrics`
   - `commands/config.rs` → `save_config_file`, `copy_asset_file`
   - `commands/cookies.rs` → `copy_cookies_file`, `validate_cookies_file`
   - `commands/auth.rs` → `login_with_google`, `logout`, `get_user_id`, `get_user_info`
   - `commands/sync.rs` → `sync_config_up`, `sync_config_down`, `upload_file`, `download_file`
   - `commands/video.rs` → `analyze_video` + commands baru nanti
-- [ ] Update `lib.rs` imports
+- [x] Update `lib.rs` imports
 
 ---
 
@@ -489,7 +489,7 @@ impl From<CliptzyError> for String {
 
 ### 4.1 FFmpeg Probe Wrapper
 
-- [ ] Buat `src/processing/ffmpeg/probe.rs`:
+- [x] Buat `src/processing/ffmpeg/probe.rs`: *(Catatan: Diubah kebijakannya, sekarang langsung menggunakan crate `rust_ffprobe` dari ekosistem)*
   ```rust
   pub struct VideoProbeResult {
       pub duration: f64,
@@ -505,11 +505,11 @@ impl From<CliptzyError> for String {
       // Parse JSON output
   }
   ```
-- [ ] Ini dipakai oleh hampir semua modul lain → **harus selesai pertama**
+- [x] Ini dipakai oleh hampir semua modul lain → **harus selesai pertama**
 
 ### 4.2 FFmpeg Command Runner
 
-- [ ] Buat `src/processing/ffmpeg/runner.rs`:
+- [x] Buat `src/processing/ffmpeg/runner.rs`: *(Catatan: Diubah kebijakannya, sekarang langsung menggunakan crate `rust_ffmpeg` dari ekosistem)*
   ```rust
   pub struct FFmpegCommand {
       args: Vec<String>,
@@ -532,7 +532,7 @@ impl From<CliptzyError> for String {
       ) -> Result<(), CliptzyError>;
   }
   ```
-- [ ] Implementasi `execute()`:
+- [x] Implementasi `execute()`:
   - Spawn `tokio::process::Command`
   - Baca stderr async via `BufReader::new(child.stderr)`
   - Parse progress (`frame=`, `time=`, `speed=`) untuk emit ke frontend
@@ -541,7 +541,7 @@ impl From<CliptzyError> for String {
 
 ### 4.3 Hardware Acceleration Detection
 
-- [ ] Buat `src/processing/ffmpeg/hwaccel.rs`:
+- [x] Buat `src/processing/ffmpeg/hwaccel.rs`:
   ```rust
   pub enum HwAccel {
       VideoToolbox,  // macOS
@@ -557,11 +557,11 @@ impl From<CliptzyError> for String {
       pub fn encode_args(&self) -> Vec<String>;
   }
   ```
-- [ ] Port logic dari Python `processing/utils.py → get_video_codec_args()`
+- [x] Port logic dari Python `processing/utils.py → get_video_codec_args()`
 
 ### 4.4 Video Downloader dengan Progress
 
-- [ ] Buat `src/video/downloader.rs`:
+- [x] Buat `src/video/downloader.rs`:
   - Wrapper di atas `yt-dlp` crate yang sudah ada
   - Tambah support download **range** (`--download-sections *start-end`)
   - Progress callback → emit ke Tauri
@@ -570,13 +570,13 @@ impl From<CliptzyError> for String {
 
 ### 4.5 Local Video Handler
 
-- [ ] Buat `src/video/local.rs`:
+- [x] Buat `src/video/local.rs`:
   - `probe_local_video(path)` → gunakan `ffprobe`
   - `cut_local_segment(path, start, end, output)` → FFmpeg `-ss -to -c copy`
 
 ### 4.6 Scan Video Use Case
 
-- [ ] Buat `src/orchestrator/scan.rs`:
+- [x] Buat `src/orchestrator/scan.rs`:
   - Port `ScanVideoUseCase` dari Python
   - Cache segments ke `clips/<video_id>/segments.json`
   - Support local video (langsung probe duration, generate sequential segments)
@@ -584,7 +584,7 @@ impl From<CliptzyError> for String {
 
 ### 4.7 Preview Video Use Case
 
-- [ ] Extend `src/video/youtube.rs` atau buat terpisah:
+- [x] Extend `src/video/youtube.rs` atau buat terpisah:
   - Ekstrak: title, thumbnail, uploader, duration, language
   - In-memory cache (`dashmap` atau `HashMap` + `Mutex`)
   - Tauri command: `preview_video(url) -> PreviewResult`
@@ -599,7 +599,7 @@ impl From<CliptzyError> for String {
 
 ### 5.1 FFmpeg Filter Graph Builder
 
-- [ ] Buat `src/processing/ffmpeg/filters.rs`:
+- [x] Buat `src/processing/ffmpeg/filters.rs`:
   ```rust
   pub struct FilterGraph {
       inputs: Vec<String>,
@@ -629,11 +629,11 @@ impl From<CliptzyError> for String {
       pub fn to_string(&self) -> String;
   }
   ```
-- [ ] Ini meng-**abstract** pembuatan filter FFmpeg yang sebelumnya berupa string concatenation di Python
+- [x] Ini meng-**abstract** pembuatan filter FFmpeg yang sebelumnya berupa string concatenation di Python
 
 ### 5.2 Crop Strategies (9 Mode)
 
-- [ ] Buat `src/processing/cropper.rs` dengan trait `CropStrategy`:
+- [x] Buat `src/processing/cropper.rs` dengan trait `CropStrategy`:
   ```rust
   pub trait CropStrategy: Send + Sync {
       fn name(&self) -> &str;
@@ -648,36 +648,36 @@ impl From<CliptzyError> for String {
   }
   ```
 
-- [ ] Implementasi per crop mode (dalam urutan prioritas):
+- [ ] Implementasi per crop mode (dalam urutan prioritas): *(Catatan: Saat ini baru DefaultCrop dan FullCrop yang diimplementasikan)*
 
   1. **`DefaultCrop`** — Scale to cover + center crop
-     - Paling simpel, test pertama kali
-     - Port dari: `build_cover_scale_crop_vf()`
+     - [x] Paling simpel, test pertama kali
+     - [x] Port dari: `build_cover_scale_crop_vf()`
 
   2. **`FullCrop`** — Letterbox gameplay + blurred background padding
-     - Port dari: `crop_mode == "full"` di Python
+     - [x] Port dari: `crop_mode == "full"` di Python
 
   3. **`SplitLeftCrop` / `SplitRightCrop`** — Top center + bottom left/right
-     - Port dari: `crop_mode == "split_left"` / `"split_right"`
+     - [ ] Port dari: `crop_mode == "split_left"` / `"split_right"`
 
   4. **`CenterFaceCrop`** — Dynamic keyframe face tracking crop
-     - **Paling kompleks:** Membutuhkan face detection (Phase terpisah)
-     - Port dynamic FFmpeg expression builder (`if(lt(t,...), ...)`)
-     - Keyframe simplification (max 85 terms untuk AST limit FFmpeg)
+     - [ ] **Paling kompleks:** Membutuhkan face detection (Phase terpisah)
+     - [ ] Port dynamic FFmpeg expression builder (`if(lt(t,...), ...)`)
+     - [ ] Keyframe simplification (max 85 terms untuk AST limit FFmpeg)
 
   5. **`SplitFaceCrop`** — Top center + bottom dynamic face
-     - Kombinasi split + face tracking
+     - [ ] Kombinasi split + face tracking
 
   6. **`FullFaceCrop`** — Top gameplay + bottom face + blurred bg
-     - Paling advanced split mode
+     - [ ] Paling advanced split mode
 
   7. **`MultiFaceCrop`** — Podcast layout (2 faces + full)
-     - Butuh `get_two_faces_normalized_centers()`
+     - [ ] Butuh `get_two_faces_normalized_centers()`
 
   8. **`SplitBrollCrop`** — Top main + bottom random B-roll
-     - Butuh asset manager untuk B-roll files
+     - [ ] Butuh asset manager untuk B-roll files
 
-- [ ] Factory function:
+- [ ] Factory function: *(Catatan: Sudah ada tapi hanya mendukung 'default' dan 'full')*
   ```rust
   pub fn create_crop_strategy(mode: &str) -> Box<dyn CropStrategy> {
       match mode {
@@ -692,7 +692,7 @@ impl From<CliptzyError> for String {
 
 ### 5.3 Subtitle Burner & VFX Overlay
 
-- [ ] Buat `src/processing/subtitle_burner.rs`:
+- [x] Buat `src/processing/subtitle_burner.rs`:
   - Port `burn_subtitle_and_highlight()` dari Python
   - Fungsi utama:
     - Inject 3-second hook text ke ASS
@@ -703,7 +703,7 @@ impl From<CliptzyError> for String {
 
 ### 5.4 Stacker (Intro/Outro/Watermark)
 
-- [ ] Buat `src/processing/stacker.rs`:
+- [x] Buat `src/processing/stacker.rs`:
   - Port `stack_and_concat()` dari Python
   - Concat via FFmpeg concat demuxer (`-f concat -safe 0`)
   - Overlay watermark PNG
@@ -712,14 +712,14 @@ impl From<CliptzyError> for String {
 
 ### 5.5 Thumbnail Generator
 
-- [ ] Buat `src/processing/thumbnail.rs`:
+- [x] Buat `src/processing/thumbnail.rs`:
   - `generate_thumbnail()`: Extract frame + overlay meme VFX
   - `generate_compilation_thumbnail()`: 2x2 grid collage dari multiple clips
   - Port dari Python `processing/thumbnail.py`
 
 ### 5.6 Video Effects Manager
 
-- [ ] Buat `src/processing/effects.rs`:
+- [x] Buat `src/processing/effects.rs`:
   - Load catalog dari embedded `include_str!("effects.json")`
   - `get_effect(emotion, exclude)` → random matching effect
   - `get_effect_by_name(name)` → lookup by name
@@ -747,13 +747,13 @@ impl From<CliptzyError> for String {
 
 ### 6.2 Implementasi Whisper
 
-- [ ] Tambah `whisper-rs` ke `Cargo.toml`:
+- [x] Tambah `whisper-rs` ke `Cargo.toml`:
   ```toml
   [dependencies]
   whisper-rs = { version = "0.13", features = ["metal"] }  # macOS Metal
   # Untuk cross-platform: features = ["cuda"] di build CI Linux/Windows
   ```
-- [ ] Buat `src/transcription/whisper.rs`:
+- [x] Buat `src/transcription/whisper.rs`:
   ```rust
   pub struct WhisperTranscriber {
       model: WhisperContext,
@@ -787,14 +787,14 @@ impl From<CliptzyError> for String {
       pub end: f64,
   }
   ```
-- [ ] Model management:
+- [x] Model management:
   - Download model on first use ke `<app_data>/models/ggml-<size>.bin`
   - Progress reporting saat download
   - Support sizes: tiny, small, medium, large-v3
 
 ### 6.3 ASS Subtitle Writer
 
-- [ ] Buat `src/transcription/ass_writer.rs`:
+- [x] Buat `src/transcription/ass_writer.rs`:
   - Port `write_enriched_ass_file()` dari Python
   - Support styles:
     - `plain`: Kata per kata, satu warna
@@ -808,7 +808,7 @@ impl From<CliptzyError> for String {
 
 ### 6.4 Audio Extraction
 
-- [ ] Implementasi di `src/processing/ffmpeg/runner.rs` atau helper terpisah:
+- [x] Implementasi di `src/processing/ffmpeg/runner.rs` atau helper terpisah:
   ```rust
   /// Extract audio dari video untuk transcription
   pub async fn extract_audio(
@@ -829,7 +829,7 @@ impl From<CliptzyError> for String {
 
 ### 7.1 AI Provider Trait
 
-- [ ] Buat `src/ai/provider.rs`:
+- [x] Buat `src/ai/provider.rs`:
   ```rust
   #[async_trait]
   pub trait AIProvider: Send + Sync {
@@ -846,22 +846,22 @@ impl From<CliptzyError> for String {
 
 ### 7.2 Implementasi Providers
 
-- [ ] **`src/ai/ollama.rs`** — Ollama REST client:
+- [x] **`src/ai/ollama.rs`** — Ollama REST client:
   - `POST {host}/api/generate` dengan streaming
   - `reqwest` sudah ada di dependencies
   - Params: `temperature: 0.3`, `num_predict: 8192`, `num_ctx: 16384`
 
-- [ ] **`src/ai/gemini.rs`** — Google Gemini REST client:
+- [x] **`src/ai/gemini.rs`** — Google Gemini REST client:
   - SSE streaming via `https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent`
   - JSON response format
   - Fallback non-streaming
 
-- [ ] **`src/ai/openai.rs`** — OpenAI-compatible REST client:
+- [x] **`src/ai/openai.rs`** — OpenAI-compatible REST client:
   - `POST {base_url}/v1/chat/completions` dengan streaming
   - Compatible dengan: OpenAI, Groq, OpenRouter, LM Studio, vLLM
   - `response_format: { type: "json_object" }`
 
-- [ ] **Factory function** di `src/ai/mod.rs`:
+- [x] **Factory function** di `src/ai/mod.rs`:
   ```rust
   pub fn create_provider(config: &AIConfig) -> Box<dyn AIProvider> {
       match config.provider.as_str() {
@@ -879,7 +879,7 @@ impl From<CliptzyError> for String {
 
 ### 7.3 Highlight Detector
 
-- [ ] Buat `src/ai/detector.rs`:
+- [x] Buat `src/ai/detector.rs`:
   - Port `detect_highlights()`:
     - Chunk transcript (12K chars local, 250K chars cloud)
     - Send prompt dengan kriteria (hook & payoff, 15-60s, no intro/outro)
@@ -888,7 +888,7 @@ impl From<CliptzyError> for String {
 
 ### 7.4 Metadata Generator
 
-- [ ] Buat `src/ai/metadata.rs`:
+- [x] Buat `src/ai/metadata.rs`:
   - Port `generate_metadata()`:
     - Input: clip text, YouTube title, channel name, URL, visual/audio emotions
     - Output: title, tags, 3-second hook, emotion-enriched words, VFX assignments
@@ -996,7 +996,7 @@ impl From<CliptzyError> for String {
 
 ### 9.1 Pipeline Context
 
-- [ ] Buat `src/orchestrator/pipeline.rs`:
+- [x] Buat `src/orchestrator/pipeline.rs`:
   ```rust
   pub struct PipelineContext {
       pub job_dir: PathBuf,
@@ -1011,7 +1011,7 @@ impl From<CliptzyError> for String {
 
 ### 9.2 Clip Video Use Case (Phase 1)
 
-- [ ] Buat `src/orchestrator/clip.rs`:
+- [x] Buat `src/orchestrator/clip.rs`:
   - Port `ClipVideoUseCase.execute()`:
     1. Resolve target segments (heatmap / AI / custom)
     2. Pre-download semua segments **secara paralel** (`tokio::task::JoinSet`)
@@ -1030,14 +1030,14 @@ impl From<CliptzyError> for String {
 
 ### 9.3 Render Clip Use Case (Phase 2)
 
-- [ ] Buat `src/orchestrator/render.rs`:
+- [x] Buat `src/orchestrator/render.rs`:
   - Port `RenderClipUseCase.execute()`:
     - Re-render existing clips dengan settings baru
     - Concurrent processing via `JoinSet`
 
 ### 9.4 Compilation Use Case
 
-- [ ] Buat `src/orchestrator/compile.rs`:
+- [x] Buat `src/orchestrator/compile.rs`:
   - Port `CompileVideoUseCase`:
     - Generate numbering cards
     - Process each clip
@@ -1046,7 +1046,7 @@ impl From<CliptzyError> for String {
 
 ### 9.5 Tauri Commands Integration
 
-- [ ] Buat/extend `src/commands/video.rs`:
+- [x] Buat/extend `src/commands/video.rs`:
   ```rust
   #[tauri::command]
   pub async fn clip_video(

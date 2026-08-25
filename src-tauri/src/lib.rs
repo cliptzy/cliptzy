@@ -44,6 +44,7 @@ pub fn run() {
             commands::config::copy_asset_file,
             commands::config::save_config_file,
             commands::video::analyze_video,
+            commands::video::clip_video,
             commands::auth::login_with_google,
             commands::auth::logout,
             commands::auth::get_user_id,
@@ -52,6 +53,7 @@ pub fn run() {
             commands::sync::upload_file,
             commands::sync::download_file,
             commands::auth::get_user_info,
+            orchestrator::scan::scan_video,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -56,3 +56,27 @@ pub struct AppConfig {
     pub instagram: PlatformConfig,
     pub compilation: CompilationConfig,
 }
+
+impl AppConfig {
+    pub fn load() -> Result<Self, crate::error::CliptzyError> {
+        let app_dir = crate::paths::app_data_dir();
+        let config_path = app_dir.join("config.json");
+        
+        if !config_path.exists() {
+            return Ok(Self::default());
+        }
+        
+        let content = std::fs::read_to_string(&config_path)?;
+        let config = serde_json::from_str(&content)?;
+        Ok(config)
+    }
+
+    pub fn save(&self) -> Result<(), crate::error::CliptzyError> {
+        let app_dir = crate::paths::app_data_dir();
+        let config_path = app_dir.join("config.json");
+        
+        let content = serde_json::to_string_pretty(self)?;
+        std::fs::write(&config_path, content)?;
+        Ok(())
+    }
+}

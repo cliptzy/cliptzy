@@ -1,142 +1,140 @@
-<script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useDark, useToggle } from '@vueuse/core'
-import StatCard from '../components/StatCard.vue'
-
-// Icons
-import IconActivity from '~icons/lucide/activity'
-import IconVideo from '~icons/lucide/video'
-import IconUpload from '~icons/lucide/upload'
-import IconCpu from '~icons/lucide/cpu'
-import IconMoon from '~icons/lucide/moon'
-import IconSun from '~icons/lucide/sun'
-
-const isDark = useDark()
-const toggleDark = useToggle(isDark)
-
-const stats = ref({
-  totalClips: 24,
-  pendingUploads: 5,
-  systemLoad: '12%',
-  uptime: '2h 15m'
-})
-
-onMounted(() => {
-  // Fetch stats...
-})
-</script>
-
 <template>
-  <div class="space-y-8 p-8 min-h-screen bg-[#F8F9FA] dark:bg-[#121212] text-black dark:text-white transition-colors">
-    <!-- Header Area -->
-    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-      <div>
-        <h1 class="text-4xl md:text-5xl font-black mb-2 tracking-tight">Monitor Sistem</h1>
-        <p class="text-lg font-bold text-gray-600 dark:text-gray-400">Pantau performa engine dan status antrean klip.</p>
-      </div>
-      <div class="flex items-center gap-4">
-        <button 
-          @click="toggleDark()"
-          class="p-4 border-[3px] border-black dark:border-[#3C4043] rounded-full hover:bg-gray-200 dark:hover:bg-[#28292C] transition-colors"
-          title="Toggle Dark Mode"
-        >
-          <IconSun v-if="isDark" class="w-6 h-6 text-[#FBBC04]" />
-          <IconMoon v-else class="w-6 h-6 text-[#4285F4]" />
-        </button>
-        <button class="border-[3px] border-black dark:border-[#3C4043] bg-[#4285F4] hover:bg-[#3367D6] dark:hover:bg-[#8AB4F8] text-white dark:text-black font-bold py-3 px-8 rounded-full transition-all flex items-center gap-2 group">
-          <IconActivity class="w-5 h-5 group-hover:animate-pulse" />
-          Segarkan Data
-        </button>
-      </div>
-    </div>
-
-    <!-- Stats Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      <StatCard 
-        title="Total Klip Selesai" 
-        :value="stats.totalClips" 
-        accentClass="bg-[#4285F4]"
-      >
-        <template #footer>
-          <div class="mt-4 flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-300">
-            <IconVideo class="w-4 h-4 text-[#4285F4]" />
-            <span>Siap di-review</span>
-          </div>
-        </template>
-      </StatCard>
-
-      <StatCard 
-        title="Antrean Upload" 
-        :value="stats.pendingUploads" 
-        accentClass="bg-[#FBBC04]"
-      >
-        <template #footer>
-          <div class="mt-4 flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-300">
-            <IconUpload class="w-4 h-4 text-[#FBBC04]" />
-            <span>Menunggu jadwal</span>
-          </div>
-        </template>
-      </StatCard>
-
-      <StatCard 
-        title="Beban Prosesor" 
-        :value="stats.systemLoad" 
-        accentClass="bg-[#EA4335]"
-      >
-        <template #footer>
-          <div class="mt-4 flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-300">
-            <IconCpu class="w-4 h-4 text-[#EA4335]" />
-            <span>Kapasitas normal</span>
-          </div>
-        </template>
-      </StatCard>
-
-      <StatCard 
-        title="Waktu Aktif" 
-        :value="stats.uptime" 
-        accentClass="bg-[#34A853]"
-      >
-        <template #footer>
-          <div class="mt-4 flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-300">
-            <div class="w-3 h-3 rounded-full bg-[#34A853] border-2 border-black dark:border-white"></div>
-            <span>Engine online</span>
-          </div>
-        </template>
-      </StatCard>
-    </div>
-
-    <!-- Activity Log Preview -->
-    <div class="border-[3px] border-black dark:border-[#3C4043] rounded-[32px] overflow-hidden bg-white dark:bg-[#1E1E1E] mt-8">
-      <div class="border-b-[3px] border-black dark:border-[#3C4043] p-6 bg-[#F8F9FA] dark:bg-[#28292C]">
-        <h2 class="text-2xl font-black tracking-tight">Aktivitas Terbaru</h2>
-      </div>
-      <div class="p-6">
-        <div class="space-y-4">
-          
-          <div class="flex items-start gap-4 border-[2px] border-black dark:border-[#3C4043] rounded-[24px] p-5 hover:bg-[#F8F9FA] dark:hover:bg-[#28292C] transition-colors">
-            <div class="bg-[#4285F4] text-white p-3 rounded-full border-[2px] border-black dark:border-[#3C4043] shrink-0">
-              <IconVideo class="w-5 h-5" />
-            </div>
-            <div>
-              <h4 class="font-bold text-lg leading-tight mb-1">Proses Klip Selesai</h4>
-              <p class="text-sm text-gray-600 dark:text-gray-400">Podcast_Eps_12_Part2.mp4 telah selesai diproses dan dipotong.</p>
-              <span class="text-xs font-black uppercase tracking-wider text-[#4285F4] mt-2 block">5 menit yang lalu</span>
-            </div>
-          </div>
-          
-          <div class="flex items-start gap-4 border-[2px] border-black dark:border-[#3C4043] rounded-[24px] p-5 hover:bg-[#F8F9FA] dark:hover:bg-[#28292C] transition-colors">
-            <div class="bg-[#34A853] text-white p-3 rounded-full border-[2px] border-black dark:border-[#3C4043] shrink-0">
-              <IconUpload class="w-5 h-5" />
-            </div>
-            <div>
-              <h4 class="font-bold text-lg leading-tight mb-1">Upload Berhasil</h4>
-              <p class="text-sm text-gray-600 dark:text-gray-400">Video berhasil diunggah ke TikTok & YouTube Shorts secara otomatis.</p>
-              <span class="text-xs font-black uppercase tracking-wider text-[#34A853] mt-2 block">1 jam yang lalu</span>
-            </div>
-          </div>
-
+  <div class="h-full flex flex-col gap-6 w-full max-w-7xl mx-auto">
+    <!-- Header / Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <BentoCard class="p-6 bg-[var(--color-surface)]">
+        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+          <IconActivity class="w-4 h-4 text-[var(--color-accent)]" /> Total Diproses
+        </h3>
+        <p class="text-4xl font-black text-white">24</p>
+      </BentoCard>
+      <BentoCard class="p-6 bg-[var(--color-surface)]">
+        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+          <IconHardDrive class="w-4 h-4 text-blue-400" /> Sisa Penyimpanan
+        </h3>
+        <p class="text-4xl font-black text-white">45 GB</p>
+      </BentoCard>
+      <BentoCard class="p-6 bg-[var(--color-surface)]">
+        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+          <IconLink class="w-4 h-4 text-green-400" /> Platform Terhubung
+        </h3>
+        <div class="flex gap-2 mt-2">
+          <div class="p-2 bg-white/10 rounded-lg"><IconYoutube class="w-5 h-5 text-red-500" /></div>
+          <div class="p-2 bg-white/10 rounded-lg"><IconTiktok class="w-5 h-5 text-white" /></div>
         </div>
+      </BentoCard>
+    </div>
+
+    <!-- Queue & Recent Activity Grid -->
+    <div class="flex-1 min-h-0 mt-2 flex flex-col">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-xl font-bold">Aktivitas Terakhir & Antrean</h3>
+        <button class="text-sm text-gray-400 hover:text-[var(--color-accent)] transition-colors flex items-center gap-1">
+          Lihat Semua <IconArrowRight class="w-4 h-4" />
+        </button>
       </div>
+      
+      <TransitionGroup name="list" tag="div" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 overflow-y-auto pb-8 pr-2 relative custom-scrollbar">
+        <!-- Empty State -->
+        <div v-if="!recentActivities.length" key="empty" class="col-span-full py-12 flex flex-col items-center justify-center border-2 border-dashed border-[var(--color-subtle)] rounded-[24px]">
+          <IconInbox class="w-12 h-12 text-gray-600 mb-3" />
+          <p class="text-gray-400">Belum ada aktivitas. Mulai buat klip di Studio!</p>
+        </div>
+
+        <!-- Activity Cards -->
+        <BentoCard v-for="activity in recentActivities" :key="activity.id" class="p-4 flex gap-4 items-start hover:border-gray-500 transition-colors group cursor-pointer">
+          <div class="w-20 h-28 bg-gray-800 rounded-lg overflow-hidden shrink-0 relative">
+            <img :src="activity.thumbnail" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+            <div class="absolute bottom-1 right-1 bg-black/70 px-1.5 rounded text-[10px] font-mono">{{ activity.duration }}</div>
+          </div>
+          <div class="flex flex-col py-1 h-full">
+            <span class="text-[10px] uppercase font-bold tracking-wider mb-1" :class="activity.status === 'Selesai' ? 'text-[var(--color-accent)]' : 'text-yellow-400'">
+              {{ activity.status }}
+            </span>
+            <h4 class="font-semibold text-sm line-clamp-2 mb-2 group-hover:text-[var(--color-accent)] transition-colors">{{ activity.title }}</h4>
+            <div class="mt-auto flex items-center gap-2 text-xs text-gray-500">
+              <IconCalendar class="w-3 h-3" /> {{ activity.time }}
+            </div>
+          </div>
+        </BentoCard>
+      </TransitionGroup>
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+import { ref } from 'vue';
+import BentoCard from '../components/BentoCard.vue';
+
+// Icons
+import IconActivity from '~icons/lucide/activity';
+import IconHardDrive from '~icons/lucide/hard-drive';
+import IconLink from '~icons/lucide/link';
+import IconYoutube from '~icons/lucide/youtube';
+import IconArrowRight from '~icons/lucide/arrow-right';
+import IconInbox from '~icons/lucide/inbox';
+import IconCalendar from '~icons/lucide/calendar';
+import IconTiktok from '~icons/lucide/smartphone';
+
+// Mock data
+const recentActivities = ref([
+  {
+    id: 1,
+    title: 'Podcast 10 Jam tentang Coding',
+    thumbnail: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?q=80&w=160&auto=format&fit=crop',
+    duration: '0:59',
+    status: 'Selesai',
+    time: '2 jam yang lalu'
+  },
+  {
+    id: 2,
+    title: 'Review Gadget Terbaru',
+    thumbnail: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=160&auto=format&fit=crop',
+    duration: '0:35',
+    status: 'Selesai',
+    time: 'Kemarin'
+  },
+  {
+    id: 3,
+    title: 'Cara Bikin Aplikasi Tauri',
+    thumbnail: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=160&auto=format&fit=crop',
+    duration: '0:42',
+    status: 'Memproses...',
+    time: 'Baru saja'
+  }
+]);
+</script>
+
+<style scoped>
+/* Masonry List Transitions */
+.list-move,
+.list-enter-active,
+.list-leave-active {
+  transition: all 0.5s cubic-bezier(0.55, 0, 0.1, 1);
+}
+
+.list-enter-from,
+.list-leave-to {
+  opacity: 0;
+  transform: scale(0.9) translateY(20px);
+}
+
+.list-leave-active {
+  position: absolute;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+</style>

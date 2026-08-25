@@ -39,3 +39,12 @@ impl From<CliptzyError> for String {
         e.to_string()
     }
 }
+
+impl serde::Serialize for CliptzyError {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(&self.to_string())
+    }
+}

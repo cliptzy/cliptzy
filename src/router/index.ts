@@ -10,56 +10,56 @@ const router = createRouter({
       path: "/login",
       name: "login",
       component: LoginView,
-      meta: { layout: "AuthLayout" },
     },
     {
       path: "/",
       name: "dashboard",
       component: DashboardView,
-      meta: { requiresAuth: true, layout: "AppLayout" },
+      meta: { requiresAuth: true },
     },
     {
-      path: "/clipper",
-      name: "clipper",
-      component: () => import("../views/ClipperView.vue"),
-      meta: { requiresAuth: true, layout: "AppLayout" },
+      path: "/studio",
+      name: "studio",
+      component: () => import("../views/StudioView.vue"),
+      meta: { requiresAuth: true },
     },
     {
-      path: "/compilation",
-      name: "compilation",
-      component: () => import("../views/CompilationView.vue"),
-      meta: { requiresAuth: true, layout: "AppLayout" },
-    },
-    {
-      path: "/upload",
-      name: "upload",
-      component: () => import("../views/UploadView.vue"),
-      meta: { requiresAuth: true, layout: "AppLayout" },
+      path: "/library",
+      name: "library",
+      component: () => import("../views/LibraryView.vue"),
+      meta: { requiresAuth: true },
     },
     {
       path: "/settings",
       name: "settings",
       component: () => import("../views/SettingsView.vue"),
-      meta: { requiresAuth: true, layout: "AppLayout" },
+      meta: { requiresAuth: true },
     },
   ],
 });
 
-router.beforeEach(async (to, _from, next) => {
-  const authStore = useAuthStore();
-
-  // Verify auth status on navigation if engine is ready
-  if (!authStore.isLoggedIn && !authStore.isChecking) {
-    await authStore.checkAuthStatus();
+router.beforeEach(async (to, _from) => {
+  console.log(`[Router] Navigating from ${_from.path} to ${to.path}`);
+  const auth = useAuthStore();
+  
+  if (auth.isChecking) {
+    console.log(`[Router] Checking auth status...`);
+    await auth.checkAuthStatus();
+    console.log(`[Router] Auth check complete. Logged in: ${auth.isLoggedIn}`);
   }
 
-  if (to.meta.requiresAuth && !authStore.isLoggedIn) {
-    next("/login");
-  } else if (to.path === "/login" && authStore.isLoggedIn) {
-    next("/");
-  } else {
-    next();
+  const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
+  console.log(`[Router] requiresAuth: ${requiresAuth}, isLoggedIn: ${auth.isLoggedIn}, to.name: ${String(to.name)}`);
+  
+  if (requiresAuth && !auth.isLoggedIn) {
+    console.log(`[Router] Redirecting to login`);
+    return { name: 'login' };
+  } else if (to.name === 'login' && auth.isLoggedIn) {
+    console.log(`[Router] Already logged in, redirecting to dashboard`);
+    return { name: 'dashboard' };
   }
+  
+  console.log(`[Router] Proceeding normally`);
 });
 
 export default router;

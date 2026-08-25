@@ -1,28 +1,21 @@
 <script setup lang="ts">
-import { onMounted, computed } from 'vue';
+import { computed } from 'vue';
+import { useRoute } from 'vue-router';
 import { useAuthStore } from './stores/auth';
-import { useRouter, useRoute } from 'vue-router';
-import AppLayout from './layouts/AppLayout.vue';
-import AuthLayout from './layouts/AuthLayout.vue';
+import MainLayout from './layouts/MainLayout.vue';
+import BlankLayout from './layouts/BlankLayout.vue';
 
-const auth = useAuthStore();
-const router = useRouter();
 const route = useRoute();
-
-onMounted(async () => {
-  await auth.checkAuthStatus();
-  if (auth.isLoggedIn && router.currentRoute.value.path === '/login') {
-    router.push('/');
-  } else if (!auth.isLoggedIn && router.currentRoute.value.meta.requiresAuth) {
-    router.push('/login');
-  }
-});
+const auth = useAuthStore();
 
 const layout = computed(() => {
-  return route.meta.layout === 'AuthLayout' ? AuthLayout : AppLayout;
+  return route.name === 'login' ? BlankLayout : MainLayout;
 });
 </script>
 
 <template>
+  <div class="fixed top-0 right-0 z-[9999] bg-black text-white p-2 text-xs font-mono">
+    Route: {{ String(route.name) }} | LoggedIn: {{ auth.isLoggedIn }} | Checking: {{ auth.isChecking }}
+  </div>
   <component :is="layout" />
 </template>

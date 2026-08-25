@@ -22,7 +22,9 @@ pub fn get_user_id(client: State<'_, Arc<crate::supabase::SupabaseClient>>) -> O
 pub fn get_user_info(
     client: State<'_, Arc<crate::supabase::SupabaseClient>>,
 ) -> Option<serde_json::Value> {
+    println!("[Tauri Command] get_user_info invoked");
     if let Some(id) = client.get_user_id() {
+        println!("[Tauri Command] User ID found: {}", id);
         Some(serde_json::json!({
             "id": id,
             "email": client.get_user_email(),
@@ -30,6 +32,7 @@ pub fn get_user_info(
             "avatar_url": client.get_user_avatar_url(),
         }))
     } else {
+        println!("[Tauri Command] No active session found");
         None
     }
 }
