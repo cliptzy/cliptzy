@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { open } from '@tauri-apps/plugin-dialog'
 import { invoke } from '@tauri-apps/api/core'
 import IconYoutube from '~icons/lucide/youtube'
@@ -11,6 +11,7 @@ import IconBrain from '~icons/lucide/brain'
 import IconListOrdered from '~icons/lucide/list-ordered'
 import IconHand from '~icons/lucide/hand'
 import IconCheck from '~icons/lucide/check'
+import IconX from '~icons/lucide/x'
 
 const props = defineProps<{
   urlInput: string
@@ -44,6 +45,38 @@ const pickVideoFile = async () => {
 }
 
 const isCookieSaving = ref(false)
+const cookieValidation = ref<{
+  status: 'idle' | 'validating' | 'valid' | 'invalid'
+  message: string
+}>({ status: 'idle', message: '' })
+
+/** Validate cookies file via Rust backend */
+const validateCookies = async (path: string | null) => {
+  if (!path || path.trim() === '') {
+    cookieValidation.value = { status: 'idle', message: '' }
+    return
+  }
+
+  cookieValidation.value = { status: 'validating', message: 'Memvalidasi cookies...' }
+
+  try {
+    const result = await invoke<{ valid: boolean; reason: string; message: string }>('validate_cookies_file', {
+      cookiesPath: path
+    })
+    if (result.valid) {
+      cookieValidation.value = { status: 'valid', message: result.message }
+    } else {
+      cookieValidation.value = { status: 'invalid', message: result.message }
+    }
+  } catch (e: any) {
+    cookieValidation.value = { status: 'invalid', message: e || 'Gagal memvalidasi cookies' }
+  }
+}
+
+// Watch cookiesPath changes and validate
+watch(() => props.cookiesPath, (newPath) => {
+  validateCookies(newPath)
+}, { immediate: true })
 
 const pickCookiesFile = async () => {
   const file = await open({
@@ -112,12 +145,33 @@ const pickCookiesFile = async () => {
           @input="emit('update:cookiesPath', ($event.target as HTMLInputElement).value)"
           type="text" 
           placeholder="Path cookies.txt (Opsional untuk YouTube)" 
-          class="w-full border-[3px] border-black dark:border-[#5F6368] rounded-full bg-[#F8F9FA] dark:bg-[#28292C] pl-12 pr-12 py-3 font-bold text-sm focus:outline-none focus:border-[#FBBC04] transition-colors"
+          class="w-full border-[3px] rounded-full bg-[#F8F9FA] dark:bg-[#28292C] pl-12 pr-12 py-3 font-bold text-sm focus:outline-none transition-colors"
+          :class="[
+            cookieValidation.status === 'invalid' 
+              ? 'border-[#EA4335] focus:border-[#EA4335]'
+              : cookieValidation.status === 'valid'
+                ? 'border-[#34A853] focus:border-[#34A853]'
+                : 'border-black dark:border-[#5F6368] focus:border-[#FBBC04]'
+          ]"
           :disabled="analyzeStatus === 'scanning' || isCookieSaving"
         />
-        <div v-if="cookiesPath" class="absolute inset-y-0 right-4 flex items-center pointer-events-none">
+        <!-- Validating spinner -->
+        <div v-if="cookieValidation.status === 'validating'" class="absolute inset-y-0 right-4 flex items-center pointer-events-none">
+          <svg class="animate-spin h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+        </div>
+        <!-- Valid: green check -->
+        <div v-else-if="cookieValidation.status === 'valid'" class="absolute inset-y-0 right-4 flex items-center pointer-events-none" :title="cookieValidation.message">
           <div class="bg-[#34A853] text-white p-0.5 rounded-full border-2 border-black">
             <IconCheck class="w-3 h-3" />
+          </div>
+        </div>
+        <!-- Invalid: red X -->
+        <div v-else-if="cookieValidation.status === 'invalid'" class="absolute inset-y-0 right-4 flex items-center pointer-events-none" :title="cookieValidation.message">
+          <div class="bg-[#EA4335] text-white p-0.5 rounded-full border-2 border-black">
+            <IconX class="w-3 h-3" />
           </div>
         </div>
       </div>
@@ -138,6 +192,13 @@ const pickCookiesFile = async () => {
         </template>
       </button>
     </div>
+    <!-- Cookie validation message -->
+    <p v-if="cookieValidation.status === 'invalid'" class="text-xs font-bold text-[#EA4335] -mt-6 mb-6 ml-4 relative z-10">
+      ⚠️ {{ cookieValidation.message }}
+    </p>
+    <p v-else-if="cookieValidation.status === 'valid'" class="text-xs font-bold text-[#34A853] -mt-6 mb-6 ml-4 relative z-10">
+      ✅ {{ cookieValidation.message }}
+    </p>
 
     <!-- Scan Method & Action -->
     <div class="border-t-[3px] border-black dark:border-[#3C4043] pt-6 relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">

@@ -27,6 +27,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::get_system_metrics,
             commands::copy_cookies_file,
+            commands::validate_cookies_file,
             commands::copy_asset_file,
             commands::save_config_file,
             commands::analyze_video,
