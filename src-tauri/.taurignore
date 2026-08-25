@@ -1,0 +1,6 @@
+engine/
+config.json
+cred/
+clips/
+logs/
+.venv/

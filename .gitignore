@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Python engine artifacts (jangan commit ke repo utama)
+src-tauri/engine/.venv/
+src-tauri/engine/__pycache__/
+src-tauri/engine/clips/
+src-tauri/engine/logs/

@@ -4,9 +4,12 @@ import vue from "@vitejs/plugin-vue";
 import process from "node:process";
 const host = process.env.TAURI_DEV_HOST;
 
+import tailwindcss from "@tailwindcss/vite";
+import Icons from "unplugin-icons/vite";
+
 // https://vite.dev/config/
 export default defineConfig(() => ({
-  plugins: [vue()],
+  plugins: [vue(), tailwindcss(), Icons({ compiler: 'vue3' })],
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //
@@ -25,8 +28,8 @@ export default defineConfig(() => ({
         }
       : undefined,
     watch: {
-      // 3. tell Vite to ignore watching `src-tauri`
-      ignored: ["**/src-tauri/**"],
+      // 3. tell Vite to ignore watching `src-tauri` and dynamic backend files
+      ignored: ["**/src-tauri/**", "**/config.json", "**/cred/**", "**/clips/**"],
     },
   },
 }));
