@@ -5,7 +5,7 @@ impl Default for SubtitleConfig {
         Self {
             whisper_model: "small".to_string(),
             font: "Bangers".to_string(),
-            fonts_dir: "assets/fonts".to_string(),
+            fonts_dir: Some("assets/fonts".to_string()),
             location: "bottom".to_string(),
             delay: 0.0,
             font_size: 24,
@@ -39,7 +39,7 @@ impl Default for AIConfig {
 impl Default for PlatformConfig {
     fn default() -> Self {
         Self {
-            session: "".to_string(),
+            session: Some("".to_string()),
             auto_upload: false,
             visibility: "private".to_string(),
         }
@@ -62,6 +62,9 @@ impl Default for CompilationConfig {
 impl Default for AppConfig {
     fn default() -> Self {
         Self {
+            output_dir: "clips".to_string(),
+            hw_accel: "cpu".to_string(),
+            max_workers: 2,
             subtitle: SubtitleConfig::default(),
             ai: AIConfig::default(),
             youtube: PlatformConfig::default(),

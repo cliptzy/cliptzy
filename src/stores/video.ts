@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { useAppStore } from './app';
 import { invoke } from '@tauri-apps/api/core';
 
@@ -95,10 +95,15 @@ export const useVideoStore = defineStore('video', () => {
     }
   };
   
-  const analyzeSegmentAudio = async (url: string, start: number, end: number) => {
+  const analyzeSegmentAudio = async (url: string, start: number, end: number, streamUrl?: string) => {
     isAnalyzing.value = true;
     try {
-      const result: any = await invoke('analyze_segment_audio', { url, start, end });
+      const result: any = await invoke('analyze_segment_audio', { 
+        url, 
+        start, 
+        end,
+        streamUrl: streamUrl || null
+      });
       console.log('Pre-analysis result:', result);
       
       const key = `${start}-${end}`;
@@ -112,6 +117,16 @@ export const useVideoStore = defineStore('video', () => {
       isAnalyzing.value = false;
     }
   };
+
+  watch(selectedSegment, async (newSeg) => {
+    if (newSeg && currentUrl.value) {
+      // Avoid re-analyzing if we already have it
+      const key = `${newSeg.start}-${newSeg.end}`;
+      if (!analyzedSegments.value[key]) {
+        await analyzeSegmentAudio(currentUrl.value, newSeg.start, newSeg.end, metadata.value?.stream_url);
+      }
+    }
+  });
 
   return {
     currentUrl,

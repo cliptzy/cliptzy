@@ -1,10 +1,11 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(default)]
 pub struct SubtitleConfig {
     pub whisper_model: String,
     pub font: String,
-    pub fonts_dir: String,
+    pub fonts_dir: Option<String>,
     pub location: String,
     pub delay: f64,
     pub font_size: u32,
@@ -17,6 +18,7 @@ pub struct SubtitleConfig {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(default)]
 pub struct AIConfig {
     pub provider: String,
     pub ollama_host: String,
@@ -31,13 +33,15 @@ pub struct AIConfig {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(default)]
 pub struct PlatformConfig {
-    pub session: String,
+    pub session: Option<String>,
     pub auto_upload: bool,
     pub visibility: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(default)]
 pub struct CompilationConfig {
     pub ordering: String,
     pub numbering_duration: f64,
@@ -48,7 +52,11 @@ pub struct CompilationConfig {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(default)]
 pub struct AppConfig {
+    pub output_dir: String,
+    pub hw_accel: String,
+    pub max_workers: u32,
     pub subtitle: SubtitleConfig,
     pub ai: AIConfig,
     pub youtube: PlatformConfig,

@@ -15,7 +15,7 @@
       <div 
         ref="timelineTrack"
         @click="handleTimelineClick"
-        class="flex-1 bg-black/40 rounded-lg border border-[var(--color-subtle)] relative overflow-hidden flex items-center px-4 cursor-pointer"
+        class="flex-1 bg-black/40 rounded-lg border border-[var(--color-subtle)] relative overflow-hidden flex items-center cursor-pointer"
       >
         <!-- Dynamic Playhead -->
         <div 
@@ -34,18 +34,23 @@
           <!-- Zoomed Segment View -->
           <template v-if="videoStore.selectedSegment">
               <!-- Subtitle Track -->
-              <div class="h-6 w-full relative">
-                  <div 
-                      v-for="(word, i) in segmentTranscript" 
-                      :key="i"
-                      class="absolute top-0 bottom-0 bg-blue-500/30 border border-blue-400/50 rounded flex items-center overflow-hidden"
-                      :style="{
-                          left: `${((word.start - videoStore.selectedSegment.start) / (videoStore.selectedSegment.end - videoStore.selectedSegment.start)) * 100}%`,
-                          width: `${((word.end - word.start) / (videoStore.selectedSegment.end - videoStore.selectedSegment.start)) * 100}%`
-                      }"
-                  >
-                      <span class="text-[8px] text-blue-200 font-bold px-1 truncate w-full">{{ word.text }}</span>
-                  </div>
+              <div class="h-6 w-full relative flex items-center justify-center">
+                  <span v-if="videoStore.isAnalyzing" class="text-[9px] text-gray-400 font-bold uppercase animate-pulse flex items-center gap-1">
+                      <IconLoader class="w-3 h-3 animate-spin" /> Transcribing Audio...
+                  </span>
+                  <template v-else-if="segmentTranscript.length">
+                      <div 
+                          v-for="(word, i) in segmentTranscript" 
+                          :key="i"
+                          class="absolute top-0 bottom-0 bg-blue-500/30 border border-blue-400/50 rounded flex items-center overflow-hidden"
+                          :style="{
+                              left: `${(word.start / (videoStore.selectedSegment.end - videoStore.selectedSegment.start)) * 100}%`,
+                              width: `${((word.end - word.start) / (videoStore.selectedSegment.end - videoStore.selectedSegment.start)) * 100}%`
+                          }"
+                      >
+                          <span class="text-[8px] text-blue-200 font-bold px-1 truncate w-full">{{ word.text }}</span>
+                      </div>
+                  </template>
               </div>
 
               <!-- Main Video Track -->
@@ -113,6 +118,7 @@ import GlowButton from '../GlowButton.vue';
 
 import IconListVideo from '~icons/lucide/list-video';
 import IconWand2 from '~icons/lucide/wand-2';
+import IconLoader from '~icons/lucide/loader-2';
 
 const videoStore = useVideoStore();
 const timelineTrack = ref<HTMLElement | null>(null);

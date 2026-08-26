@@ -21,6 +21,9 @@ use std::sync::Arc;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Set up PATH environment variables for dependencies
+    deps::manager::setup_env();
+
     // Inisialisasi tracing untuk logging
     tracing_subscriber::fmt::init();
 
@@ -58,6 +61,8 @@ pub fn run() {
             commands::sync::download_file,
             commands::auth::get_user_info,
             orchestrator::scan::scan_video,
+            deps::manager::check_dependencies,
+            deps::manager::install_dependencies,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

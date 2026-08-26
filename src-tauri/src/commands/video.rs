@@ -55,32 +55,49 @@ pub struct SegmentAnalysisResult {
 pub async fn analyze_segment_audio(
     _url: String,
     start: f64,
-    _end: f64,
+    end: f64,
+    _stream_url: Option<String>,
 ) -> Result<SegmentAnalysisResult, CliptzyError> {
-    // TODO: Implement actual audio download via ffmpeg stream
-    // TODO: Implement actual Whisper-rs transcription
-    // TODO: Implement actual AI Metadata / Effect generation
+    let app_dir = crate::paths::app_data_dir();
+    let temp_dir = app_dir.join("temp");
+    std::fs::create_dir_all(&temp_dir).ok();
     
-    // For now, return mock data so frontend can build the UX
-    tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+    // Hash URL and timing to avoid re-downloading during same session
+    let file_name = format!("seg_{}_{}_{}.wav", uuid::Uuid::new_v4().to_string().chars().take(8).collect::<String>(), start, end);
+    let audio_wav_path = temp_dir.join(file_name);
+    let input_url = _stream_url.unwrap_or(_url.clone());
+    tracing::info!("Analisis segmen audio dimulai | Start: {}s, End: {}s", start, end);
+    
+    // Load config to check for youtube cookies
+    let config = crate::config::models::AppConfig::load().unwrap_or_default();
+    let cookies_path = config.youtube.session.as_deref().filter(|s| !s.is_empty());
+    
+    // 1. Extract audio chunk (pass the original YouTube URL so yt-dlp can handle cookies/throttling)
+    tracing::info!("Tahap 1: Ekstraksi WAV melalui yt-dlp/FFmpeg...");
+    crate::transcription::audio::extract_audio_segment(&_url, start, end, &audio_wav_path, cookies_path).await?;
+    
+    // 2. Ensure model exists
+    let whisper_model = if config.subtitle.whisper_model.is_empty() {
+        "tiny".to_string()
+    } else {
+        config.subtitle.whisper_model.clone()
+    };
+    tracing::info!("Tahap 2: Memeriksa dan memuat model Whisper ({})...", whisper_model);
+    let model_path = crate::transcription::whisper::ensure_model_exists(&whisper_model).await?;
+    
+    // 3. Transcribe audio
+    tracing::info!("Tahap 3: Menjalankan transkripsi Whisper (local)...");
+    let transcriber = crate::transcription::whisper::WhisperTranscriber::new(&model_path)?;
+    let transcript = transcriber.transcribe(&audio_wav_path).await?;
+    
+    // Clean up temporary audio file
+    tracing::info!("Tahap 4: Membersihkan file audio sementara...");
+    let _ = std::fs::remove_file(&audio_wav_path);
+    
+    tracing::info!("Analisis segmen audio selesai. Ditemukan {} blok teks.", transcript.len());
     
     Ok(SegmentAnalysisResult {
-        transcript: vec![
-            crate::transcription::models::TranscriptionSegment {
-                id: 0,
-                start: start,
-                end: start + 2.0,
-                text: "Ini adalah hasil".to_string(),
-                words: vec![],
-            },
-            crate::transcription::models::TranscriptionSegment {
-                id: 1,
-                start: start + 2.0,
-                end: start + 4.0,
-                text: "analisis pre-render".to_string(),
-                words: vec![],
-            }
-        ],
+        transcript,
         ai_effects: vec![],
     })
 }

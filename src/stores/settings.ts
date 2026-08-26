@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia';
 import { useStorage } from '@vueuse/core';
+import { watch } from 'vue';
+import { invoke } from '@tauri-apps/api/core';
 
 export interface SubtitleConfig {
   enabled: boolean;
@@ -205,8 +207,11 @@ const defaultSettings: AppConfig = {
   }
 };
 
+import { useAppStore } from './app';
+
 export const useSettingsStore = defineStore('settings', () => {
   const config = useStorage<AppConfig>('cliptzy-settings', defaultSettings);
+  const appStore = useAppStore();
   
   const toDict = () => {
     return JSON.parse(JSON.stringify(config.value));
@@ -228,6 +233,31 @@ export const useSettingsStore = defineStore('settings', () => {
       config.value.out_height = null;
     }
   };
+
+  let debounceTimer: any = null;
+  // Watch for changes and sync to Rust backend
+  watch(() => config.value, (newConfig) => {
+    if (debounceTimer) clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(async () => {
+      try {
+        await invoke('save_config_file', { configJson: JSON.stringify(newConfig) });
+        appStore.addToast({
+          title: 'Pengaturan Tersimpan',
+          message: 'Konfigurasi berhasil disinkronisasi ke engine Rust.',
+          type: 'success',
+          duration: 3000
+        });
+      } catch (e: any) {
+        appStore.addToast({
+          title: 'Gagal Menyimpan',
+          message: String(e),
+          type: 'error',
+          duration: 5000
+        });
+        console.error("Failed to save config to backend:", e);
+      }
+    }, 1500);
+  }, { deep: true });
 
   return { 
     config, 

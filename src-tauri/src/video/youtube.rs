@@ -49,7 +49,7 @@ pub async fn analyze_youtube_video(
     let bin_dir = app_dir.join("bin");
 
     let downloader = get_downloader(bin_dir, cookies_path).await?;
-
+    
     let video = downloader
         .fetch_video_infos(url)
         .await
@@ -71,8 +71,14 @@ pub async fn analyze_youtube_video(
         .collect();
 
     // Get the best video/audio format or a fallback URL
-    // Prioritize mp4 that has both audio and video for best HTML5 compatibility
-    let stream_url = video.formats.iter()
+    tracing::info!("Mencari format media yang cocok untuk video ID: {}", video.id);
+    
+    // Filter formats: only allow formats that have video or audio (no storyboards)
+    let valid_formats: Vec<_> = video.formats.iter()
+        .filter(|f| f.format_type().is_audio_and_video() || f.format_type().is_audio() || f.format_type().is_video())
+        .collect();
+
+    let stream_url = valid_formats.iter()
         .find(|f| {
             f.format_type().is_audio_and_video() && f.download_info.ext.as_str() == "mp4"
         })
@@ -83,13 +89,25 @@ pub async fn analyze_youtube_video(
                 .and_then(|f| f.download_info.url.clone())
         })
         .or_else(|| {
-            // Fallback to first available URL
-            video.formats.iter().find_map(|f| f.download_info.url.clone())
+            // Fallback: Best audio format if no video+audio is found
+            valid_formats.iter()
+                .find(|f| f.format_type().is_audio())
+                .and_then(|f| f.download_info.url.clone())
+        })
+        .or_else(|| {
+            // Absolute fallback: First valid media URL
+            valid_formats.first().and_then(|f| f.download_info.url.clone())
         });
+        
+    if let Some(ref url) = stream_url {
+        tracing::info!("Berhasil mendapatkan stream URL: {}...", &url[..std::cmp::min(url.len(), 50)]);
+    } else {
+        tracing::warn!("Tidak menemukan stream URL yang valid dari yt-dlp!");
+    }
 
     Ok(VideoAnalysisResult {
-        video_id: video.id,
-        title: video.title,
+        video_id: video.id.clone(),
+        title: video.title.clone(),
         thumbnail: video.thumbnail.unwrap_or_default(),
         duration: video.duration.unwrap_or(0) as f64,
         segments,

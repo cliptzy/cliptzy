@@ -83,36 +83,46 @@
             </div>
 
             <!-- Subtitle Overlay -->
-            <div class="absolute bottom-24 left-0 w-full text-center px-4" v-show="currentTranscript || !videoStore.selectedSegment">
+            <div class="absolute bottom-24 left-0 w-full text-center px-4" v-show="currentSubtitle || !videoStore.selectedSegment">
                 <span
                     v-if="settings.config.subtitle.animation === 'hormozi'"
                     key="hormozi"
                     class="text-2xl font-black uppercase text-yellow-400 drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)]"
                     style="-webkit-text-stroke: 1px black"
                 >
-                    {{ currentTranscript || 'INI SANGAT PENTING!' }}
+                    {{ currentSubtitle?.text || 'INI SANGAT PENTING!' }}
                 </span>
                 <span
                     v-else-if="settings.config.subtitle.animation === 'karaoke'"
                     key="karaoke"
-                    class="text-xl font-bold text-gray-300 drop-shadow-md"
+                    class="text-xl font-bold text-gray-300 drop-shadow-md flex justify-center flex-wrap gap-x-1.5"
                 >
-                    <span class="text-green-400">{{ currentTranscript?.split(' ')[0] || 'Ini' }}</span> 
-                    {{ currentTranscript?.split(' ').slice(1).join(' ') || 'sangat penting!' }}
+                    <span 
+                        v-if="currentSubtitle"
+                        v-for="(w, idx) in currentSubtitle.words" 
+                        :key="idx"
+                        :class="w.active ? 'text-green-400 scale-110 transition-transform' : 'text-gray-300'"
+                    >
+                        {{ w.text.trim() }}
+                    </span>
+                    <span v-else class="text-gray-300">
+                        <span class="text-green-400 scale-110 inline-block transition-transform">Ini</span> 
+                        sangat penting!
+                    </span>
                 </span>
                 <span
                     v-else-if="settings.config.subtitle.border_style === 3"
                     key="brutalist"
                     class="text-xl font-mono uppercase bg-red-600 text-white px-2 py-0.5 shadow-[4px_4px_0px_#000]"
                 >
-                    {{ currentTranscript || 'INI SANGAT PENTING' }}
+                    {{ currentSubtitle?.text || 'INI SANGAT PENTING' }}
                 </span>
                 <span
                     v-else
                     key="plain"
                     class="text-xl font-bold text-white drop-shadow-md"
                 >
-                    {{ currentTranscript || 'Ini sangat penting!' }}
+                    {{ currentSubtitle?.text || 'Ini sangat penting!' }}
                 </span>
             </div>
         </div>
@@ -205,15 +215,85 @@ const isYoutube = computed(() => {
     return videoStore.metadata?.video_id && videoStore.metadata.video_id !== 'local';
 });
 
-const currentTranscript = computed(() => {
+const currentSubtitle = computed(() => {
     if (!videoStore.selectedSegment) return null;
     const key = `${videoStore.selectedSegment.start}-${videoStore.selectedSegment.end}`;
     const analysis = videoStore.analyzedSegments[key];
     if (!analysis || !analysis.transcript) return null;
 
     // Find the segment that matches localTime
-    const segment = analysis.transcript.find((t: any) => localTime.value >= t.start && localTime.value <= t.end);
-    return segment ? segment.text : null;
+    const segment = analysis.transcript.find((t: any) => {
+        const absStart = t.start + videoStore.selectedSegment!.start;
+        const absEnd = t.end + videoStore.selectedSegment!.start;
+        return localTime.value >= absStart && localTime.value <= absEnd;
+    });
+
+    if (!segment) return null;
+
+    // If no word-level timestamps, return full text
+    if (!segment.words || segment.words.length === 0) {
+        return {
+            text: segment.text,
+            words: [{ text: segment.text, active: true }]
+        };
+    }
+
+    const maxWords = settings.config.subtitle.max_words || 3;
+    const words = segment.words;
+
+    // Group words into chunks of `maxWords`
+    const chunks: any[][] = [];
+    for (let i = 0; i < words.length; i += maxWords) {
+        chunks.push(words.slice(i, i + maxWords));
+    }
+
+    // Find which chunk we are currently in based on localTime
+    let activeChunk: any[] | null = null;
+    
+    for (const chunk of chunks) {
+        const firstWordStart = chunk[0].start + videoStore.selectedSegment!.start;
+        const lastWordEnd = chunk[chunk.length - 1].end + videoStore.selectedSegment!.start;
+        
+        // If current time is within this chunk's time boundaries
+        if (localTime.value >= firstWordStart && localTime.value <= lastWordEnd) {
+            activeChunk = chunk;
+            break;
+        }
+        
+        // If we are in a gap BEFORE this chunk starts
+        if (localTime.value < firstWordStart) {
+            // Only show the chunk precisely when it starts (0.0 threshold)
+            // This prevents subtitles appearing before spoken during gaps
+            if (firstWordStart - localTime.value <= 0.05) {
+                activeChunk = chunk;
+            }
+            break;
+        }
+    }
+
+    if (!activeChunk) return null;
+
+    // Find the most recently active word index inside the chunk
+    let activeWordIndex = -1;
+    for (let i = 0; i < activeChunk.length; i++) {
+        const absStart = activeChunk[i].start + videoStore.selectedSegment!.start;
+        if (localTime.value >= absStart) {
+            activeWordIndex = i;
+        }
+    }
+    if (activeWordIndex === -1) activeWordIndex = 0; // fallback if it hasn't started yet
+
+    const displayWords = activeChunk.map((w: any, index: number) => {
+        return {
+            text: w.word,
+            active: index === activeWordIndex
+        };
+    });
+
+    return {
+        text: displayWords.map((w: any) => w.text).join(''), // `w.word` already has leading spaces from whisper
+        words: displayWords
+    };
 });
 
 const applyVolume = () => {
