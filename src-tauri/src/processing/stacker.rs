@@ -31,18 +31,21 @@ pub async fn stack_video(
     
     fs::write(&concat_file_path, file_content).map_err(CliptzyError::Io)?;
     
-    let builder = FFmpegBuilder::new()
-        .map_err(|e| CliptzyError::FFmpeg { code: -1, message: format!("Builder error: {}", e) })?
-        .raw_args(vec!["-f".to_string(), "concat".to_string(), "-safe".to_string(), "0".to_string()])
-        .input_path(concat_file_path.clone())
-        .raw_args(vec!["-c".to_string(), "copy".to_string()])
-        .output_path(output_path.to_path_buf());
-        
-    let process = builder.spawn().await
+    let mut cmd = tokio::process::Command::new("ffmpeg");
+    cmd.arg("-y")
+       .arg("-f").arg("concat")
+       .arg("-safe").arg("0")
+       .arg("-i").arg(&concat_file_path)
+       .arg("-c").arg("copy")
+       .arg(output_path);
+
+    let output = cmd.output().await
         .map_err(|e| CliptzyError::FFmpeg { code: -1, message: format!("Spawn failed: {}", e) })?;
-        
-    process.wait().await
-        .map_err(|e| CliptzyError::FFmpeg { code: -1, message: format!("Process failed: {}", e) })?;
+
+    if !output.status.success() {
+        let err_msg = String::from_utf8_lossy(&output.stderr);
+        return Err(CliptzyError::FFmpeg { code: -1, message: format!("Process failed: {}", err_msg) });
+    }
     
     let _ = fs::remove_file(concat_file_path);
     

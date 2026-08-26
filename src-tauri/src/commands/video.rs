@@ -65,7 +65,6 @@ pub async fn analyze_segment_audio(
     // Hash URL and timing to avoid re-downloading during same session
     let file_name = format!("seg_{}_{}_{}.wav", uuid::Uuid::new_v4().to_string().chars().take(8).collect::<String>(), start, end);
     let audio_wav_path = temp_dir.join(file_name);
-    let input_url = _stream_url.unwrap_or(_url.clone());
     tracing::info!("Analisis segmen audio dimulai | Start: {}s, End: {}s", start, end);
     
     // Load config to check for youtube cookies

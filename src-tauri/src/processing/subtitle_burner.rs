@@ -16,9 +16,16 @@ pub async fn burn_subtitle(
 ) -> Result<(), CliptzyError> {
     let mut graph = FilterGraph::new();
 
-    let escaped_ass = config.ass_path.replace(":", "\\:");
+    // Fix for Windows paths in FFmpeg filter graph:
+    // 1. Replace backslashes with forward slashes
+    // 2. Escape the drive letter colon
+    // 3. Wrap the whole path in single quotes to handle spaces
+    let safe_path = config.ass_path.replace("\\", "/");
+    let escaped_ass = safe_path.replace(":", "\\:");
+    let final_ass = format!("'{}'", escaped_ass);
+    
     let sub_node = FilterNode::new("subtitles")
-        .param("", &escaped_ass)
+        .param("", &final_ass)
         .inputs(&["0:v"])
         .outputs(&["v_subbed"]);
     graph.add_node(sub_node);

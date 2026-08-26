@@ -1,5 +1,4 @@
 use crate::error::CliptzyError;
-use std::path::PathBuf;
 use tauri::{AppHandle, Emitter};
 use serde::Serialize;
 use reqwest::Client;

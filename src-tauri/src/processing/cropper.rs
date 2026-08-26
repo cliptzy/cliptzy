@@ -1,7 +1,6 @@
 use crate::error::CliptzyError;
 use crate::processing::ffmpeg::filters::{FilterGraph, FilterNode};
 use rust_ffmpeg::builder::FFmpegBuilder;
-use rust_ffprobe::types::ProbeResult;
 use std::path::Path;
 
 pub struct OutputConfig {
@@ -25,7 +24,6 @@ pub trait CropStrategy: Send + Sync {
         &self,
         input: &Path,
         output: &Path,
-        video_info: &ProbeResult,
         output_config: &OutputConfig,
     ) -> Result<FFmpegBuilder, CliptzyError>;
 }
@@ -41,14 +39,13 @@ impl CropStrategy for DefaultCrop {
         &self,
         input: &Path,
         output: &Path,
-        _video_info: &ProbeResult,
         output_config: &OutputConfig,
     ) -> Result<FFmpegBuilder, CliptzyError> {
         let mut graph = FilterGraph::new();
 
         let scale = FilterNode::new("scale")
-            .param("w", &format!("max(iw*{}/ih,{})", output_config.height, output_config.width))
-            .param("h", &format!("max(ih*{}/iw,{})", output_config.width, output_config.height))
+            .param("w", &format!("'max(iw*{}/ih,{})'", output_config.height, output_config.width))
+            .param("h", &format!("'max(ih*{}/iw,{})'", output_config.width, output_config.height))
             .inputs(&["0:v"])
             .outputs(&["scaled"]);
 
@@ -89,14 +86,13 @@ impl CropStrategy for FullCrop {
         &self,
         input: &Path,
         output: &Path,
-        _video_info: &ProbeResult,
         output_config: &OutputConfig,
     ) -> Result<FFmpegBuilder, CliptzyError> {
         let mut graph = FilterGraph::new();
 
         let bg_scale = FilterNode::new("scale")
-            .param("w", &format!("max(iw*{}/ih,{})", output_config.height, output_config.width))
-            .param("h", &format!("max(ih*{}/iw,{})", output_config.width, output_config.height))
+            .param("w", &format!("'max(iw*{}/ih,{})'", output_config.height, output_config.width))
+            .param("h", &format!("'max(ih*{}/iw,{})'", output_config.width, output_config.height))
             .inputs(&["0:v"])
             .outputs(&["bg_scaled"]);
 

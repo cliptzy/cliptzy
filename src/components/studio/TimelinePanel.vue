@@ -99,12 +99,13 @@
       
       <IconWand2 class="w-10 h-10 text-[var(--color-accent)]" />
       <div class="flex flex-col">
-        <h3 class="text-xl font-black text-white">Generate 5 Shorts</h3>
-        <p class="text-xs text-gray-400">Total estimasi: ~3 menit</p>
+        <h3 class="text-xl font-black text-white">Generate {{ selectedSegmentsCount }} Shorts</h3>
+        <p class="text-xs text-gray-400">Total estimasi: ~{{ selectedSegmentsCount * 3 }} menit</p>
       </div>
       
-      <GlowButton class="w-full py-3 text-lg mt-2">
-        Mulai Rendering
+      <GlowButton class="w-full py-3 text-lg mt-2" :disabled="selectedSegmentsCount === 0 || isRendering" @click="handleRender">
+        <span v-if="isRendering">Rendering...</span>
+        <span v-else>Mulai Rendering</span>
       </GlowButton>
     </BentoCard>
   </div>
@@ -113,6 +114,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useVideoStore } from '../../stores/video';
+import { invoke } from '@tauri-apps/api/core';
 import BentoCard from '../BentoCard.vue';
 import GlowButton from '../GlowButton.vue';
 
@@ -122,6 +124,7 @@ import IconLoader from '~icons/lucide/loader-2';
 
 const videoStore = useVideoStore();
 const timelineTrack = ref<HTMLElement | null>(null);
+const isRendering = ref(false);
 
 const segmentTranscript = computed(() => {
     if (!videoStore.selectedSegment) return [];
@@ -157,5 +160,53 @@ const handleTimelineClick = (e: MouseEvent) => {
     const clickX = e.clientX - rect.left;
     const percentage = Math.max(0, Math.min(1, clickX / rect.width));
     videoStore.currentTime = start + (percentage * duration);
+};
+
+const selectedSegmentsCount = computed(() => {
+    if (!videoStore.metadata) return 0;
+    let count = 0;
+    if (videoStore.metadata.segments) {
+        count += videoStore.metadata.segments.filter(s => s.selectedForRender).length;
+    }
+    if (videoStore.metadata.ai_segments) {
+        count += videoStore.metadata.ai_segments.filter(s => s.selectedForRender).length;
+    }
+    return count;
+});
+
+const handleRender = async () => {
+    if (!videoStore.metadata || !videoStore.currentUrl) return;
+    
+    let segmentsToProcess = [];
+    if (videoStore.metadata.segments) {
+        segmentsToProcess.push(...videoStore.metadata.segments.filter(s => s.selectedForRender));
+    }
+    if (videoStore.metadata.ai_segments) {
+        segmentsToProcess.push(...videoStore.metadata.ai_segments.filter(s => s.selectedForRender));
+    }
+    
+    if (segmentsToProcess.length === 0) return;
+    
+    isRendering.value = true;
+    try {
+        for (const seg of segmentsToProcess) {
+            const payload = {
+                url: videoStore.currentUrl,
+                video_id: videoStore.metadata.video_id,
+                start: seg.start,
+                end: seg.end,
+                crop_mode: 'default', // TODO: sync this with InspectorPanel selection
+                use_subtitle: true,
+                cookies_path: null
+            };
+            
+            console.log("Invoking clip_video for segment", payload);
+            await invoke('clip_video', { payload });
+        }
+    } catch (err) {
+        console.error("Render failed", err);
+    } finally {
+        isRendering.value = false;
+    }
 };
 </script>

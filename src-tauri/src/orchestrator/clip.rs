@@ -61,8 +61,7 @@ impl ClipVideoUseCase {
             self.ctx.cancel_token.clone(),
         ).await?;
 
-        // 2. Probe Video
-        let probe = crate::video::local::probe_local_video(&source_video).await?;
+        // 2. Removed Probe Video due to rust_ffprobe parsing bugs
 
         // 3. Crop Video
         emit_progress(&self.ctx.app_handle, &ProgressEvent {
@@ -75,7 +74,7 @@ impl ClipVideoUseCase {
         
         let cropper = create_crop_strategy(&payload.crop_mode);
         let out_config = OutputConfig::default();
-        let crop_cmd = cropper.build_command(&source_video, &cropped_video, &probe, &out_config)?;
+        let crop_cmd = cropper.build_command(&source_video, &cropped_video, &out_config)?;
         
         let crop_process = crop_cmd.spawn().await
             .map_err(|e| CliptzyError::FFmpeg { code: -1, message: format!("Spawn failed: {}", e) })?;
@@ -83,7 +82,7 @@ impl ClipVideoUseCase {
             .map_err(|e| CliptzyError::FFmpeg { code: -1, message: format!("Crop failed: {}", e) })?;
 
         // 4. Transcription & Subtitle Burn (Optional)
-        let current_video = cropped_video.clone();
+        let mut current_video = cropped_video.clone();
         
         if payload.use_subtitle {
             emit_progress(&self.ctx.app_handle, &ProgressEvent {
@@ -94,11 +93,53 @@ impl ClipVideoUseCase {
                 detail: None,
             });
             
-            // Simplified transcription step for now
-            // Assumes ASS file is generated
-            // let subbed_video = job_dir.join("subbed.mp4");
-            // burn_subtitle(&current_video, &subbed_video, &SubtitleBurnerConfig { ... }).await?;
-            // current_video = subbed_video;
+            // Extract audio for Whisper using existing audio module
+            let audio_wav = job_dir.join("audio_16k.wav");
+            let duration = payload.end - payload.start;
+            crate::transcription::audio::extract_audio_segment(
+                &current_video.to_string_lossy(),
+                0.0,
+                duration,
+                &audio_wav,
+                None,
+            ).await?;
+
+            // Transcribe
+            let whisper_model = if self.ctx.config.subtitle.whisper_model.is_empty() {
+                "tiny".to_string()
+            } else {
+                self.ctx.config.subtitle.whisper_model.clone()
+            };
+            let model_path = crate::transcription::whisper::ensure_model_exists(&whisper_model).await?;
+            let transcriber = crate::transcription::whisper::WhisperTranscriber::new(&model_path)?;
+            let transcript = transcriber.transcribe(&audio_wav).await?;
+            
+            // Generate ASS
+            let ass_path = job_dir.join("subtitles.ass");
+            let mut sub_config = crate::transcription::models::SubtitleConfig::default();
+            if !self.ctx.config.subtitle.font.is_empty() {
+                sub_config.font = self.ctx.config.subtitle.font.clone();
+            }
+            if self.ctx.config.subtitle.font_size > 0 {
+                sub_config.font_size = self.ctx.config.subtitle.font_size;
+            }
+            
+            crate::transcription::ass_writer::generate_ass_file(
+                &transcript, 
+                &ass_path, 
+                &sub_config, 
+                (out_config.width, out_config.height)
+            )?;
+
+            // Burn Subtitle
+            let subbed_video = job_dir.join("subbed.mp4");
+            let burn_config = crate::processing::subtitle_burner::SubtitleBurnerConfig {
+                ass_path: ass_path.to_string_lossy().to_string(),
+                vfx_overlay_path: None,
+                normalize_audio: true,
+            };
+            crate::processing::subtitle_burner::burn_subtitle(&current_video, &subbed_video, &burn_config).await?;
+            current_video = subbed_video;
         }
 
         // 5. Stacker (Optional Intro/Outro)

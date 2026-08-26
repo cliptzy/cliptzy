@@ -4,8 +4,27 @@ use rust_ffprobe::probe;
 use rust_ffmpeg::builder::FFmpegBuilder;
 
 pub async fn probe_local_video(path: &Path) -> Result<rust_ffprobe::types::ProbeResult, CliptzyError> {
-    let probe = probe(path.to_path_buf()).await
-        .map_err(|e| CliptzyError::FFmpeg { code: -1, message: format!("ffprobe error: {}", e) })?;
+    let mut cmd = tokio::process::Command::new("ffprobe");
+    cmd.arg("-v").arg("quiet")
+       .arg("-print_format").arg("json")
+       .arg("-show_format")
+       .arg("-show_streams")
+       .arg(path)
+       .stdin(std::process::Stdio::null())
+       .stdout(std::process::Stdio::piped())
+       .stderr(std::process::Stdio::piped());
+
+    let output = cmd.output().await
+        .map_err(|e| CliptzyError::FFmpeg { code: -1, message: format!("ffprobe launch error: {}", e) })?;
+
+    if !output.status.success() {
+        let err_msg = String::from_utf8_lossy(&output.stderr);
+        return Err(CliptzyError::FFmpeg { code: -1, message: format!("ffprobe failed: {}", err_msg) });
+    }
+
+    let probe: rust_ffprobe::types::ProbeResult = serde_json::from_slice(&output.stdout)
+        .map_err(|e| CliptzyError::FFmpeg { code: -1, message: format!("ffprobe parse error: {}", e) })?;
+
     Ok(probe)
 }
 

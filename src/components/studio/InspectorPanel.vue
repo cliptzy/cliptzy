@@ -176,22 +176,25 @@ const aiWhisper = defineModel('aiWhisper', { type: Boolean, default: true });
 const aiBRoll = defineModel('aiBRoll', { type: Boolean, default: false });
 
 const handleGenerateSubtitle = async () => {
-  if (!videoStore.metadata?.stream_url) return;
+  if (!videoStore.currentUrl) return;
   // Use selected segment
   const start = videoStore.selectedSegment?.start || videoStore.currentTime || 0;
   const end = videoStore.selectedSegment?.end || start + 60; 
-  await videoStore.analyzeSegmentAudio(videoStore.metadata.stream_url, start, end);
+  await videoStore.analyzeSegmentAudio(videoStore.currentUrl, start, end, videoStore.metadata?.stream_url);
 };
 
 // Auto-generate if a new segment is selected and aiWhisper is enabled
 import { watch } from 'vue';
 watch(() => videoStore.selectedSegment, (newSegment, oldSegment) => {
+  // Disabled auto-transcribe on segment click
+  /*
   if (aiWhisper.value && newSegment && newSegment.start !== oldSegment?.start) {
     const key = `${newSegment.start}-${newSegment.end}`;
     if (!videoStore.analyzedSegments[key] && !videoStore.isAnalyzing) {
       handleGenerateSubtitle();
     }
   }
+  */
 });
 
 watch(aiWhisper, (newVal) => {

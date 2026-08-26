@@ -123,7 +123,8 @@ export const useVideoStore = defineStore('video', () => {
       // Avoid re-analyzing if we already have it
       const key = `${newSeg.start}-${newSeg.end}`;
       if (!analyzedSegments.value[key]) {
-        await analyzeSegmentAudio(currentUrl.value, newSeg.start, newSeg.end, metadata.value?.stream_url);
+        // Disabled auto-transcribe on click
+        // await analyzeSegmentAudio(currentUrl.value, newSeg.start, newSeg.end, metadata.value?.stream_url);
       }
     }
   });

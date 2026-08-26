@@ -7,20 +7,22 @@ pub enum HwAccel {
 }
 
 impl HwAccel {
-    pub fn detect(_config_override: Option<&str>) -> Self {
-        // Nanti implementasi deteksi hardware sungguhan 
-        // dengan menggunakan eksekusi subprocess `ffmpeg -hwaccels` atau deteksi OS
+    pub fn detect(config_override: Option<&str>) -> Self {
+        if let Some(cfg) = config_override {
+            match cfg.to_lowercase().as_str() {
+                "nvenc" => return HwAccel::Nvenc,
+                "amf" => return HwAccel::Amf,
+                "qsv" => return HwAccel::Qsv,
+                "videotoolbox" => return HwAccel::VideoToolbox,
+                "cpu" | "software" => return HwAccel::Cpu,
+                _ => {} // Fallthrough
+            }
+        }
         
         #[cfg(target_os = "macos")]
         return HwAccel::VideoToolbox;
 
-        #[cfg(target_os = "windows")]
-        return HwAccel::Nvenc; // Simplified fallback, actually we should detect
-
-        #[cfg(target_os = "linux")]
-        return HwAccel::Cpu; 
-
-        #[allow(unreachable_code)]
+        // Default to CPU for maximum compatibility
         HwAccel::Cpu
     }
 
