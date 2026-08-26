@@ -14,8 +14,16 @@ pub struct OpenAIProvider {
 
 impl OpenAIProvider {
     pub fn new(api_key: &str, model: &str, base_url: &str) -> Self {
-        let model = if model.is_empty() { "gpt-4o-mini" } else { model };
-        let base_url = if base_url.is_empty() { "https://api.openai.com/v1" } else { base_url };
+        let model = if model.is_empty() {
+            "gpt-4o-mini"
+        } else {
+            model
+        };
+        let base_url = if base_url.is_empty() {
+            "https://api.openai.com/v1"
+        } else {
+            base_url
+        };
         Self {
             api_key: api_key.to_string(),
             model: model.to_string(),
@@ -37,7 +45,7 @@ impl AIProvider for OpenAIProvider {
         _progress: Option<&ProgressTx>,
     ) -> Result<String, CliptzyError> {
         let url = format!("{}/chat/completions", self.base_url);
-        
+
         let body = json!({
             "model": self.model,
             "messages": [
@@ -55,7 +63,9 @@ impl AIProvider for OpenAIProvider {
             "stream": true
         });
 
-        let mut res = self.client.post(&url)
+        let mut res = self
+            .client
+            .post(&url)
             .header("Authorization", format!("Bearer {}", self.api_key))
             .json(&body)
             .send()
@@ -65,11 +75,18 @@ impl AIProvider for OpenAIProvider {
         if !res.status().is_success() {
             let status = res.status();
             let err_text = res.text().await.unwrap_or_default();
-            return Err(CliptzyError::AIProvider(format!("OpenAI error ({}): {}", status, err_text)));
+            return Err(CliptzyError::AIProvider(format!(
+                "OpenAI error ({}): {}",
+                status, err_text
+            )));
         }
 
         let mut full_response = String::new();
-        while let Some(chunk) = res.chunk().await.map_err(|e| CliptzyError::AIProvider(e.to_string()))? {
+        while let Some(chunk) = res
+            .chunk()
+            .await
+            .map_err(|e| CliptzyError::AIProvider(e.to_string()))?
+        {
             let chunk_str = String::from_utf8_lossy(&chunk);
             for line in chunk_str.lines() {
                 let line = line.trim();
@@ -78,7 +95,11 @@ impl AIProvider for OpenAIProvider {
                     if let Ok(data) = serde_json::from_str::<serde_json::Value>(json_str) {
                         if let Some(choices) = data.get("choices").and_then(|c| c.as_array()) {
                             if let Some(first) = choices.first() {
-                                if let Some(content) = first.get("delta").and_then(|d| d.get("content")).and_then(|c| c.as_str()) {
+                                if let Some(content) = first
+                                    .get("delta")
+                                    .and_then(|d| d.get("content"))
+                                    .and_then(|c| c.as_str())
+                                {
                                     full_response.push_str(content);
                                 }
                             }

@@ -7,7 +7,7 @@ pub fn apply_watermark(
     position: &str,
 ) -> String {
     let wm_input = format!("{}:v", input_idx);
-    
+
     let (x, y) = match position {
         "top" => ("(W-w)/2", "30"),
         "bottom" => ("(W-w)/2", "H-h-30"),

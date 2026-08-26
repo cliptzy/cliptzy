@@ -24,7 +24,7 @@
     </div>
 
     <!-- Bottom Area: Timeline & Action -->
-    <TimelinePanel />
+    <TimelinePanel :cropMode="cropMode" />
   </div>
 </template>
 
@@ -41,7 +41,7 @@ import TimelinePanel from '../components/studio/TimelinePanel.vue';
 const videoStore = useVideoStore();
 const videoUrl = ref('');
 
-const cropMode = ref('auto');
+const cropMode = ref('default');
 const aiWhisper = ref(true);
 const aiBRoll = ref(false);
 const scanMode = ref('heatmap');

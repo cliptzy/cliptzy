@@ -36,7 +36,7 @@ impl FilterNode {
             s.push_str(&format!("[{}]", pad));
         }
         s.push_str(&self.name);
-        
+
         if !self.params.is_empty() {
             s.push('=');
             let params_str: Vec<String> = self
@@ -52,7 +52,7 @@ impl FilterNode {
                 .collect();
             s.push_str(&params_str.join(":"));
         }
-        
+
         for pad in &self.output_pads {
             s.push_str(&format!("[{}]", pad));
         }

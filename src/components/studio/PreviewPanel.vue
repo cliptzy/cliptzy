@@ -24,15 +24,13 @@
             >
                 <div id="youtube-player" class="w-full h-full"></div>
             </div>
-            
+
             <video
                 v-if="!isYoutube && videoStore.metadata?.stream_url"
                 ref="videoPlayer"
                 :src="videoStore.metadata.stream_url"
                 class="w-full h-full object-cover opacity-90"
                 loop
-                autoplay
-                muted
                 @timeupdate="
                     localTime = ($event.target as HTMLVideoElement).currentTime;
                     if (isPlaying) {
@@ -45,7 +43,7 @@
                     }
                 "
             />
-            
+
             <img
                 v-if="!videoStore.metadata"
                 src="https://images.unsplash.com/photo-1611162617474-5b21e879e113?q=80&w=1000&auto=format&fit=crop"
@@ -66,7 +64,7 @@
                 <div
                     class="absolute left-0 right-0 bottom-0 h-40 bg-gradient-to-t from-black/80 to-transparent"
                 ></div>
-                
+
                 <!-- Right Interaction Icons (Like, Comment, Share) -->
                 <div
                     class="absolute right-2 bottom-32 flex flex-col gap-4 opacity-70"
@@ -76,7 +74,7 @@
                     <div class="w-10 h-10 rounded-full bg-white/30 backdrop-blur-sm border border-white/20"></div>
                     <div class="w-10 h-10 rounded-full bg-white/30 backdrop-blur-sm border border-white/20"></div>
                 </div>
-                
+
                 <!-- Safe Zone Rectangle -->
                 <div
                     class="absolute left-2 right-14 top-16 bottom-32 border border-yellow-400/40 rounded-lg shadow-[inset_0_0_20px_rgba(250,204,21,0.1)] transition-opacity duration-300 border-dashed"
@@ -89,7 +87,7 @@
             </div>
 
             <!-- Watermark Overlay -->
-            <img 
+            <img
                 v-if="watermarkUrl"
                 :src="watermarkUrl"
                 class="absolute left-1/2 -translate-x-1/2 pointer-events-none opacity-50 object-contain w-24 h-24"
@@ -100,7 +98,7 @@
                 }"
             />
             <!-- Watermark Overlay Placeholder -->
-            <div 
+            <div
                 v-else
                 class="absolute left-1/2 -translate-x-1/2 pointer-events-none opacity-50 text-white font-bold text-sm bg-black/30 px-2 py-1 rounded"
                 :class="{
@@ -113,8 +111,8 @@
             </div>
 
             <!-- Subtitle Overlay -->
-            <div 
-                class="absolute left-0 w-full text-center px-4 pointer-events-none flex flex-col items-center justify-center" 
+            <div
+                class="absolute left-0 w-full text-center px-4 pointer-events-none flex flex-col items-center justify-center"
                 :class="{
                     'top-24': settings.config.subtitle.location === 'top',
                     'top-1/2 -translate-y-1/2': settings.config.subtitle.location === 'center',
@@ -137,9 +135,9 @@
                     class="font-bold drop-shadow-md flex justify-center flex-wrap gap-x-1.5"
                     :style="{ fontFamily: subtitleStyle.fontFamily, fontSize: subtitleStyle.fontSize }"
                 >
-                    <span 
+                    <span
                         v-if="currentSubtitle"
-                        v-for="(w, idx) in currentSubtitle.words" 
+                        v-for="(w, idx) in currentSubtitle.words"
                         :key="idx"
                         class="transition-transform"
                         :class="w.active ? 'scale-110' : ''"
@@ -148,7 +146,7 @@
                         {{ w.text.trim() }}
                     </span>
                     <span v-else class="text-gray-300">
-                        <span class="scale-110 inline-block transition-transform" :style="{ color: subtitleStyle.color }">Ini</span> 
+                        <span class="scale-110 inline-block transition-transform" :style="{ color: subtitleStyle.color }">Ini</span>
                         sangat penting!
                     </span>
                 </span>
@@ -156,8 +154,8 @@
                     v-else-if="settings.config.subtitle.border_style === 3"
                     key="brutalist"
                     class="font-mono uppercase px-2 py-0.5 shadow-[4px_4px_0px_#000]"
-                    :style="{ 
-                        fontFamily: subtitleStyle.fontFamily, 
+                    :style="{
+                        fontFamily: subtitleStyle.fontFamily,
                         fontSize: subtitleStyle.fontSize,
                         color: subtitleStyle.color,
                         backgroundColor: brutalistBgColor
@@ -198,27 +196,27 @@
             >
                 <IconSkipForward class="w-5 h-5" />
             </button>
-            
+
             <div class="w-px h-6 bg-white/20 mx-2"></div>
-            
+
             <!-- Volume Control -->
             <div class="flex items-center gap-2 group/volume w-24">
                 <button @click="toggleMute" class="text-white hover:text-[var(--color-accent)] transition-colors shrink-0">
                     <IconVolumeX v-if="isMuted || volume === 0" class="w-5 h-5" />
                     <IconVolume2 v-else class="w-5 h-5" />
                 </button>
-                <input 
-                    type="range" 
-                    v-model="volume" 
-                    min="0" 
-                    max="100" 
+                <input
+                    type="range"
+                    v-model="volume"
+                    min="0"
+                    max="100"
                     class="w-full h-1 bg-white/30 rounded-lg appearance-none cursor-pointer accent-[var(--color-accent)] outline-none"
                     @input="handleVolumeChange"
                 />
             </div>
 
             <div class="w-px h-6 bg-white/20 mx-2"></div>
-            
+
             <button
                 class="text-white hover:text-[var(--color-accent)] transition-colors"
                 @click="showSafeZone = !showSafeZone"
@@ -292,7 +290,7 @@ const subtitleStyle = computed(() => {
 
     let fontFamily = settings.config.subtitle.font || 'sans-serif';
 
-    const scale = 568 / 1280; 
+    const scale = 568 / 1280;
     const fontSizePx = (settings.config.subtitle.font_size || 60) * scale;
 
     return {
@@ -353,17 +351,17 @@ const currentSubtitle = computed(() => {
 
     // Find which chunk we are currently in based on localTime
     let activeChunk: any[] | null = null;
-    
+
     for (const chunk of chunks) {
         const firstWordStart = chunk[0].start + videoStore.selectedSegment!.start;
         const lastWordEnd = chunk[chunk.length - 1].end + videoStore.selectedSegment!.start;
-        
+
         // If current time is within this chunk's time boundaries
         if (localTime.value >= firstWordStart && localTime.value <= lastWordEnd) {
             activeChunk = chunk;
             break;
         }
-        
+
         // If we are in a gap BEFORE this chunk starts
         if (localTime.value < firstWordStart) {
             // Only show the chunk precisely when it starts (0.0 threshold)
@@ -402,7 +400,7 @@ const currentSubtitle = computed(() => {
 
 const applyVolume = () => {
     const vol = isMuted.value ? 0 : volume.value;
-    
+
     if (isYoutube.value && ytPlayer && ytPlayer.setVolume) {
         if (isMuted.value) {
             ytPlayer.mute();
@@ -437,7 +435,7 @@ const initPlayer = () => {
         width: '100%',
         height: '100%',
         playerVars: {
-            autoplay: 1,
+            autoplay: 0,
             controls: 0,
             disablekb: 1,
             fs: 0,
@@ -450,9 +448,8 @@ const initPlayer = () => {
         events: {
             onReady: (event: any) => {
                 applyVolume();
-                event.target.playVideo();
-                isPlaying.value = true;
-                
+                isPlaying.value = false;
+
                 // Start polling time and sync to store
                 ytInterval = setInterval(() => {
                     if (ytPlayer && ytPlayer.getCurrentTime) {
@@ -460,7 +457,7 @@ const initPlayer = () => {
                         localTime.value = t;
                         if (isPlaying.value) {
                             videoStore.currentTime = t;
-                            
+
                             // Auto-pause if we hit the end of selected segment
                             if (videoStore.selectedSegment && t >= videoStore.selectedSegment.end) {
                                 ytPlayer.pauseVideo();
@@ -546,7 +543,7 @@ const seekRelative = (delta: number) => {
 // Add a threshold check so we don't infinitely seek when store updates from normal playback
 watch(() => videoStore.currentTime, (time) => {
     if (time === undefined) return;
-    
+
     if (isYoutube.value) {
         if (ytPlayer && ytPlayer.seekTo) {
             const current = ytPlayer.getCurrentTime() || 0;
@@ -565,7 +562,7 @@ watch(() => videoStore.currentTime, (time) => {
             if (Math.abs(current - time) > 0.5) {
                 videoPlayer.value.currentTime = time;
                 localTime.value = time;
-                if (isPlaying.value) videoPlayer.value.play().catch(e => console.log('Autoplay prevented', e));
+                // if (isPlaying.value) videoPlayer.value.play().catch(e => console.log('Autoplay prevented', e));
             }
         }
     }

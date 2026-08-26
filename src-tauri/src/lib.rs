@@ -1,21 +1,21 @@
-pub mod monitor;
-pub mod paths;
-pub mod commands;
-pub mod supabase;
-pub mod video;
-pub mod error;
-pub mod config;
-pub mod processing;
-pub mod transcription;
-pub mod face;
 pub mod ai;
 pub mod analysis;
+pub mod channels;
+pub mod commands;
+pub mod config;
+pub mod constants;
+pub mod deps;
+pub mod error;
+pub mod face;
+pub mod monitor;
+pub mod orchestrator;
+pub mod paths;
+pub mod processing;
+pub mod supabase;
+pub mod transcription;
 pub mod tts;
 pub mod uploaders;
-pub mod orchestrator;
-pub mod channels;
-pub mod deps;
-pub mod constants;
+pub mod video;
 
 use std::sync::Arc;
 
@@ -32,12 +32,15 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
-        .manage(Arc::new(supabase::SupabaseClient::new().expect("Failed to initialize Supabase")))
+        .manage(Arc::new(
+            supabase::SupabaseClient::new().expect("Failed to initialize Supabase"),
+        ))
         .setup(|_app| {
             ctrlc::set_handler(move || {
                 tracing::info!("Ctrl+C received, shutting down...");
                 std::process::exit(0);
-            }).ok();
+            })
+            .ok();
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

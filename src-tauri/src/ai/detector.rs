@@ -1,10 +1,10 @@
-use crate::config::models::AIConfig;
-use crate::error::CliptzyError;
 use crate::ai::create_provider;
 use crate::ai::prompts::DEFAULT_PROMPT_TEMPLATE;
+use crate::config::models::AIConfig;
+use crate::error::CliptzyError;
 use crate::orchestrator::pipeline::ProgressTx;
-use serde_json::{Value, json};
 use regex::Regex;
+use serde_json::{json, Value};
 use std::collections::HashMap;
 
 pub struct AIHighlightDetector;
@@ -21,7 +21,10 @@ impl AIHighlightDetector {
         }
         if provider == "openai" {
             let base_url = config.openai_base_url.to_lowercase();
-            if base_url.contains("localhost") || base_url.contains("127.0.0.1") || base_url.contains("lmstudio") {
+            if base_url.contains("localhost")
+                || base_url.contains("127.0.0.1")
+                || base_url.contains("lmstudio")
+            {
                 return true;
             }
         }
@@ -42,8 +45,15 @@ impl AIHighlightDetector {
         let mut formatted_lines = Vec::new();
         for seg in transcript_segments {
             let start = seg.get("start").and_then(|v| v.as_f64()).unwrap_or(0.0);
-            let end = seg.get("end").and_then(|v| v.as_f64()).unwrap_or(start + 2.0);
-            let text = seg.get("text").and_then(|v| v.as_str()).unwrap_or("").trim();
+            let end = seg
+                .get("end")
+                .and_then(|v| v.as_f64())
+                .unwrap_or(start + 2.0);
+            let text = seg
+                .get("text")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .trim();
             if !text.is_empty() {
                 formatted_lines.push(format!("[{:.1}s - {:.1}s]: {}", start, end, text));
             }
@@ -89,7 +99,9 @@ impl AIHighlightDetector {
         all_highlights.sort_by(|a, b| {
             let start_a = a.get("start").and_then(|v| v.as_f64()).unwrap_or(0.0);
             let start_b = b.get("start").and_then(|v| v.as_f64()).unwrap_or(0.0);
-            start_a.partial_cmp(&start_b).unwrap_or(std::cmp::Ordering::Equal)
+            start_a
+                .partial_cmp(&start_b)
+                .unwrap_or(std::cmp::Ordering::Equal)
         });
 
         Ok(all_highlights)
@@ -124,12 +136,18 @@ impl AIHighlightDetector {
                 for item in arr {
                     if let (Some(start), Some(dur)) = (
                         item.get("start").and_then(|v| v.as_f64()),
-                        item.get("duration").and_then(|v| v.as_f64())
+                        item.get("duration").and_then(|v| v.as_f64()),
                     ) {
-                        let title = item.get("title").and_then(|v| v.as_str()).unwrap_or("Momen Menarik AI");
-                        let reason = item.get("reason").and_then(|v| v.as_str()).unwrap_or("Dideteksi oleh AI model");
+                        let title = item
+                            .get("title")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("Momen Menarik AI");
+                        let reason = item
+                            .get("reason")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("Dideteksi oleh AI model");
                         let score = item.get("score").and_then(|v| v.as_f64()).unwrap_or(0.9);
-                        
+
                         clean_highlights.push(json!({
                             "start": start,
                             "duration": dur,

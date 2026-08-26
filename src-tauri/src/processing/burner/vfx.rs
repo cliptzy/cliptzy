@@ -1,17 +1,13 @@
 use crate::processing::ffmpeg::filters::{FilterGraph, FilterNode};
 
-pub fn apply_vfx(
-    graph: &mut FilterGraph,
-    input_v: &str,
-    input_idx: &mut usize,
-) -> String {
+pub fn apply_vfx(graph: &mut FilterGraph, input_v: &str, input_idx: &mut usize) -> String {
     let vfx_input = format!("{}:v", input_idx);
     let chromakey = FilterNode::new("chromakey")
         .param("color", "0x00FF00")
         .param("similarity", "0.2")
         .inputs(&[&vfx_input])
         .outputs(&["vfx_keyed"]);
-    
+
     let overlay = FilterNode::new("overlay")
         .param("x", "(W-w)/2")
         .param("y", "(H-h)/2")

@@ -30,8 +30,8 @@ pub async fn validate_cookies_file(cookies_path: String) -> Result<serde_json::V
     }
 
     // Check 2 & 3: Read and parse cookies
-    let content = std::fs::read_to_string(path)
-        .map_err(|e| format!("Gagal membaca file cookies: {}", e))?;
+    let content =
+        std::fs::read_to_string(path).map_err(|e| format!("Gagal membaca file cookies: {}", e))?;
 
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)

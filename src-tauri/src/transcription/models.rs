@@ -21,7 +21,7 @@ pub struct TranscriptionSegment {
 pub struct SubtitleConfig {
     pub font: String,
     pub font_size: u32,
-    pub primary_color: String,  // ASS format e.g. &H00FFFFFF
+    pub primary_color: String,   // ASS format e.g. &H00FFFFFF
     pub secondary_color: String, // ASS format (for inactive karaoke text)
     pub outline_color: String,
     pub back_color: String,

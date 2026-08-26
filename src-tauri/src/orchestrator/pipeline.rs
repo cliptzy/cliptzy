@@ -14,11 +14,11 @@ pub fn emit_progress(handle: &tauri::AppHandle, event: &ProgressEvent) {
     let _ = handle.emit("clip-progress", event);
 }
 
-use std::path::PathBuf;
-use std::collections::HashMap;
-use tokio_util::sync::CancellationToken;
 use crate::config::models::AppConfig;
+use std::collections::HashMap;
+use std::path::PathBuf;
 use tokio::sync::broadcast;
+use tokio_util::sync::CancellationToken;
 
 pub type ProgressTx = broadcast::Sender<ProgressEvent>;
 
@@ -36,5 +36,7 @@ pub struct PipelineContext {
 pub trait PipelineStage: Send + Sync {
     fn name(&self) -> &str;
     async fn execute(&self, ctx: &mut PipelineContext) -> Result<(), crate::error::CliptzyError>;
-    fn can_skip(&self, _ctx: &PipelineContext) -> bool { false }
+    fn can_skip(&self, _ctx: &PipelineContext) -> bool {
+        false
+    }
 }

@@ -114,9 +114,17 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useVideoStore } from '../../stores/video';
+import { useAppStore } from '../../stores/app';
 import { invoke } from '@tauri-apps/api/core';
 import BentoCard from '../BentoCard.vue';
 import GlowButton from '../GlowButton.vue';
+
+const props = defineProps({
+  cropMode: {
+    type: String,
+    default: 'default'
+  }
+});
 
 import IconListVideo from '~icons/lucide/list-video';
 import IconWand2 from '~icons/lucide/wand-2';
@@ -195,7 +203,7 @@ const handleRender = async () => {
                 video_id: videoStore.metadata.video_id,
                 start: seg.start,
                 end: seg.end,
-                crop_mode: 'default', // TODO: sync this with InspectorPanel selection
+                crop_mode: props.cropMode,
                 use_subtitle: true,
                 cookies_path: null
             };
@@ -205,6 +213,12 @@ const handleRender = async () => {
         }
     } catch (err) {
         console.error("Render failed", err);
+        const appStore = useAppStore();
+        appStore.addToast({
+            title: "Render Gagal",
+            message: err.toString(),
+            type: "error"
+        });
     } finally {
         isRendering.value = false;
     }

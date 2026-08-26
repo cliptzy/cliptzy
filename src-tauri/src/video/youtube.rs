@@ -38,7 +38,10 @@ pub async fn get_downloader(
         }
     }
 
-    builder.build().await.map_err(|e| format!("Gagal build downloader: {}", e))
+    builder
+        .build()
+        .await
+        .map_err(|e| format!("Gagal build downloader: {}", e))
 }
 
 pub async fn analyze_youtube_video(
@@ -49,7 +52,7 @@ pub async fn analyze_youtube_video(
     let bin_dir = app_dir.join("bin");
 
     let downloader = get_downloader(bin_dir, cookies_path).await?;
-    
+
     let video = downloader
         .fetch_video_infos(url)
         .await
@@ -70,7 +73,7 @@ pub async fn analyze_youtube_video(
     for h in engaged {
         let mut start = (h.start_time - padding).max(0.0);
         let mut end = (h.end_time + padding).min(video_duration);
-        
+
         if end - start < min_duration {
             // Extend end first
             end = (start + min_duration).min(video_duration);
@@ -79,7 +82,7 @@ pub async fn analyze_youtube_video(
                 start = (end - min_duration).max(0.0);
             }
         }
-        
+
         segments.push(SegmentInfo {
             start,
             end,
@@ -88,36 +91,51 @@ pub async fn analyze_youtube_video(
     }
 
     // Get the best video/audio format or a fallback URL
-    tracing::info!("Mencari format media yang cocok untuk video ID: {}", video.id);
-    
+    tracing::info!(
+        "Mencari format media yang cocok untuk video ID: {}",
+        video.id
+    );
+
     // Filter formats: only allow formats that have video or audio (no storyboards)
-    let valid_formats: Vec<_> = video.formats.iter()
-        .filter(|f| f.format_type().is_audio_and_video() || f.format_type().is_audio() || f.format_type().is_video())
+    let valid_formats: Vec<_> = video
+        .formats
+        .iter()
+        .filter(|f| {
+            f.format_type().is_audio_and_video()
+                || f.format_type().is_audio()
+                || f.format_type().is_video()
+        })
         .collect();
 
-    let stream_url = valid_formats.iter()
-        .find(|f| {
-            f.format_type().is_audio_and_video() && f.download_info.ext.as_str() == "mp4"
-        })
+    let stream_url = valid_formats
+        .iter()
+        .find(|f| f.format_type().is_audio_and_video() && f.download_info.ext.as_str() == "mp4")
         .and_then(|f| f.download_info.url.clone())
         .or_else(|| {
-            video.best_audio_video_format()
+            video
+                .best_audio_video_format()
                 .ok()
                 .and_then(|f| f.download_info.url.clone())
         })
         .or_else(|| {
             // Fallback: Best audio format if no video+audio is found
-            valid_formats.iter()
+            valid_formats
+                .iter()
                 .find(|f| f.format_type().is_audio())
                 .and_then(|f| f.download_info.url.clone())
         })
         .or_else(|| {
             // Absolute fallback: First valid media URL
-            valid_formats.first().and_then(|f| f.download_info.url.clone())
+            valid_formats
+                .first()
+                .and_then(|f| f.download_info.url.clone())
         });
-        
+
     if let Some(ref url) = stream_url {
-        tracing::info!("Berhasil mendapatkan stream URL: {}...", &url[..std::cmp::min(url.len(), 50)]);
+        tracing::info!(
+            "Berhasil mendapatkan stream URL: {}...",
+            &url[..std::cmp::min(url.len(), 50)]
+        );
     } else {
         tracing::warn!("Tidak menemukan stream URL yang valid dari yt-dlp!");
     }
@@ -141,7 +159,7 @@ pub async fn download_youtube_video(
     let bin_dir = app_dir.join("bin");
 
     let downloader = get_downloader(bin_dir, cookies_path).await?;
-    
+
     // Fetch video first
     let video = downloader
         .fetch_video_infos(url)

@@ -1,6 +1,6 @@
-pub mod scan;
-pub mod clip;
-pub mod render;
-pub mod compile;
 pub mod batch_upload;
+pub mod clip;
+pub mod compile;
 pub mod pipeline;
+pub mod render;
+pub mod scan;

@@ -1,10 +1,10 @@
-use crate::config::models::AIConfig;
-use crate::error::CliptzyError;
 use crate::ai::create_provider;
 use crate::ai::prompts::METADATA_PROMPT_TEMPLATE;
+use crate::config::models::AIConfig;
+use crate::error::CliptzyError;
 use crate::orchestrator::pipeline::ProgressTx;
-use serde_json::{Value, json};
 use regex::Regex;
+use serde_json::{json, Value};
 
 pub struct MetadataGenerator;
 
@@ -28,9 +28,12 @@ impl MetadataGenerator {
 
         let is_local = config.provider.to_lowercase() == "ollama";
         let chunk_size = if is_local { 150 } else { 1000 };
-        
+
         let words_chunks = if let Some(words) = words_data {
-            words.chunks(chunk_size).map(|c| c.to_vec()).collect::<Vec<_>>()
+            words
+                .chunks(chunk_size)
+                .map(|c| c.to_vec())
+                .collect::<Vec<_>>()
         } else {
             vec![vec![]]
         };
@@ -42,7 +45,11 @@ impl MetadataGenerator {
 
         for (idx, chunk) in words_chunks.iter().enumerate() {
             let chunk_info = if words_chunks.len() > 1 {
-                format!("\n(IMPORTANT: This is part {} of {} of the total words...)\n", idx + 1, words_chunks.len())
+                format!(
+                    "\n(IMPORTANT: This is part {} of {} of the total words...)\n",
+                    idx + 1,
+                    words_chunks.len()
+                )
             } else {
                 "".to_string()
             };
@@ -62,8 +69,14 @@ impl MetadataGenerator {
                 .replace("{visual_str}", "")
                 .replace("{audio_str}", "")
                 .replace("{chunk_info}", &chunk_info)
-                .replace("{emotion_str}", "neutral, happy, angry, shock, fear, sad, confused")
-                .replace("{effects_str}", "none, random, vineboom, tyler1_scream, bruh")
+                .replace(
+                    "{emotion_str}",
+                    "neutral, happy, angry, shock, fear, sad, confused",
+                )
+                .replace(
+                    "{effects_str}",
+                    "none, random, vineboom, tyler1_scream, bruh",
+                )
                 .replace("{clip_text}", &text)
                 .replace("{local_tz}", "UTC")
                 .replace("{part}", &(idx + 1).to_string())
@@ -71,7 +84,7 @@ impl MetadataGenerator {
                 .replace("{words_data}", &words_json);
 
             let raw_response = provider.generate(&prompt, progress).await?;
-            
+
             let re = Regex::new(r#"(?s)\{\s*".*"\s*:.*\s*\}"#).unwrap();
             let json_str = if let Some(mat) = re.find(&raw_response) {
                 mat.as_str()
@@ -83,13 +96,23 @@ impl MetadataGenerator {
                 if idx == 0 {
                     global_metadata["title"] = metadata.get("title").cloned().unwrap_or(json!(""));
                     global_metadata["tags"] = metadata.get("tags").cloned().unwrap_or(json!(""));
-                    global_metadata["highlight"] = metadata.get("highlight").cloned().unwrap_or(json!(""));
-                    global_metadata["recommended_publish_time"] = metadata.get("recommended_publish_time").cloned().unwrap_or(json!(""));
+                    global_metadata["highlight"] =
+                        metadata.get("highlight").cloned().unwrap_or(json!(""));
+                    global_metadata["recommended_publish_time"] = metadata
+                        .get("recommended_publish_time")
+                        .cloned()
+                        .unwrap_or(json!(""));
                 }
-                if let Some(arr) = metadata.get("enriched_transcript").and_then(|v| v.as_array()) {
+                if let Some(arr) = metadata
+                    .get("enriched_transcript")
+                    .and_then(|v| v.as_array())
+                {
                     all_enriched.extend(arr.clone());
                 }
-                if let Some(arr) = metadata.get("standalone_video_effects").and_then(|v| v.as_array()) {
+                if let Some(arr) = metadata
+                    .get("standalone_video_effects")
+                    .and_then(|v| v.as_array())
+                {
                     all_standalone.extend(arr.clone());
                 }
             }

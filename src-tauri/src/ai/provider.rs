@@ -1,6 +1,6 @@
-use async_trait::async_trait;
 use crate::error::CliptzyError;
 use crate::orchestrator::pipeline::ProgressTx;
+use async_trait::async_trait;
 
 #[async_trait]
 pub trait AIProvider: Send + Sync {

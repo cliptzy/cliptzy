@@ -22,25 +22,25 @@
         <div class="flex flex-col gap-3">
           <span class="text-[10px] text-gray-400 uppercase font-bold">Tipe Tracking</span>
           <label class="flex items-center gap-3 cursor-pointer group">
-            <input type="radio" name="cropMode" value="auto" v-model="cropMode" class="hidden" />
-            <div class="w-4 h-4 rounded-full border flex items-center justify-center group-hover:border-[var(--color-accent)] transition-colors" :class="cropMode === 'auto' ? 'border-[var(--color-accent)]' : 'border-gray-500'">
-              <div v-show="cropMode === 'auto'" class="w-2 h-2 rounded-full bg-[var(--color-accent)]"></div>
+            <input type="radio" name="cropMode" value="default" v-model="cropMode" class="hidden" />
+            <div class="w-4 h-4 rounded-full border flex items-center justify-center group-hover:border-[var(--color-accent)] transition-colors" :class="cropMode === 'default' ? 'border-[var(--color-accent)]' : 'border-gray-500'">
+              <div v-show="cropMode === 'default'" class="w-2 h-2 rounded-full bg-[var(--color-accent)]"></div>
             </div>
-            <span class="text-sm font-medium transition-colors" :class="cropMode === 'auto' ? 'text-white' : 'text-gray-400 group-hover:text-gray-200'">AI Auto-Tracking</span>
+            <span class="text-sm font-medium transition-colors" :class="cropMode === 'default' ? 'text-white' : 'text-gray-400 group-hover:text-gray-200'">Center Crop (Default)</span>
           </label>
           <label class="flex items-center gap-3 cursor-pointer group">
-            <input type="radio" name="cropMode" value="static" v-model="cropMode" class="hidden" />
-            <div class="w-4 h-4 rounded-full border flex items-center justify-center group-hover:border-[var(--color-accent)] transition-colors" :class="cropMode === 'static' ? 'border-[var(--color-accent)]' : 'border-gray-500'">
-              <div v-show="cropMode === 'static'" class="w-2 h-2 rounded-full bg-[var(--color-accent)]"></div>
+            <input type="radio" name="cropMode" value="full" v-model="cropMode" class="hidden" />
+            <div class="w-4 h-4 rounded-full border flex items-center justify-center group-hover:border-[var(--color-accent)] transition-colors" :class="cropMode === 'full' ? 'border-[var(--color-accent)]' : 'border-gray-500'">
+              <div v-show="cropMode === 'full'" class="w-2 h-2 rounded-full bg-[var(--color-accent)]"></div>
             </div>
-            <span class="text-sm font-medium transition-colors" :class="cropMode === 'static' ? 'text-white' : 'text-gray-400 group-hover:text-gray-200'">Static Center</span>
+            <span class="text-sm font-medium transition-colors" :class="cropMode === 'full' ? 'text-white' : 'text-gray-400 group-hover:text-gray-200'">Full + Blur Background</span>
           </label>
           <label class="flex items-center gap-3 cursor-pointer group">
-            <input type="radio" name="cropMode" value="split" v-model="cropMode" class="hidden" />
-            <div class="w-4 h-4 rounded-full border flex items-center justify-center group-hover:border-[var(--color-accent)] transition-colors" :class="cropMode === 'split' ? 'border-[var(--color-accent)]' : 'border-gray-500'">
-              <div v-show="cropMode === 'split'" class="w-2 h-2 rounded-full bg-[var(--color-accent)]"></div>
+            <input type="radio" name="cropMode" value="full_face" v-model="cropMode" class="hidden" />
+            <div class="w-4 h-4 rounded-full border flex items-center justify-center group-hover:border-[var(--color-accent)] transition-colors" :class="cropMode === 'full_face' ? 'border-[var(--color-accent)]' : 'border-gray-500'">
+              <div v-show="cropMode === 'full_face'" class="w-2 h-2 rounded-full bg-[var(--color-accent)]"></div>
             </div>
-            <span class="text-sm font-medium transition-colors" :class="cropMode === 'split' ? 'text-white' : 'text-gray-400 group-hover:text-gray-200'">Split Screen</span>
+            <span class="text-sm font-medium transition-colors" :class="cropMode === 'full_face' ? 'text-white' : 'text-gray-400 group-hover:text-gray-200'">Face Track + Full (Split)</span>
           </label>
         </div>
       </div>

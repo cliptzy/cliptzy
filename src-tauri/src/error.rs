@@ -26,6 +26,9 @@ pub enum CliptzyError {
     #[error("File tidak ditemukan: {0}")]
     FileNotFound(String),
 
+    #[error("Internal error: {0}")]
+    Internal(String),
+
     #[error(transparent)]
     Io(#[from] std::io::Error),
 

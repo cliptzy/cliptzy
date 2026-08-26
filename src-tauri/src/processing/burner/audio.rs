@@ -7,7 +7,7 @@ pub fn apply_normalization(graph: &mut FilterGraph) -> String {
         .param("TP", "-1.5")
         .inputs(&["0:a"])
         .outputs(&["a_norm"]);
-    
+
     graph.add_node(loudnorm);
     "a_norm".to_string()
 }

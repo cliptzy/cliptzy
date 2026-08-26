@@ -35,16 +35,21 @@ pub fn generate_ass_file(
     for segment in segments {
         // Basic Hormozi style: highlight active word
         // ASS format for active word: {\c&H0000FFFF&}word{\c&H00FFFFFF&}
-        // In a real Karaoke implementation we'd output multiple event lines for the same segment, 
+        // In a real Karaoke implementation we'd output multiple event lines for the same segment,
         // each highlighting a different word.
-        
+
         let words = &segment.words;
         if words.is_empty() {
             continue;
         }
 
-        let max_words = if config.max_words_per_line > 0 { config.max_words_per_line } else { 5 };
-        let word_chunks: Vec<&[crate::transcription::models::WordTiming]> = words.chunks(max_words).collect();
+        let max_words = if config.max_words_per_line > 0 {
+            config.max_words_per_line
+        } else {
+            5
+        };
+        let word_chunks: Vec<&[crate::transcription::models::WordTiming]> =
+            words.chunks(max_words).collect();
 
         for chunk in word_chunks {
             let chunk_start_time = chunk.first().unwrap().start;
@@ -59,7 +64,7 @@ pub fn generate_ass_file(
                     } else {
                         format_timestamp(target_word.end)
                     };
-                    
+
                     let mut text_parts = Vec::new();
                     let is_upper = config.animation == "hormozi" || config.border_style == 3;
                     for (j, word) in chunk.iter().enumerate() {
@@ -69,11 +74,16 @@ pub fn generate_ass_file(
                         }
                         if i == j {
                             if config.animation == "hormozi" {
-                                text_parts.push(format!("{{\\c{}}}{}{{\\c{}}}", 
-                                    config.active_word_color, w_text, config.primary_color));
-                            } else { // karaoke
-                                text_parts.push(format!("{{\\c{}}}{{\\k10}}{}{{\\c{}}}", 
-                                    config.active_word_color, w_text, config.primary_color));
+                                text_parts.push(format!(
+                                    "{{\\c{}}}{}{{\\c{}}}",
+                                    config.active_word_color, w_text, config.primary_color
+                                ));
+                            } else {
+                                // karaoke
+                                text_parts.push(format!(
+                                    "{{\\c{}}}{{\\k10}}{}{{\\c{}}}",
+                                    config.active_word_color, w_text, config.primary_color
+                                ));
                             }
                         } else {
                             text_parts.push(w_text);
@@ -90,17 +100,20 @@ pub fn generate_ass_file(
                 // "none" animation - just display the whole chunk at once
                 let line_start = format_timestamp(chunk_start_time);
                 let line_end = format_timestamp(chunk_end_time);
-                
+
                 let is_upper = config.border_style == 3;
-                let text_parts: Vec<String> = chunk.iter().map(|w| {
-                    let mut w_text = w.word.trim().to_string();
-                    if is_upper {
-                        w_text = w_text.to_uppercase();
-                    }
-                    w_text
-                }).collect();
+                let text_parts: Vec<String> = chunk
+                    .iter()
+                    .map(|w| {
+                        let mut w_text = w.word.trim().to_string();
+                        if is_upper {
+                            w_text = w_text.to_uppercase();
+                        }
+                        w_text
+                    })
+                    .collect();
                 let dialogue_text = text_parts.join(" ");
-                
+
                 ass_content.push_str(&format!(
                     "Dialogue: 0,{},{},Default,,0,0,0,,{}\n",
                     line_start, line_end, dialogue_text
@@ -119,6 +132,6 @@ fn format_timestamp(seconds: f64) -> String {
     let minutes = ((seconds % 3600.0) / 60.0).floor() as u32;
     let secs = (seconds % 60.0).floor() as u32;
     let centisecs = ((seconds % 1.0) * 100.0).round() as u32;
-    
+
     format!("{:01}:{:02}:{:02}.{:02}", hours, minutes, secs, centisecs)
 }

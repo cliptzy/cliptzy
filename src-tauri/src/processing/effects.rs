@@ -20,16 +20,18 @@ pub struct EffectsManager {
 
 impl EffectsManager {
     pub fn new() -> Self {
-        let effects: Vec<VideoEffect> = serde_json::from_str(EFFECTS_CATALOG_JSON).unwrap_or_default();
+        let effects: Vec<VideoEffect> =
+            serde_json::from_str(EFFECTS_CATALOG_JSON).unwrap_or_default();
         Self { effects }
     }
 
     pub fn get_effect(&self, emotion: &str) -> Option<&VideoEffect> {
-        let matching: Vec<&VideoEffect> = self.effects
+        let matching: Vec<&VideoEffect> = self
+            .effects
             .iter()
             .filter(|e| e.emotions.iter().any(|emo| emo == emotion))
             .collect();
-        
+
         let mut rng = rand::rng();
         matching.choose(&mut rng).copied()
     }

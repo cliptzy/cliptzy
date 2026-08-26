@@ -18,7 +18,7 @@ impl HwAccel {
                 _ => {} // Fallthrough
             }
         }
-        
+
         #[cfg(target_os = "macos")]
         return HwAccel::VideoToolbox;
 
@@ -39,22 +39,24 @@ impl HwAccel {
     pub fn encode_args(&self) -> Vec<String> {
         match self {
             HwAccel::VideoToolbox => vec![
-                "-c:v".to_string(), "h264_videotoolbox".to_string(),
-                "-b:v".to_string(), "5000k".to_string(),
+                "-c:v".to_string(),
+                "h264_videotoolbox".to_string(),
+                "-b:v".to_string(),
+                "5000k".to_string(),
             ],
             HwAccel::Nvenc => vec![
-                "-c:v".to_string(), "h264_nvenc".to_string(),
-                "-preset".to_string(), "p4".to_string(),
+                "-c:v".to_string(),
+                "h264_nvenc".to_string(),
+                "-preset".to_string(),
+                "p4".to_string(),
             ],
-            HwAccel::Amf => vec![
-                "-c:v".to_string(), "h264_amf".to_string(),
-            ],
-            HwAccel::Qsv => vec![
-                "-c:v".to_string(), "h264_qsv".to_string(),
-            ],
+            HwAccel::Amf => vec!["-c:v".to_string(), "h264_amf".to_string()],
+            HwAccel::Qsv => vec!["-c:v".to_string(), "h264_qsv".to_string()],
             HwAccel::Cpu => vec![
-                "-c:v".to_string(), "libx264".to_string(),
-                "-preset".to_string(), "fast".to_string(),
+                "-c:v".to_string(),
+                "libx264".to_string(),
+                "-preset".to_string(),
+                "fast".to_string(),
             ],
         }
     }

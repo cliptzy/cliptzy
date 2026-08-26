@@ -1,9 +1,9 @@
 use crate::error::CliptzyError;
-use crate::orchestrator::pipeline::{PipelineContext, ProgressEvent, emit_progress};
-use crate::video::downloader::download_segment;
+use crate::orchestrator::pipeline::{emit_progress, PipelineContext, ProgressEvent};
 use crate::processing::cropper::{create_crop_strategy, OutputConfig};
 use crate::processing::stacker::{stack_video, StackerConfig};
 use crate::processing::thumbnail::generate_thumbnail;
+use crate::video::downloader::download_segment;
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
@@ -36,21 +36,24 @@ impl ClipVideoUseCase {
     pub async fn execute(&mut self, payload: ClipPayload) -> Result<ClipResult, CliptzyError> {
         let job_dir = &self.ctx.job_dir;
         std::fs::create_dir_all(job_dir)?;
-        
+
         let source_video = job_dir.join("source.mp4");
         let cropped_video = job_dir.join("cropped.mp4");
         let final_video = job_dir.join("final.mp4");
         let thumb_path = job_dir.join("thumbnail.jpg");
 
         // 1. Download Segment
-        emit_progress(&self.ctx.app_handle, &ProgressEvent {
-            stage: "download".into(),
-            label: "Mendownload segmen video...".into(),
-            current: 10,
-            total: 100,
-            detail: None,
-        });
-        
+        emit_progress(
+            &self.ctx.app_handle,
+            &ProgressEvent {
+                stage: "download".into(),
+                label: "Mendownload segmen video...".into(),
+                current: 10,
+                total: 100,
+                detail: None,
+            },
+        );
+
         download_segment(
             &payload.url,
             payload.start,
@@ -59,40 +62,107 @@ impl ClipVideoUseCase {
             payload.cookies_path.clone(),
             Some(&self.ctx.app_handle),
             self.ctx.cancel_token.clone(),
-        ).await?;
+        )
+        .await?;
 
         // 2. Removed Probe Video due to rust_ffprobe parsing bugs
 
         // 3. Crop Video
-        emit_progress(&self.ctx.app_handle, &ProgressEvent {
-            stage: "crop".into(),
-            label: "Memotong & menyesuaikan rasio video...".into(),
-            current: 40,
-            total: 100,
-            detail: None,
-        });
-        
+        emit_progress(
+            &self.ctx.app_handle,
+            &ProgressEvent {
+                stage: "crop".into(),
+                label: "Memotong & menyesuaikan rasio video...".into(),
+                current: 40,
+                total: 100,
+                detail: None,
+            },
+        );
+
+        let mut keyframes = None;
+        if payload.crop_mode == "full_face" {
+            emit_progress(
+                &self.ctx.app_handle,
+                &ProgressEvent {
+                    stage: "crop".into(),
+                    label: "Menganalisa wajah (AI Tracking)...".into(),
+                    current: 45,
+                    total: 100,
+                    detail: None,
+                },
+            );
+            match crate::face::tracker::get_face_keyframes(&source_video, 1.0).await {
+                Ok(kfs) => keyframes = Some(kfs),
+                Err(e) => {
+                    tracing::warn!("Face tracking failed: {}. Fallback to center.", e);
+                }
+            }
+        }
+
         let cropper = create_crop_strategy(&payload.crop_mode);
         let out_config = OutputConfig::default();
-        let crop_cmd = cropper.build_command(&source_video, &cropped_video, &out_config)?;
+        let total_duration = payload.end - payload.start;
+        let handle_clone = self.ctx.app_handle.clone();
         
-        let crop_process = crop_cmd.spawn().await
-            .map_err(|e| CliptzyError::FFmpeg { code: -1, message: format!("Spawn failed: {}", e) })?;
-        crop_process.wait().await
-            .map_err(|e| CliptzyError::FFmpeg { code: -1, message: format!("Crop failed: {}", e) })?;
+        let crop_cmd = cropper.build_command(
+            &source_video,
+            &cropped_video,
+            &out_config,
+            keyframes.as_deref(),
+        )?.on_progress(move |prog| {
+            if let Some(time) = prog.time {
+                let current_sec = time.as_secs_f64();
+                if total_duration > 0.0 {
+                    let mut pct = (current_sec / total_duration) * 100.0;
+                    if pct > 99.9 { pct = 99.9; }
+                    emit_progress(
+                        &handle_clone,
+                        &ProgressEvent {
+                            stage: "crop".into(),
+                            label: format!("Memotong & menyesuaikan rasio video... ({:.1}%)", pct),
+                            current: pct as u32,
+                            total: 100,
+                            detail: None,
+                        }
+                    );
+                }
+            }
+        });
+
+        let crop_process = crop_cmd.spawn().await.map_err(|e| CliptzyError::FFmpeg {
+            code: -1,
+            message: format!("Spawn failed: {}", e),
+        })?;
+        crop_process
+            .wait()
+            .await
+            .map_err(|e| CliptzyError::FFmpeg {
+                code: -1,
+                message: format!("Crop failed: {}", e),
+            })?;
 
         // 4. Transcription & Subtitle Burn (Optional)
         let mut current_video = cropped_video.clone();
-        
-        if payload.use_subtitle || self.ctx.config.watermark_image.is_some() {
-            emit_progress(&self.ctx.app_handle, &ProgressEvent {
-                stage: "subtitle".into(),
-                label: "Menambahkan efek visual/teks ke video...".into(),
-                current: 60,
-                total: 100,
-                detail: None,
-            });
-            
+
+        let has_watermark = self
+            .ctx
+            .config
+            .watermark_image
+            .as_ref()
+            .map(|s| !s.trim().is_empty())
+            .unwrap_or(false);
+        if payload.use_subtitle || has_watermark {
+            emit_progress(
+                &self.ctx.app_handle,
+                &ProgressEvent {
+                    stage: "subtitle".into(),
+                    label: "Menambahkan efek visual/teks ke video...".into(),
+                    current: 60,
+                    total: 100,
+                    detail: None,
+                },
+            );
+
             let mut ass_path_opt = None;
             let mut sub_config_opt = None;
 
@@ -106,7 +176,8 @@ impl ClipVideoUseCase {
                     duration,
                     &audio_wav,
                     None,
-                ).await?;
+                )
+                .await?;
 
                 // Transcribe
                 let whisper_model = if self.ctx.config.subtitle.whisper_model.is_empty() {
@@ -114,10 +185,12 @@ impl ClipVideoUseCase {
                 } else {
                     self.ctx.config.subtitle.whisper_model.clone()
                 };
-                let model_path = crate::transcription::whisper::ensure_model_exists(&whisper_model).await?;
-                let transcriber = crate::transcription::whisper::WhisperTranscriber::new(&model_path)?;
+                let model_path =
+                    crate::transcription::whisper::ensure_model_exists(&whisper_model).await?;
+                let transcriber =
+                    crate::transcription::whisper::WhisperTranscriber::new(&model_path)?;
                 let transcript = transcriber.transcribe(&audio_wav).await?;
-                
+
                 // Generate ASS
                 let ass_path = job_dir.join("subtitles.ass");
                 let mut sub_config = crate::transcription::models::SubtitleConfig::default();
@@ -161,12 +234,12 @@ impl ClipVideoUseCase {
                     sub_config.outline = 4; // Padding
                     sub_config.shadow = 4; // Shadow offset
                 }
-                
+
                 crate::transcription::ass_writer::generate_ass_file(
-                    &transcript, 
-                    &ass_path, 
-                    &sub_config, 
-                    (out_config.width, out_config.height)
+                    &transcript,
+                    &ass_path,
+                    &sub_config,
+                    (out_config.width, out_config.height),
                 )?;
 
                 ass_path_opt = Some(ass_path.to_string_lossy().to_string());
@@ -183,19 +256,28 @@ impl ClipVideoUseCase {
                 watermark_path: self.ctx.config.watermark_image.clone(),
                 watermark_position: self.ctx.config.watermark_position.clone(),
             };
-            crate::processing::burner::burn_video_effects(&current_video, &subbed_video, &burn_config).await?;
+            crate::processing::burner::burn_video_effects(
+                &current_video,
+                &subbed_video,
+                &burn_config,
+                Some((&self.ctx.app_handle, total_duration)),
+            )
+            .await?;
             current_video = subbed_video;
         }
 
         // 5. Stacker (Optional Intro/Outro)
-        emit_progress(&self.ctx.app_handle, &ProgressEvent {
-            stage: "stack".into(),
-            label: "Menambahkan intro/outro jika ada...".into(),
-            current: 80,
-            total: 100,
-            detail: None,
-        });
-        
+        emit_progress(
+            &self.ctx.app_handle,
+            &ProgressEvent {
+                stage: "stack".into(),
+                label: "Menambahkan intro/outro jika ada...".into(),
+                current: 80,
+                total: 100,
+                detail: None,
+            },
+        );
+
         let resolve_path = |p: Option<String>| -> Option<std::path::PathBuf> {
             p.map(|path_str| {
                 if path_str.starts_with("assets/") || path_str.starts_with("assets\\") {
@@ -211,27 +293,33 @@ impl ClipVideoUseCase {
             outro_path: resolve_path(self.ctx.config.outro_video.clone()),
             watermark_path: None, // Watermark is handled by subtitle_burner
         };
-        
+
         stack_video(&current_video, &final_video, &stack_config).await?;
 
         // 6. Generate Thumbnail
-        emit_progress(&self.ctx.app_handle, &ProgressEvent {
-            stage: "thumbnail".into(),
-            label: "Membuat thumbnail...".into(),
-            current: 90,
-            total: 100,
-            detail: None,
-        });
-        
+        emit_progress(
+            &self.ctx.app_handle,
+            &ProgressEvent {
+                stage: "thumbnail".into(),
+                label: "Membuat thumbnail...".into(),
+                current: 90,
+                total: 100,
+                detail: None,
+            },
+        );
+
         generate_thumbnail(&final_video, &thumb_path, 1.0).await?;
 
-        emit_progress(&self.ctx.app_handle, &ProgressEvent {
-            stage: "done".into(),
-            label: "Selesai!".into(),
-            current: 100,
-            total: 100,
-            detail: None,
-        });
+        emit_progress(
+            &self.ctx.app_handle,
+            &ProgressEvent {
+                stage: "done".into(),
+                label: "Selesai!".into(),
+                current: 100,
+                total: 100,
+                detail: None,
+            },
+        );
 
         Ok(ClipResult {
             success: true,

@@ -16,12 +16,15 @@ pub fn exit_app(code: i32) {
 #[tauri::command]
 pub async fn get_available_hwaccels() -> Result<Vec<String>, String> {
     let mut accels = vec!["cpu".to_string()];
-    
+
     #[cfg(target_os = "macos")]
     accels.push("mac".to_string());
-    
+
     // Attempt to invoke ffmpeg to detect real accels
-    if let Ok(output) = std::process::Command::new("ffmpeg").arg("-hwaccels").output() {
+    if let Ok(output) = std::process::Command::new("ffmpeg")
+        .arg("-hwaccels")
+        .output()
+    {
         let text = String::from_utf8_lossy(&output.stdout).to_lowercase();
         if text.contains("videotoolbox") && !accels.contains(&"mac".to_string()) {
             accels.push("mac".to_string());
@@ -36,7 +39,7 @@ pub async fn get_available_hwaccels() -> Result<Vec<String>, String> {
             accels.push("intel".to_string());
         }
     }
-    
+
     Ok(accels)
 }
 
@@ -59,33 +62,33 @@ fn calculate_size(dir: &std::path::Path) -> std::io::Result<u64> {
 #[tauri::command]
 pub async fn get_output_folder_size() -> Result<f64, String> {
     let output_dir = crate::paths::app_data_dir().join("output");
-    
+
     if !output_dir.exists() {
         return Ok(0.0);
     }
-    
+
     match calculate_size(&output_dir) {
         Ok(size) => {
             let gb = size as f64 / (1024.0 * 1024.0 * 1024.0);
             Ok(gb)
-        },
-        Err(e) => Err(e.to_string())
+        }
+        Err(e) => Err(e.to_string()),
     }
 }
 
 #[tauri::command]
 pub async fn clean_output_folder() -> Result<(), String> {
     let output_dir = crate::paths::app_data_dir().join("output");
-    
+
     if output_dir.exists() {
         if let Err(e) = std::fs::remove_dir_all(&output_dir) {
             return Err(format!("Gagal membersihkan folder output: {}", e));
         }
     }
-    
+
     if let Err(e) = std::fs::create_dir_all(&output_dir) {
         return Err(format!("Gagal membuat ulang folder output: {}", e));
     }
-    
+
     Ok(())
 }
