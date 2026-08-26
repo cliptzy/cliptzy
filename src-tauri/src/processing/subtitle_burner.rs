@@ -7,6 +7,7 @@ pub struct SubtitleBurnerConfig {
     pub ass_path: String,
     pub vfx_overlay_path: Option<String>,
     pub normalize_audio: bool,
+    pub config: Option<crate::transcription::models::SubtitleConfig>,
 }
 
 pub async fn burn_subtitle(
@@ -24,10 +25,46 @@ pub async fn burn_subtitle(
     let escaped_ass = safe_path.replace(":", "\\:");
     let final_ass = format!("'{}'", escaped_ass);
     
-    let sub_node = FilterNode::new("subtitles")
+    let mut sub_node = FilterNode::new("subtitles")
         .param("", &final_ass)
         .inputs(&["0:v"])
         .outputs(&["v_subbed"]);
+
+    if let Some(cfg) = &config.config {
+        let mut force_style = Vec::new();
+        
+        if !cfg.font.is_empty() {
+            force_style.push(format!("Fontname={}", cfg.font));
+        }
+        if cfg.font_size > 0 {
+            force_style.push(format!("Fontsize={}", cfg.font_size));
+        }
+        if !cfg.primary_color.is_empty() {
+            force_style.push(format!("PrimaryColour={}", cfg.primary_color));
+        }
+        if !cfg.back_color.is_empty() {
+            force_style.push(format!("BackColour={}", cfg.back_color));
+        }
+        if cfg.border_style > 0 {
+            force_style.push(format!("BorderStyle={}", cfg.border_style));
+        }
+        if cfg.alignment > 0 {
+            force_style.push(format!("Alignment={}", cfg.alignment));
+        }
+        if !cfg.outline_color.is_empty() {
+            force_style.push(format!("OutlineColour={}", cfg.outline_color));
+        }
+        force_style.push(format!("Outline={}", cfg.outline));
+        force_style.push(format!("Shadow={}", cfg.shadow));
+        force_style.push(format!("MarginV={}", cfg.margin_v));
+        
+        if !force_style.is_empty() {
+            let style_str = force_style.join(",");
+            // Using single quotes inside the string for FFmpeg param
+            sub_node = sub_node.param("force_style", &format!("'{}'", style_str));
+        }
+    }
+
     graph.add_node(sub_node);
 
     let mut final_v = "v_subbed";

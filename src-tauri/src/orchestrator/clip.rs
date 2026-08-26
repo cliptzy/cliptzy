@@ -123,6 +123,41 @@ impl ClipVideoUseCase {
             if self.ctx.config.subtitle.font_size > 0 {
                 sub_config.font_size = self.ctx.config.subtitle.font_size;
             }
+            if !self.ctx.config.subtitle.color.is_empty() {
+                sub_config.primary_color = self.ctx.config.subtitle.color.clone();
+            }
+            if !self.ctx.config.subtitle.bg_color.is_empty() {
+                sub_config.back_color = self.ctx.config.subtitle.bg_color.clone();
+            }
+            if self.ctx.config.subtitle.border_style > 0 {
+                sub_config.border_style = self.ctx.config.subtitle.border_style;
+            }
+            if !self.ctx.config.subtitle.animation.is_empty() {
+                sub_config.animation = self.ctx.config.subtitle.animation.clone();
+            }
+            if self.ctx.config.subtitle.max_words > 0 {
+                sub_config.max_words_per_line = self.ctx.config.subtitle.max_words as usize;
+            }
+            sub_config.alignment = match self.ctx.config.subtitle.location.as_str() {
+                "top" => 8,
+                "center" => 5,
+                "bottom" => 2,
+                _ => 2,
+            };
+
+            // Calculate dynamic margin_v based on height to match the UI's bottom-24 visual placement
+            // UI uses bottom-24 which is roughly 10% - 15% from the bottom on a mobile screen.
+            sub_config.margin_v = (out_config.height as f32 * 0.12) as u32;
+
+            // Apply hardcoded overrides if Brutalist Box (border_style == 3) is selected
+            if sub_config.border_style == 3 {
+                sub_config.font = "Courier New".to_string();
+                sub_config.primary_color = "&H00FFFFFF".to_string(); // White text
+                sub_config.outline_color = "&H002626DC".to_string(); // Red 600 background block
+                sub_config.back_color = "&H00000000".to_string(); // Black shadow
+                sub_config.outline = 4; // Padding
+                sub_config.shadow = 4; // Shadow offset
+            }
             
             crate::transcription::ass_writer::generate_ass_file(
                 &transcript, 
@@ -137,6 +172,7 @@ impl ClipVideoUseCase {
                 ass_path: ass_path.to_string_lossy().to_string(),
                 vfx_overlay_path: None,
                 normalize_audio: true,
+                config: Some(sub_config),
             };
             crate::processing::subtitle_burner::burn_subtitle(&current_video, &subbed_video, &burn_config).await?;
             current_video = subbed_video;

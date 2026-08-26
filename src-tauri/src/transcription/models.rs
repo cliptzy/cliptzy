@@ -31,6 +31,8 @@ pub struct SubtitleConfig {
     pub alignment: u32, // 2: bottom center, 5: top left, etc.
     pub max_words_per_line: usize,
     pub active_word_color: String, // E.g., &H0000FFFF for yellow
+    pub border_style: u32,
+    pub animation: String, // "hormozi", "karaoke", "none"
 }
 
 impl Default for SubtitleConfig {
@@ -48,6 +50,8 @@ impl Default for SubtitleConfig {
             alignment: 2,
             max_words_per_line: 5,
             active_word_color: "&H0000FFFF".to_string(),
+            border_style: 1,
+            animation: "hormozi".to_string(),
         }
     }
 }
