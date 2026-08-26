@@ -23,6 +23,21 @@
       </BentoCard>
     </section>
 
+    <!-- Sinkronisasi Cloud -->
+    <section class="flex flex-col gap-3">
+      <h2 class="text-sm font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+        <IconCloud class="w-4 h-4 text-[var(--color-accent)]" /> Sinkronisasi Cloud
+      </h2>
+      <BentoCard class="p-4 flex gap-2">
+        <button @click="backupConfig" :disabled="isSyncing" class="flex-1 py-2 px-3 bg-[var(--color-accent)]/10 text-[var(--color-accent)] hover:bg-[var(--color-accent)] hover:text-black border border-[var(--color-accent)]/30 rounded text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+          <IconUploadCloud class="w-4 h-4" /> {{ isSyncing ? 'Memproses...' : 'Backup Config' }}
+        </button>
+        <button @click="restoreConfig" :disabled="isSyncing" class="flex-1 py-2 px-3 bg-white/5 text-white hover:bg-white/20 border border-[var(--color-subtle)] rounded text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+          <IconDownloadCloud class="w-4 h-4" /> Restore Config
+        </button>
+      </BentoCard>
+    </section>
+
     <!-- Akun Sosial -->
     <section class="flex flex-col gap-3">
       <h2 class="text-sm font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
@@ -42,6 +57,29 @@
             <div class="flex flex-col"><span class="font-bold text-white text-sm">TikTok</span><span class="text-[10px] text-yellow-500">Perlu Login</span></div>
           </div>
           <button class="bg-[var(--color-accent)] text-black text-[10px] font-bold px-2 py-1 rounded hover:scale-105 transition-transform">Hubungkan</button>
+        </BentoCard>
+        
+        <!-- Default Tags Input -->
+        <BentoCard class="p-4 flex flex-col gap-2 border-[var(--color-subtle)]">
+          <span class="text-[10px] text-gray-400 uppercase font-bold">Default Hashtags</span>
+          
+          <!-- Badges Display -->
+          <div class="flex flex-wrap gap-1.5" v-if="parsedHashtags.length > 0">
+            <span v-for="(tag, idx) in parsedHashtags" :key="idx" class="px-2 py-0.5 text-[10px] bg-[var(--color-accent)]/20 text-[var(--color-accent)] border border-[var(--color-accent)]/30 rounded-full font-medium">
+              {{ tag.startsWith('#') ? tag : '#' + tag }}
+            </span>
+          </div>
+
+          <div class="relative group mt-1">
+            <IconHash class="absolute left-3 top-2 w-3 h-3 text-gray-500" />
+            <textarea 
+              v-model="settings.config.default_hashtags" 
+              placeholder="viral fyp podcast" 
+              rows="2"
+              class="w-full bg-black/30 border border-[var(--color-subtle)] rounded py-1.5 pl-8 pr-3 text-xs text-white focus:outline-none focus:border-[var(--color-accent)] resize-y custom-scrollbar" 
+            ></textarea>
+          </div>
+          <p class="text-[9px] text-gray-500">Pisahkan dengan spasi. Hashtag ini akan otomatis ditambahkan ke setiap video yang diunggah.</p>
         </BentoCard>
       </div>
     </section>
@@ -74,10 +112,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAppStore } from '../../stores/app';
 import { useAuthStore } from '../../stores/auth';
+import { useSettingsStore } from '../../stores/settings';
 import { invoke } from '@tauri-apps/api/core';
 import BentoCard from '../BentoCard.vue';
 
@@ -88,14 +127,76 @@ import IconHardDrive from '~icons/lucide/hard-drive';
 import IconYoutube from '~icons/lucide/youtube';
 import IconTiktok from '~icons/lucide/smartphone';
 import IconTrash2 from '~icons/lucide/trash-2';
+import IconHash from '~icons/lucide/hash';
+import IconCloud from '~icons/lucide/cloud';
+import IconUploadCloud from '~icons/lucide/upload-cloud';
+import IconDownloadCloud from '~icons/lucide/download-cloud';
 
 const appStore = useAppStore();
 const auth = useAuthStore();
+const settings = useSettingsStore();
 const router = useRouter();
+
+const parsedHashtags = computed(() => {
+  if (!settings.config.default_hashtags) return [];
+  return settings.config.default_hashtags.split(/\s+/).filter(t => t.trim() !== '');
+});
 
 const outputSize = ref(0.0);
 const isCalculatingSize = ref(true);
 const isClearing = ref(false);
+const isSyncing = ref(false);
+
+const backupConfig = async () => {
+  isSyncing.value = true;
+  try {
+    const configData = JSON.parse(JSON.stringify(settings.config));
+    await invoke('sync_config_up', { configDict: configData });
+    appStore.addToast({
+      type: 'success',
+      title: 'Backup Berhasil',
+      message: 'Konfigurasi telah disimpan ke Supabase.'
+    });
+  } catch (e: any) {
+    appStore.addToast({
+      type: 'error',
+      title: 'Backup Gagal',
+      message: e.toString()
+    });
+  } finally {
+    isSyncing.value = false;
+  }
+};
+
+const restoreConfig = async () => {
+  isSyncing.value = true;
+  try {
+    const configData = await invoke<any>('sync_config_down');
+    if (configData) {
+      settings.config = { ...settings.config, ...configData };
+      await invoke('save_config_file', { configJson: JSON.stringify(settings.config) });
+      appStore.addToast({
+        type: 'success',
+        title: 'Restore Berhasil',
+        message: 'Konfigurasi telah dipulihkan.'
+      });
+    } else {
+      appStore.addToast({
+        type: 'error',
+        title: 'Restore Gagal',
+        message: 'Tidak ada data backup ditemukan.'
+      });
+    }
+  } catch (e: any) {
+    appStore.addToast({
+      type: 'error',
+      title: 'Restore Gagal',
+      message: e.toString()
+    });
+  } finally {
+    isSyncing.value = false;
+  }
+};
 
 const calculateDashOffset = () => {
   // Max storage display is arbitrary, let's assume 10GB scale for the visual circle
