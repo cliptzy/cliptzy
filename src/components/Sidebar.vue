@@ -72,6 +72,7 @@ import IconDashboard from '~icons/lucide/layout-dashboard';
 import IconScissors from '~icons/lucide/scissors';
 import IconLibrary from '~icons/lucide/library';
 import IconSettings from '~icons/lucide/settings';
+import IconInfo from '~icons/lucide/info';
 
 const appStore = useAppStore();
 
@@ -80,5 +81,6 @@ const navItems = [
   { name: 'Studio', path: '/studio', icon: IconScissors },
   { name: 'Library', path: '/library', icon: IconLibrary },
   { name: 'Settings', path: '/settings', icon: IconSettings },
+  { name: 'About', path: '/about', icon: IconInfo },
 ];
 </script>

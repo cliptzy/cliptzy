@@ -1,12 +1,12 @@
-use sysinfo::{System, Pid, Networks};
+use once_cell::sync::Lazy;
 use std::sync::Mutex;
 use std::time::Instant;
-use once_cell::sync::Lazy;
+use sysinfo::{Networks, Pid, System};
 
 #[derive(serde::Serialize, Clone)]
 pub struct ProcessMetrics {
-    pub cpu_usage: f32,       // Persentase CPU
-    pub memory_mb: u64,       // Memory usage dalam MB
+    pub cpu_usage: f32,        // Persentase CPU
+    pub memory_mb: u64,        // Memory usage dalam MB
     pub system_memory_mb: u64, // Total memory
     pub system_used_memory_mb: u64,
     pub network_rx_kbps: f32, // Download speed (KB/s)
@@ -16,16 +16,17 @@ pub struct ProcessMetrics {
 }
 
 static SYSTEM: Lazy<Mutex<System>> = Lazy::new(|| Mutex::new(System::new_all()));
-static NETWORKS: Lazy<Mutex<Networks>> = Lazy::new(|| Mutex::new(Networks::new_with_refreshed_list()));
+static NETWORKS: Lazy<Mutex<Networks>> =
+    Lazy::new(|| Mutex::new(Networks::new_with_refreshed_list()));
 static LAST_REFRESH: Lazy<Mutex<Instant>> = Lazy::new(|| Mutex::new(Instant::now()));
 
 pub fn get_system_metrics() -> ProcessMetrics {
     let mut sys = SYSTEM.lock().unwrap();
     sys.refresh_all();
-    
+
     let mut net = NETWORKS.lock().unwrap();
     net.refresh(true);
-    
+
     let mut last_refresh = LAST_REFRESH.lock().unwrap();
     let now = Instant::now();
     let elapsed = now.duration_since(*last_refresh).as_secs_f32();
@@ -37,14 +38,14 @@ pub fn get_system_metrics() -> ProcessMetrics {
         rx_bytes += data.received();
         tx_bytes += data.transmitted();
     }
-    
+
     // Hitung kecepatan dalam KB/s. Jika elapsed = 0, fallback ke 0
     let elapsed = if elapsed > 0.0 { elapsed } else { 1.0 };
     let rx_kbps = (rx_bytes as f32 / 1024.0) / elapsed;
     let tx_kbps = (tx_bytes as f32 / 1024.0) / elapsed;
 
     let pid = Pid::from_u32(std::process::id());
-    
+
     let (cpu, mem) = if let Some(p) = sys.process(pid) {
         (p.cpu_usage(), p.memory() / 1_048_576)
     } else {
@@ -60,5 +61,51 @@ pub fn get_system_metrics() -> ProcessMetrics {
         network_tx_kbps: tx_kbps,
         has_gpu: false, // sysinfo tidak punya API bawaan untuk GPU usage secara umum
         gpu_usage: None,
+    }
+}
+
+#[derive(serde::Serialize, Clone)]
+pub struct SystemSpecsCheck {
+    pub meets_requirements: bool,
+    pub current_memory_gb: f64,
+    pub required_memory_gb: f64,
+    pub current_cpu_cores: usize,
+    pub required_cpu_cores: usize,
+    pub missing_reasons: Vec<String>,
+}
+
+pub fn check_system_specs() -> SystemSpecsCheck {
+    let mut sys = SYSTEM.lock().unwrap();
+    sys.refresh_all();
+
+    let total_memory_gb = sys.total_memory() as f64 / 1_073_741_824.0;
+    let required_memory_gb = 7.0;
+
+    let cpu_cores = sys.cpus().len();
+    let required_cpu_cores = 4;
+
+    let mut missing_reasons = Vec::new();
+
+    if total_memory_gb < required_memory_gb {
+        missing_reasons.push(format!(
+            "RAM minimal {:.1}GB dibutuhkan (Terdeteksi: {:.1}GB)",
+            required_memory_gb, total_memory_gb
+        ));
+    }
+
+    if cpu_cores < required_cpu_cores {
+        missing_reasons.push(format!(
+            "CPU minimal 4 cores dibutuhkan (Terdeteksi: {} core)",
+            cpu_cores
+        ));
+    }
+
+    SystemSpecsCheck {
+        meets_requirements: missing_reasons.is_empty(),
+        current_memory_gb: total_memory_gb,
+        required_memory_gb: required_memory_gb,
+        current_cpu_cores: cpu_cores,
+        required_cpu_cores,
+        missing_reasons,
     }
 }

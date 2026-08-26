@@ -4,6 +4,16 @@ pub fn get_system_metrics() -> crate::monitor::ProcessMetrics {
 }
 
 #[tauri::command]
+pub fn check_system_specs() -> crate::monitor::SystemSpecsCheck {
+    crate::monitor::check_system_specs()
+}
+
+#[tauri::command]
+pub fn exit_app(code: i32) {
+    std::process::exit(code);
+}
+
+#[tauri::command]
 pub async fn get_available_hwaccels() -> Result<Vec<String>, String> {
     let mut accels = vec!["cpu".to_string()];
     

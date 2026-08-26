@@ -42,6 +42,8 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::system::get_system_metrics,
+            commands::system::check_system_specs,
+            commands::system::exit_app,
             commands::system::get_available_hwaccels,
             commands::system::get_output_folder_size,
             commands::system::clean_output_folder,
