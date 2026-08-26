@@ -84,97 +84,106 @@ impl ClipVideoUseCase {
         // 4. Transcription & Subtitle Burn (Optional)
         let mut current_video = cropped_video.clone();
         
-        if payload.use_subtitle {
+        if payload.use_subtitle || self.ctx.config.watermark_image.is_some() {
             emit_progress(&self.ctx.app_handle, &ProgressEvent {
                 stage: "subtitle".into(),
-                label: "Menghasilkan dan memasang subtitle otomatis...".into(),
+                label: "Menambahkan efek visual/teks ke video...".into(),
                 current: 60,
                 total: 100,
                 detail: None,
             });
             
-            // Extract audio for Whisper using existing audio module
-            let audio_wav = job_dir.join("audio_16k.wav");
-            let duration = payload.end - payload.start;
-            crate::transcription::audio::extract_audio_segment(
-                &current_video.to_string_lossy(),
-                0.0,
-                duration,
-                &audio_wav,
-                None,
-            ).await?;
+            let mut ass_path_opt = None;
+            let mut sub_config_opt = None;
 
-            // Transcribe
-            let whisper_model = if self.ctx.config.subtitle.whisper_model.is_empty() {
-                "tiny".to_string()
-            } else {
-                self.ctx.config.subtitle.whisper_model.clone()
-            };
-            let model_path = crate::transcription::whisper::ensure_model_exists(&whisper_model).await?;
-            let transcriber = crate::transcription::whisper::WhisperTranscriber::new(&model_path)?;
-            let transcript = transcriber.transcribe(&audio_wav).await?;
-            
-            // Generate ASS
-            let ass_path = job_dir.join("subtitles.ass");
-            let mut sub_config = crate::transcription::models::SubtitleConfig::default();
-            if !self.ctx.config.subtitle.font.is_empty() {
-                sub_config.font = self.ctx.config.subtitle.font.clone();
-            }
-            if self.ctx.config.subtitle.font_size > 0 {
-                sub_config.font_size = self.ctx.config.subtitle.font_size;
-            }
-            if !self.ctx.config.subtitle.color.is_empty() {
-                sub_config.primary_color = self.ctx.config.subtitle.color.clone();
-            }
-            if !self.ctx.config.subtitle.bg_color.is_empty() {
-                sub_config.back_color = self.ctx.config.subtitle.bg_color.clone();
-            }
-            if self.ctx.config.subtitle.border_style > 0 {
-                sub_config.border_style = self.ctx.config.subtitle.border_style;
-            }
-            if !self.ctx.config.subtitle.animation.is_empty() {
-                sub_config.animation = self.ctx.config.subtitle.animation.clone();
-            }
-            if self.ctx.config.subtitle.max_words > 0 {
-                sub_config.max_words_per_line = self.ctx.config.subtitle.max_words as usize;
-            }
-            sub_config.alignment = match self.ctx.config.subtitle.location.as_str() {
-                "top" => 8,
-                "center" => 5,
-                "bottom" => 2,
-                _ => 2,
-            };
+            if payload.use_subtitle {
+                // Extract audio for Whisper using existing audio module
+                let audio_wav = job_dir.join("audio_16k.wav");
+                let duration = payload.end - payload.start;
+                crate::transcription::audio::extract_audio_segment(
+                    &current_video.to_string_lossy(),
+                    0.0,
+                    duration,
+                    &audio_wav,
+                    None,
+                ).await?;
 
-            // Calculate dynamic margin_v based on height to match the UI's bottom-24 visual placement
-            // UI uses bottom-24 which is roughly 10% - 15% from the bottom on a mobile screen.
-            sub_config.margin_v = (out_config.height as f32 * 0.12) as u32;
+                // Transcribe
+                let whisper_model = if self.ctx.config.subtitle.whisper_model.is_empty() {
+                    "tiny".to_string()
+                } else {
+                    self.ctx.config.subtitle.whisper_model.clone()
+                };
+                let model_path = crate::transcription::whisper::ensure_model_exists(&whisper_model).await?;
+                let transcriber = crate::transcription::whisper::WhisperTranscriber::new(&model_path)?;
+                let transcript = transcriber.transcribe(&audio_wav).await?;
+                
+                // Generate ASS
+                let ass_path = job_dir.join("subtitles.ass");
+                let mut sub_config = crate::transcription::models::SubtitleConfig::default();
+                if !self.ctx.config.subtitle.font.is_empty() {
+                    sub_config.font = self.ctx.config.subtitle.font.clone();
+                }
+                if self.ctx.config.subtitle.font_size > 0 {
+                    sub_config.font_size = self.ctx.config.subtitle.font_size;
+                }
+                if !self.ctx.config.subtitle.color.is_empty() {
+                    sub_config.primary_color = self.ctx.config.subtitle.color.clone();
+                }
+                if !self.ctx.config.subtitle.bg_color.is_empty() {
+                    sub_config.back_color = self.ctx.config.subtitle.bg_color.clone();
+                }
+                if self.ctx.config.subtitle.border_style > 0 {
+                    sub_config.border_style = self.ctx.config.subtitle.border_style;
+                }
+                if !self.ctx.config.subtitle.animation.is_empty() {
+                    sub_config.animation = self.ctx.config.subtitle.animation.clone();
+                }
+                if self.ctx.config.subtitle.max_words > 0 {
+                    sub_config.max_words_per_line = self.ctx.config.subtitle.max_words as usize;
+                }
+                sub_config.alignment = match self.ctx.config.subtitle.location.as_str() {
+                    "top" => 8,
+                    "center" => 5,
+                    "bottom" => 2,
+                    _ => 2,
+                };
 
-            // Apply hardcoded overrides if Brutalist Box (border_style == 3) is selected
-            if sub_config.border_style == 3 {
-                sub_config.font = "Courier New".to_string();
-                sub_config.primary_color = "&H00FFFFFF".to_string(); // White text
-                sub_config.outline_color = "&H002626DC".to_string(); // Red 600 background block
-                sub_config.back_color = "&H00000000".to_string(); // Black shadow
-                sub_config.outline = 4; // Padding
-                sub_config.shadow = 4; // Shadow offset
+                // Calculate dynamic margin_v based on height to match the UI's bottom-24 visual placement
+                sub_config.margin_v = (out_config.height as f32 * 0.12) as u32;
+
+                // Apply hardcoded overrides if Brutalist Box (border_style == 3) is selected
+                if sub_config.border_style == 3 {
+                    sub_config.font = "Courier New".to_string();
+                    sub_config.primary_color = "&H00FFFFFF".to_string(); // White text
+                    sub_config.outline_color = "&H002626DC".to_string(); // Red 600 background block
+                    sub_config.back_color = "&H00000000".to_string(); // Black shadow
+                    sub_config.outline = 4; // Padding
+                    sub_config.shadow = 4; // Shadow offset
+                }
+                
+                crate::transcription::ass_writer::generate_ass_file(
+                    &transcript, 
+                    &ass_path, 
+                    &sub_config, 
+                    (out_config.width, out_config.height)
+                )?;
+
+                ass_path_opt = Some(ass_path.to_string_lossy().to_string());
+                sub_config_opt = Some(sub_config);
             }
-            
-            crate::transcription::ass_writer::generate_ass_file(
-                &transcript, 
-                &ass_path, 
-                &sub_config, 
-                (out_config.width, out_config.height)
-            )?;
 
-            // Burn Subtitle
+            // Burn Subtitle (and optionally Watermark)
             let subbed_video = job_dir.join("subbed.mp4");
-            let burn_config = crate::processing::subtitle_burner::SubtitleBurnerConfig {
-                ass_path: ass_path.to_string_lossy().to_string(),
+            let burn_config = crate::processing::burner::VideoBurnerConfig {
+                ass_path: ass_path_opt,
                 vfx_overlay_path: None,
                 normalize_audio: true,
-                config: Some(sub_config),
+                config: sub_config_opt,
+                watermark_path: self.ctx.config.watermark_image.clone(),
+                watermark_position: self.ctx.config.watermark_position.clone(),
             };
-            crate::processing::subtitle_burner::burn_subtitle(&current_video, &subbed_video, &burn_config).await?;
+            crate::processing::burner::burn_video_effects(&current_video, &subbed_video, &burn_config).await?;
             current_video = subbed_video;
         }
 
@@ -187,10 +196,20 @@ impl ClipVideoUseCase {
             detail: None,
         });
         
+        let resolve_path = |p: Option<String>| -> Option<std::path::PathBuf> {
+            p.map(|path_str| {
+                if path_str.starts_with("assets/") || path_str.starts_with("assets\\") {
+                    crate::paths::app_data_dir().join(path_str)
+                } else {
+                    std::path::PathBuf::from(path_str)
+                }
+            })
+        };
+
         let stack_config = StackerConfig {
-            intro_path: None,
-            outro_path: None,
-            watermark_path: None, // Can be extended to read from config
+            intro_path: resolve_path(self.ctx.config.intro_video.clone()),
+            outro_path: resolve_path(self.ctx.config.outro_video.clone()),
+            watermark_path: None, // Watermark is handled by subtitle_burner
         };
         
         stack_video(&current_video, &final_video, &stack_config).await?;

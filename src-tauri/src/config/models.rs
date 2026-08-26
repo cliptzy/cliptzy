@@ -55,8 +55,37 @@ pub struct CompilationConfig {
 #[serde(default)]
 pub struct AppConfig {
     pub output_dir: String,
+    pub min_duration: u32,
+    pub min_score: f64,
+    pub max_clips: u32,
+    pub padding: u32,
+    pub top_height: u32,
+    pub bottom_height: u32,
+
+    pub intro_video: Option<String>,
+    pub outro_video: Option<String>,
+    pub watermark_image: Option<String>,
+    pub video_frame: Option<String>,
+    pub watermark_position: String,
+
+    pub output_ratio: String,
+    pub out_width: Option<u32>,
+    pub out_height: Option<u32>,
+
+    pub job_dir: String,
+    pub crop_mode: String,
+    pub merge_clips: bool,
+    pub ui_locked: bool,
+
+    pub upload_interval: f64,
     pub hw_accel: String,
+    pub debug_mode: bool,
     pub max_workers: u32,
+
+    pub tts_language: String,
+    pub tts_voice: String,
+    pub default_hashtags: String,
+
     pub subtitle: SubtitleConfig,
     pub ai: AIConfig,
     pub youtube: PlatformConfig,

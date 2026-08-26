@@ -1,4 +1,15 @@
+# =========================
+# Node & Frontend (Vue/Vite)
+# =========================
+node_modules/
+dist/
+dist-ssr/
+*.local
+.npm/
+
+# =========================
 # Logs
+# =========================
 logs
 *.log
 npm-debug.log*
@@ -7,24 +18,57 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
+# =========================
+# Tauri & Rust Backend
+# =========================
+src-tauri/target/
+src-tauri/gen/
+**/*.rs.bk
 
-# Editor directories and files
+# =========================
+# Environment Variables
+# =========================
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# =========================
+# Python Legacy Engine
+# =========================
+src-tauri/engine/.venv/
+src-tauri/engine/__pycache__/
+src-tauri/engine/clips/
+src-tauri/engine/logs/
+
+# =========================
+# Editor & OS Files
+# =========================
 .vscode/*
 !.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/launch.json
 .idea
 .DS_Store
+Thumbs.db
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
 
-# Python engine artifacts (jangan commit ke repo utama)
-src-tauri/engine/.venv/
-src-tauri/engine/__pycache__/
-src-tauri/engine/clips/
-src-tauri/engine/logs/
+# =========================
+# Application Data & Runtime
+# =========================
+bin/
+cache/
+config.json
+cred/
+jobs/
+models/
+temp/
+src-tauri/*.wav
+src-tauri/*.mp4
+src-tauri/*.mp3
+assets/*_watermark.png

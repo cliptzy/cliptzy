@@ -63,8 +63,37 @@ impl Default for AppConfig {
     fn default() -> Self {
         Self {
             output_dir: "clips".to_string(),
+            min_duration: 60,
+            min_score: 0.40,
+            max_clips: 10,
+            padding: 10,
+            top_height: 960,
+            bottom_height: 320,
+
+            intro_video: None,
+            outro_video: None,
+            watermark_image: None,
+            video_frame: None,
+            watermark_position: "center".to_string(),
+
+            output_ratio: "9:16".to_string(),
+            out_width: Some(720),
+            out_height: Some(1280),
+
+            job_dir: "".to_string(),
+            crop_mode: "default".to_string(),
+            merge_clips: false,
+            ui_locked: false,
+
+            upload_interval: 0.0,
             hw_accel: "cpu".to_string(),
+            debug_mode: false,
             max_workers: 2,
+
+            tts_language: "default".to_string(),
+            tts_voice: "female".to_string(),
+            default_hashtags: "#Shorts #Viral #Cliptzy #fyp".to_string(),
+
             subtitle: SubtitleConfig::default(),
             ai: AIConfig::default(),
             youtube: PlatformConfig::default(),
