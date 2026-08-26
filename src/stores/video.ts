@@ -1,16 +1,18 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { useAppStore } from './app';
-// import { invoke } from '@tauri-apps/api/core';
+import { invoke } from '@tauri-apps/api/core';
 
 export interface VideoSegment {
   start: number;
   end: number;
   score?: number;
   reason?: string;
+  selectedForRender?: boolean;
 }
 
 export interface VideoMetadata {
+  video_id?: string;
   title: string;
   duration: number;
   thumbnail_url: string;
@@ -18,6 +20,7 @@ export interface VideoMetadata {
   heatmap?: any[];
   segments?: VideoSegment[];
   ai_segments?: VideoSegment[];
+  stream_url?: string;
 }
 
 export const useVideoStore = defineStore('video', () => {
@@ -27,8 +30,16 @@ export const useVideoStore = defineStore('video', () => {
   const isScanning = ref(false);
   const isScanningAI = ref(false);
   const metadata = ref<VideoMetadata | null>(null);
+  const currentTime = ref<number>(0);
+  const selectedSegment = ref<VideoSegment | null>(null);
+  const analyzedSegments = ref<Record<string, any>>({});
   const error = ref('');
   
+  const extractVideoId = (url: string) => {
+    const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/);
+    return match ? match[1] : null;
+  };
+
   const analyzeVideo = async (url: string) => {
     if (!url) return;
     
@@ -40,16 +51,23 @@ export const useVideoStore = defineStore('video', () => {
     try {
       const appStore = useAppStore();
       appStore.setProgress({ stage: 'ANALYSIS', label: 'Fetching metadata...', current: 1, total: 100 });
-      await new Promise(resolve => setTimeout(resolve, 500));
-      appStore.setProgress({ stage: 'ANALYSIS', label: 'Parsing heatmaps...', current: 50, total: 100 });
-      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      const result: any = await invoke('scan_video', { url, cookiesPath: null });
+      console.log('SCAN_VIDEO_RESULT:', result);
+      
       appStore.setProgress({ stage: 'ANALYSIS', label: 'Done', current: 100, total: 100 });
       
+      const parsedVideoId = result.video_id || result.videoId || extractVideoId(url) || 'local';
+      
       metadata.value = {
-        title: 'Podcast 10 Jam tentang Coding',
-        uploader: 'Tech Channel',
-        duration: 3540,
-        thumbnail_url: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?q=80&w=1000&auto=format&fit=crop'
+        video_id: parsedVideoId,
+        title: result.title || 'Video',
+        uploader: 'YouTube Channel', // TODO: Get uploader from rust
+        duration: result.duration || 0,
+        thumbnail_url: result.thumbnail || result.thumbnailUrl || result.thumbnail_url || '',
+        segments: (result.segments || []).map((s: any) => ({ ...s, selectedForRender: true })),
+        ai_segments: [],
+        stream_url: result.stream_url || result.streamUrl
       };
     } catch (err: any) {
       console.error(err);
@@ -68,17 +86,33 @@ export const useVideoStore = defineStore('video', () => {
     if (!metadata.value) return;
     isScanning.value = true;
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      metadata.value.segments = [
-        { start: 0, end: 60, score: 0.8 },
-        { start: 120, end: 180, score: 0.9 },
-        { start: 300, end: 360, score: 0.7 },
-      ];
+      // Heatmap is already fetched during scan_video, so we just wait a bit for UX
+      // or we can use this function to re-fetch if needed.
+      await new Promise(resolve => setTimeout(resolve, 500));
+      // segments are already in metadata.value.segments
     } finally {
       isScanning.value = false;
     }
   };
   
+  const analyzeSegmentAudio = async (url: string, start: number, end: number) => {
+    isAnalyzing.value = true;
+    try {
+      const result: any = await invoke('analyze_segment_audio', { url, start, end });
+      console.log('Pre-analysis result:', result);
+      
+      const key = `${start}-${end}`;
+      analyzedSegments.value[key] = result;
+      
+      return result;
+    } catch (err: any) {
+      console.error(err);
+      error.value = err.toString();
+    } finally {
+      isAnalyzing.value = false;
+    }
+  };
+
   return {
     currentUrl,
     isAnalyzing,
@@ -86,9 +120,13 @@ export const useVideoStore = defineStore('video', () => {
     isScanning,
     isScanningAI,
     metadata,
+    currentTime,
+    selectedSegment,
+    analyzedSegments,
     error,
     analyzeVideo,
     previewVideo,
-    processHeatmap
+    processHeatmap,
+    analyzeSegmentAudio
   };
 });

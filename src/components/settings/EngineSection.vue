@@ -10,11 +10,36 @@
         <div class="flex flex-col gap-2">
           <span class="text-xs font-semibold text-white">Akselerasi Rendering (FFmpeg)</span>
           <div class="grid grid-cols-2 gap-2">
-            <button class="p-2 rounded border transition-all text-xs text-center" :class="settings.config.hw_accel === 'cpu' ? 'border-[var(--color-accent)] text-[var(--color-accent)] bg-[var(--color-accent)]/10' : 'border-[var(--color-subtle)] text-gray-400 hover:text-white'" @click="settings.config.hw_accel = 'cpu'">CPU</button>
-            <button class="p-2 rounded border transition-all text-xs text-center" :class="settings.config.hw_accel === 'mac' ? 'border-[var(--color-accent)] text-[var(--color-accent)] bg-[var(--color-accent)]/10' : 'border-[var(--color-subtle)] text-gray-400 hover:text-white'" @click="settings.config.hw_accel = 'mac'">Mac (VideoToolbox)</button>
-            <button class="p-2 rounded border transition-all text-xs text-center" :class="settings.config.hw_accel === 'nvidia' ? 'border-[var(--color-accent)] text-[var(--color-accent)] bg-[var(--color-accent)]/10' : 'border-[var(--color-subtle)] text-gray-400 hover:text-white'" @click="settings.config.hw_accel = 'nvidia'">NVIDIA NVENC</button>
-            <button class="p-2 rounded border transition-all text-xs text-center" :class="settings.config.hw_accel === 'amd' ? 'border-[var(--color-accent)] text-[var(--color-accent)] bg-[var(--color-accent)]/10' : 'border-[var(--color-subtle)] text-gray-400 hover:text-white'" @click="settings.config.hw_accel = 'amd'">AMD AMF</button>
+            <button 
+              class="p-2 rounded border transition-all text-xs text-center disabled:opacity-50 disabled:cursor-not-allowed" 
+              :disabled="!availableAccels.includes('cpu')"
+              :class="settings.config.hw_accel === 'cpu' ? 'border-[var(--color-accent)] text-[var(--color-accent)] bg-[var(--color-accent)]/10' : 'border-[var(--color-subtle)] text-gray-400 hover:text-white'" 
+              @click="settings.config.hw_accel = 'cpu'">
+              CPU
+            </button>
+            <button 
+              class="p-2 rounded border transition-all text-xs text-center disabled:opacity-50 disabled:cursor-not-allowed" 
+              :disabled="!availableAccels.includes('mac')"
+              :class="settings.config.hw_accel === 'mac' ? 'border-[var(--color-accent)] text-[var(--color-accent)] bg-[var(--color-accent)]/10' : 'border-[var(--color-subtle)] text-gray-400 hover:text-white'" 
+              @click="settings.config.hw_accel = 'mac'">
+              Mac (VideoToolbox)
+            </button>
+            <button 
+              class="p-2 rounded border transition-all text-xs text-center disabled:opacity-50 disabled:cursor-not-allowed" 
+              :disabled="!availableAccels.includes('nvidia')"
+              :class="settings.config.hw_accel === 'nvidia' ? 'border-[var(--color-accent)] text-[var(--color-accent)] bg-[var(--color-accent)]/10' : 'border-[var(--color-subtle)] text-gray-400 hover:text-white'" 
+              @click="settings.config.hw_accel = 'nvidia'">
+              NVIDIA NVENC
+            </button>
+            <button 
+              class="p-2 rounded border transition-all text-xs text-center disabled:opacity-50 disabled:cursor-not-allowed" 
+              :disabled="!availableAccels.includes('amd')"
+              :class="settings.config.hw_accel === 'amd' ? 'border-[var(--color-accent)] text-[var(--color-accent)] bg-[var(--color-accent)]/10' : 'border-[var(--color-subtle)] text-gray-400 hover:text-white'" 
+              @click="settings.config.hw_accel = 'amd'">
+              AMD AMF
+            </button>
           </div>
+          <span class="text-[9px] text-gray-500 mt-1" v-if="isLoadingAccels">Mendeteksi hardware yang tersedia...</span>
         </div>
         <!-- Threads -->
         <div class="flex flex-col gap-2">
@@ -64,6 +89,8 @@
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted } from 'vue';
+import { invoke } from '@tauri-apps/api/core';
 import { useSettingsStore } from '../../stores/settings';
 import BentoCard from '../BentoCard.vue';
 
@@ -74,4 +101,22 @@ import IconSparkles from '~icons/lucide/sparkles';
 import IconType from '~icons/lucide/type';
 
 const settings = useSettingsStore();
+const availableAccels = ref<string[]>(['cpu']);
+const isLoadingAccels = ref(true);
+
+onMounted(async () => {
+  try {
+    const accels = await invoke<string[]>('get_available_hwaccels');
+    availableAccels.value = accels;
+    
+    // Auto fallback to CPU if current settings is not available
+    if (!accels.includes(settings.config.hw_accel)) {
+      settings.config.hw_accel = 'cpu';
+    }
+  } catch (e) {
+    console.error("Gagal memeriksa hardware accel:", e);
+  } finally {
+    isLoadingAccels.value = false;
+  }
+});
 </script>

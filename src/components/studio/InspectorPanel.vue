@@ -77,15 +77,25 @@
       
       <!-- Presets -->
       <div class="grid grid-cols-2 gap-2">
-        <button @click="settings.config.subtitle.animation = 'hormozi'" class="p-2 rounded border transition-all text-left flex flex-col gap-1 group" :class="settings.config.subtitle.animation === 'hormozi' ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/10' : 'border-[var(--color-subtle)] bg-white/5 hover:border-gray-500'">
+        <button @click="settings.config.subtitle.animation = 'hormozi'; settings.config.subtitle.border_style = 1" class="p-2 rounded border transition-all text-left flex flex-col gap-1 group" :class="settings.config.subtitle.animation === 'hormozi' ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/10' : 'border-[var(--color-subtle)] bg-white/5 hover:border-gray-500'">
           <span class="font-black text-xs uppercase text-yellow-400">Hormozi</span>
         </button>
-        <button @click="settings.config.subtitle.animation = 'karaoke'" class="p-2 rounded border transition-all text-left flex flex-col gap-1 group" :class="settings.config.subtitle.animation === 'karaoke' ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/10' : 'border-[var(--color-subtle)] bg-white/5 hover:border-gray-500'">
+        <button @click="settings.config.subtitle.animation = 'karaoke'; settings.config.subtitle.border_style = 1" class="p-2 rounded border transition-all text-left flex flex-col gap-1 group" :class="settings.config.subtitle.animation === 'karaoke' ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/10' : 'border-[var(--color-subtle)] bg-white/5 hover:border-gray-500'">
           <span class="font-bold text-xs text-green-400">Karaoke</span>
         </button>
-        <button @click="settings.config.subtitle.border_style = 3" class="p-2 rounded border transition-all text-left flex flex-col gap-1 col-span-2 group" :class="settings.config.subtitle.border_style === 3 ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/10' : 'border-[var(--color-subtle)] bg-white/5 hover:border-gray-500'">
+        <button @click="settings.config.subtitle.border_style = 3; settings.config.subtitle.animation = 'none'" class="p-2 rounded border transition-all text-left flex flex-col gap-1 col-span-2 group" :class="settings.config.subtitle.border_style === 3 ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/10' : 'border-[var(--color-subtle)] bg-white/5 hover:border-gray-500'">
           <span class="font-mono text-xs uppercase tracking-widest text-white bg-red-600 px-1 w-fit">BRUTALIST BOX</span>
         </button>
+      </div>
+
+      <!-- Action Generate Subtitle -->
+      <div v-if="aiWhisper" class="mt-1">
+        <GlowButton @click="handleGenerateSubtitle" :disabled="videoStore.isAnalyzing || !videoStore.metadata?.stream_url" class="w-full py-2 text-xs">
+          <span v-if="videoStore.isAnalyzing" class="flex items-center justify-center gap-2">
+            <IconLoader class="w-3 h-3 animate-spin" /> Sedang Generate...
+          </span>
+          <span v-else>Generate Subtitle (Pre-Analysis)</span>
+        </GlowButton>
       </div>
 
       <!-- Deep Subtitle Settings -->
@@ -146,20 +156,52 @@
 
 <script setup lang="ts">
 import { useSettingsStore } from '../../stores/settings';
+import { useVideoStore } from '../../stores/video';
 import BentoCard from '../BentoCard.vue';
 import ToggleSwitch from '../ToggleSwitch.vue';
+import GlowButton from '../GlowButton.vue';
 
 // Icons
 import IconCrop from '~icons/lucide/crop';
 import IconSparkles from '~icons/lucide/sparkles';
 import IconType from '~icons/lucide/type';
 import IconImage from '~icons/lucide/image';
+import IconLoader from '~icons/lucide/loader-2';
 
 const settings = useSettingsStore();
+const videoStore = useVideoStore();
 
 const cropMode = defineModel('cropMode', { type: String, default: 'auto' });
 const aiWhisper = defineModel('aiWhisper', { type: Boolean, default: true });
 const aiBRoll = defineModel('aiBRoll', { type: Boolean, default: false });
+
+const handleGenerateSubtitle = async () => {
+  if (!videoStore.metadata?.stream_url) return;
+  // Use selected segment
+  const start = videoStore.selectedSegment?.start || videoStore.currentTime || 0;
+  const end = videoStore.selectedSegment?.end || start + 60; 
+  await videoStore.analyzeSegmentAudio(videoStore.metadata.stream_url, start, end);
+};
+
+// Auto-generate if a new segment is selected and aiWhisper is enabled
+import { watch } from 'vue';
+watch(() => videoStore.selectedSegment, (newSegment, oldSegment) => {
+  if (aiWhisper.value && newSegment && newSegment.start !== oldSegment?.start) {
+    const key = `${newSegment.start}-${newSegment.end}`;
+    if (!videoStore.analyzedSegments[key] && !videoStore.isAnalyzing) {
+      handleGenerateSubtitle();
+    }
+  }
+});
+
+watch(aiWhisper, (newVal) => {
+  if (newVal && videoStore.selectedSegment) {
+    const key = `${videoStore.selectedSegment.start}-${videoStore.selectedSegment.end}`;
+    if (!videoStore.analyzedSegments[key] && !videoStore.isAnalyzing) {
+      handleGenerateSubtitle();
+    }
+  }
+});
 </script>
 
 <style scoped>

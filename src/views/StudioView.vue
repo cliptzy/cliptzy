@@ -67,9 +67,9 @@ const handleScanAI = async () => {
   // Simulate AI scan delay
   setTimeout(() => {
     videoStore.metadata!.ai_segments = [
-      { start: 10.5, end: 45.2, reason: 'Pengenalan topik utama dengan nada emosional tinggi' },
-      { start: 120.0, end: 180.5, reason: 'Klimaks perdebatan atau poin paling kontroversial' },
-      { start: 300.0, end: 345.0, reason: 'Kesimpulan dan CTA yang kuat' }
+      { start: 10.5, end: 45.2, reason: 'Pengenalan topik utama dengan nada emosional tinggi', selectedForRender: true },
+      { start: 120.0, end: 180.5, reason: 'Klimaks perdebatan atau poin paling kontroversial', selectedForRender: true },
+      { start: 300.0, end: 345.0, reason: 'Kesimpulan dan CTA yang kuat', selectedForRender: true }
     ];
     videoStore.isScanningAI = false;
   }, 3000);

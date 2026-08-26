@@ -15,6 +15,7 @@ pub struct VideoAnalysisResult {
     pub thumbnail: String,
     pub duration: f64,
     pub segments: Vec<SegmentInfo>,
+    pub stream_url: Option<String>,
 }
 
 pub async fn get_downloader(
@@ -69,12 +70,30 @@ pub async fn analyze_youtube_video(
         })
         .collect();
 
+    // Get the best video/audio format or a fallback URL
+    // Prioritize mp4 that has both audio and video for best HTML5 compatibility
+    let stream_url = video.formats.iter()
+        .find(|f| {
+            f.format_type().is_audio_and_video() && f.download_info.ext.as_str() == "mp4"
+        })
+        .and_then(|f| f.download_info.url.clone())
+        .or_else(|| {
+            video.best_audio_video_format()
+                .ok()
+                .and_then(|f| f.download_info.url.clone())
+        })
+        .or_else(|| {
+            // Fallback to first available URL
+            video.formats.iter().find_map(|f| f.download_info.url.clone())
+        });
+
     Ok(VideoAnalysisResult {
         video_id: video.id,
         title: video.title,
         thumbnail: video.thumbnail.unwrap_or_default(),
         duration: video.duration.unwrap_or(0) as f64,
         segments,
+        stream_url,
     })
 }
 

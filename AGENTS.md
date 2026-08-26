@@ -17,6 +17,8 @@ Dokumen ini adalah **sumber kebenaran utama (single source of truth)** untuk sel
 |----------|--------|--------|
 | **Tauri + Vue 3 + TypeScript** | ✅ Scaffold dasar | Proyek Tauri v2 sudah diinisialisasi. |
 | **Rust Backend (Tauri)** | ✅ Pengembangan Aktif | Fungsionalitas autentikasi, manajemen config, dan manajemen sesi (Supabase) sudah di-porting ke native Rust (`supabase.rs`). |
+| **Video Engine** | ✅ Selesai | Ekstraksi Metadata & Stream URL menggunakan native Rust via binding CLI `yt-dlp` (di `youtube.rs`), dengan pengiriman data *frontend* via IPC Tauri commands. |
+| **Studio Editor UI** | ✅ Fungsional | Sinkronisasi mutakhir antara YouTube IFrame Player (Center Cropped 9:16) dan Timeline Editor berbasis durasi klip, Multi-track rendering untuk Teks (Subtitle) & Video, serta Auto-Looping batas pemutaran segmen. |
 | **Python Engine (Legacy)** | 🗑️ Akan Dihapus | Sebelumnya aplikasi menggunakan Python FastAPI server di-spawn sebagai child process. **Pendekatan ini dibatalkan** demi performa dan kemudahan distribusi. Seluruh logic akan ditulis ulang dalam Rust murni. |
 
 ### 0.2 Apa yang BELUM ADA (Belum Diimplementasi)

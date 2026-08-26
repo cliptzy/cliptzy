@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full xl:w-[380px] flex flex-col gap-4 overflow-y-auto pr-1 custom-scrollbar shrink-0">
+  <div class="w-full xl:w-[380px] flex flex-col gap-4 h-full min-h-0 shrink-0">
     
     <!-- URL Input -->
     <BentoCard class="p-4 bg-[var(--color-surface)] shrink-0">
@@ -87,7 +87,7 @@
       </div>
       
       <!-- TAB AI -->
-      <div v-else-if="scanMode === 'ai'" class="flex-1 flex flex-col relative">
+      <div v-else-if="scanMode === 'ai'" class="flex-1 flex flex-col relative min-h-0">
         <div v-if="videoStore.isScanningAI" class="absolute inset-0 z-10 bg-[var(--color-surface)]/80 backdrop-blur-sm flex flex-col items-center justify-center">
           <IconLoader class="w-6 h-6 animate-spin text-[var(--color-accent)] mb-2" />
           <span class="text-xs text-gray-400">Menganalisis AI...</span>
@@ -100,14 +100,22 @@
         </div>
 
         <div v-else class="flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-2">
-          <label v-for="(segment, idx) in videoStore.metadata.ai_segments" :key="idx" class="flex items-start gap-3 p-3 rounded-lg border border-[var(--color-subtle)] bg-black/20 hover:bg-black/40 cursor-pointer group transition-colors">
+          <div class="flex justify-between items-center mb-1 px-1">
+            <span class="text-[10px] text-gray-400 font-bold uppercase">{{ videoStore.metadata.ai_segments.length }} Klip Ditemukan</span>
+            <button @click="toggleSelectAll('ai')" class="text-[10px] text-[var(--color-accent)] hover:text-white transition-colors">
+              Toggle Select All
+            </button>
+          </div>
+          <div v-for="(segment, idx) in videoStore.metadata.ai_segments" :key="idx"
+            @click="videoStore.currentTime = segment.start; videoStore.selectedSegment = segment;"
+            class="flex items-start gap-3 p-3 rounded-lg border border-[var(--color-subtle)] bg-black/20 hover:bg-black/40 cursor-pointer group transition-colors">
             <div class="pt-0.5">
-              <div class="relative w-4 h-4">
-                <input type="checkbox" checked class="peer sr-only" />
+              <label class="relative w-4 h-4 block cursor-pointer" @click.stop>
+                <input type="checkbox" v-model="segment.selectedForRender" class="peer sr-only" />
                 <div class="w-4 h-4 border-2 border-gray-500 rounded peer-checked:bg-[var(--color-accent)] peer-checked:border-[var(--color-accent)] transition-all flex items-center justify-center">
                   <IconCheck class="w-3 h-3 text-black opacity-0 peer-checked:opacity-100" />
                 </div>
-              </div>
+              </label>
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex justify-between items-center mb-1">
@@ -118,12 +126,12 @@
               </div>
               <div class="text-[10px] text-gray-500 line-clamp-2">{{ segment.reason || 'Momen menarik' }}</div>
             </div>
-          </label>
+          </div>
         </div>
       </div>
 
       <!-- TAB HEATMAP -->
-      <div v-else class="flex-1 flex flex-col relative">
+      <div v-else class="flex-1 flex flex-col relative min-h-0">
         <div v-if="videoStore.isScanning" class="absolute inset-0 z-10 bg-[var(--color-surface)]/80 backdrop-blur-sm flex flex-col items-center justify-center">
           <IconLoader class="w-6 h-6 animate-spin text-[var(--color-accent)] mb-2" />
           <span class="text-xs text-gray-400">Mencari momen...</span>
@@ -136,14 +144,22 @@
         </div>
 
         <div v-else class="flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-2">
-          <label v-for="(segment, idx) in videoStore.metadata.segments" :key="idx" class="flex items-start gap-3 p-3 rounded-lg border border-[var(--color-subtle)] bg-black/20 hover:bg-black/40 cursor-pointer group transition-colors">
+          <div class="flex justify-between items-center mb-1 px-1">
+            <span class="text-[10px] text-gray-400 font-bold uppercase">{{ videoStore.metadata.segments.length }} Klip Ditemukan</span>
+            <button @click="toggleSelectAll('heatmap')" class="text-[10px] text-[var(--color-accent)] hover:text-white transition-colors">
+              Toggle Select All
+            </button>
+          </div>
+          <div v-for="(segment, idx) in videoStore.metadata.segments" :key="idx" 
+            @click="videoStore.currentTime = segment.start; videoStore.selectedSegment = segment;"
+            class="flex items-start gap-3 p-3 rounded-lg border border-[var(--color-subtle)] bg-black/20 hover:bg-black/40 cursor-pointer group transition-colors">
             <div class="pt-0.5">
-              <div class="relative w-4 h-4">
-                <input type="checkbox" checked class="peer sr-only" />
+              <label class="relative w-4 h-4 block cursor-pointer" @click.stop>
+                <input type="checkbox" v-model="segment.selectedForRender" class="peer sr-only" />
                 <div class="w-4 h-4 border-2 border-gray-500 rounded peer-checked:bg-[var(--color-accent)] peer-checked:border-[var(--color-accent)] transition-all flex items-center justify-center">
                   <IconCheck class="w-3 h-3 text-black opacity-0 peer-checked:opacity-100" />
                 </div>
-              </div>
+              </label>
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex justify-between items-center mb-1">
@@ -161,7 +177,7 @@
                 </div>
               </div>
             </div>
-          </label>
+          </div>
         </div>
       </div>
     </BentoCard>
@@ -211,6 +227,19 @@ const formatDuration = (seconds: number) => {
   const s = Math.floor(seconds % 60);
   if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   return `${m}:${s.toString().padStart(2, '0')}`;
+};
+
+const toggleSelectAll = (tab: 'heatmap' | 'ai') => {
+  if (!videoStore.metadata) return;
+  const segments = tab === 'heatmap' ? videoStore.metadata.segments : videoStore.metadata.ai_segments;
+  if (!segments || segments.length === 0) return;
+  
+  // Check if all are currently selected
+  const allSelected = segments.every((s: any) => s.selectedForRender);
+  
+  segments.forEach((s: any) => {
+    s.selectedForRender = !allSelected;
+  });
 };
 </script>
 

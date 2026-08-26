@@ -11,6 +11,7 @@ pub struct ScanResult {
     pub thumbnail: String,
     pub duration: f64,
     pub segments: Vec<SegmentInfo>,
+    pub stream_url: Option<String>,
 }
 
 #[tauri::command]
@@ -26,6 +27,7 @@ pub async fn scan_video(url: String, cookies_path: Option<String>) -> Result<Sca
             thumbnail: analysis.thumbnail,
             duration: analysis.duration,
             segments: analysis.segments,
+            stream_url: analysis.stream_url,
         })
     } else {
         // Local video
@@ -62,6 +64,7 @@ pub async fn scan_video(url: String, cookies_path: Option<String>) -> Result<Sca
             thumbnail: "".to_string(),
             duration,
             segments,
+            stream_url: Some(url),
         })
     }
 }

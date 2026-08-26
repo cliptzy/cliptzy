@@ -51,19 +51,22 @@
       <h2 class="text-sm font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
         <IconHardDrive class="w-4 h-4 text-[var(--color-accent)]" /> Penyimpanan
       </h2>
-      <BentoCard class="p-5 flex flex-col items-center">
+      <BentoCard class="p-5 flex flex-col items-center relative">
+        <div v-if="isCalculatingSize" class="absolute inset-0 bg-black/50 flex items-center justify-center rounded-xl backdrop-blur-sm z-10">
+          <span class="text-xs text-[var(--color-accent)] animate-pulse">Menghitung...</span>
+        </div>
         <div class="relative w-32 h-32 flex items-center justify-center">
           <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
             <circle cx="50" cy="50" r="40" stroke="rgba(255,255,255,0.05)" stroke-width="8" fill="none" />
-            <circle cx="50" cy="50" r="40" stroke="var(--color-accent)" stroke-width="8" fill="none" stroke-linecap="round" stroke-dasharray="251.2" stroke-dashoffset="62.8" class="transition-all duration-1000 ease-out shadow-[0_0_15px_var(--color-accent)]" />
+            <circle cx="50" cy="50" r="40" stroke="var(--color-accent)" stroke-width="8" fill="none" stroke-linecap="round" stroke-dasharray="251.2" :stroke-dashoffset="calculateDashOffset()" class="transition-all duration-1000 ease-out shadow-[0_0_15px_var(--color-accent)]" />
           </svg>
           <div class="absolute inset-0 flex flex-col items-center justify-center">
-            <span class="text-xl font-black text-white">4.2</span>
+            <span class="text-xl font-black text-white">{{ outputSize.toFixed(2) }}</span>
             <span class="text-[9px] text-gray-400 font-medium">GB Terpakai</span>
           </div>
         </div>
-        <button @click="clearCache" class="mt-4 w-full py-2 rounded border border-red-500/30 text-red-400 text-xs font-bold hover:bg-red-500 hover:text-white transition-colors flex items-center justify-center gap-2">
-          <IconTrash2 class="w-3 h-3" /> Bersihkan Cache
+        <button @click="clearCache" :disabled="isClearing" class="mt-4 w-full py-2 rounded border border-red-500/30 text-red-400 text-xs font-bold hover:bg-red-500 hover:text-white transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+          <IconTrash2 class="w-3 h-3" /> {{ isClearing ? 'Membersihkan...' : 'Bersihkan Folder Output' }}
         </button>
       </BentoCard>
     </section>
@@ -71,9 +74,11 @@
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAppStore } from '../../stores/app';
 import { useAuthStore } from '../../stores/auth';
+import { invoke } from '@tauri-apps/api/core';
 import BentoCard from '../BentoCard.vue';
 
 // Icons
@@ -88,13 +93,55 @@ const appStore = useAppStore();
 const auth = useAuthStore();
 const router = useRouter();
 
-const clearCache = () => {
-  appStore.addToast({
-    type: 'success',
-    title: 'Cache Cleared',
-    message: '3.1 GB of temporary files have been successfully deleted.',
-    duration: 3000
-  });
+const outputSize = ref(0.0);
+const isCalculatingSize = ref(true);
+const isClearing = ref(false);
+
+const calculateDashOffset = () => {
+  // Max storage display is arbitrary, let's assume 10GB scale for the visual circle
+  const maxGB = 10.0; 
+  const percentage = Math.min((outputSize.value / maxGB) * 100, 100);
+  const circumference = 251.2; // 2 * Math.PI * 40
+  return circumference - (percentage / 100) * circumference;
+};
+
+const refreshSize = async () => {
+  isCalculatingSize.value = true;
+  try {
+    const size = await invoke<number>('get_output_folder_size');
+    outputSize.value = size;
+  } catch (e) {
+    console.error("Gagal mengambil ukuran folder:", e);
+  } finally {
+    isCalculatingSize.value = false;
+  }
+};
+
+onMounted(() => {
+  refreshSize();
+});
+
+const clearCache = async () => {
+  isClearing.value = true;
+  try {
+    await invoke('clean_output_folder');
+    appStore.addToast({
+      type: 'success',
+      title: 'Folder Dibersihkan',
+      message: `${outputSize.value.toFixed(2)} GB file dari folder output telah dihapus.`,
+      duration: 3000
+    });
+    outputSize.value = 0.0;
+    await refreshSize();
+  } catch (e: any) {
+    appStore.addToast({
+      type: 'error',
+      title: 'Gagal Membersihkan',
+      message: e.toString() || 'Gagal membersihkan folder output'
+    });
+  } finally {
+    isClearing.value = false;
+  }
 };
 
 const handleLogout = async () => {

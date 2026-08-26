@@ -39,12 +39,16 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::system::get_system_metrics,
+            commands::system::get_available_hwaccels,
+            commands::system::get_output_folder_size,
+            commands::system::clean_output_folder,
             commands::cookies::copy_cookies_file,
             commands::cookies::validate_cookies_file,
             commands::config::copy_asset_file,
             commands::config::save_config_file,
             commands::video::analyze_video,
             commands::video::clip_video,
+            commands::video::analyze_segment_audio,
             commands::auth::login_with_google,
             commands::auth::logout,
             commands::auth::get_user_id,

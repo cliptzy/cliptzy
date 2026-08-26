@@ -44,3 +44,43 @@ pub async fn clip_video(
     
     Ok(result)
 }
+
+#[derive(serde::Serialize)]
+pub struct SegmentAnalysisResult {
+    pub transcript: Vec<crate::transcription::models::TranscriptionSegment>,
+    pub ai_effects: Vec<serde_json::Value>,
+}
+
+#[tauri::command]
+pub async fn analyze_segment_audio(
+    _url: String,
+    start: f64,
+    _end: f64,
+) -> Result<SegmentAnalysisResult, CliptzyError> {
+    // TODO: Implement actual audio download via ffmpeg stream
+    // TODO: Implement actual Whisper-rs transcription
+    // TODO: Implement actual AI Metadata / Effect generation
+    
+    // For now, return mock data so frontend can build the UX
+    tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+    
+    Ok(SegmentAnalysisResult {
+        transcript: vec![
+            crate::transcription::models::TranscriptionSegment {
+                id: 0,
+                start: start,
+                end: start + 2.0,
+                text: "Ini adalah hasil".to_string(),
+                words: vec![],
+            },
+            crate::transcription::models::TranscriptionSegment {
+                id: 1,
+                start: start + 2.0,
+                end: start + 4.0,
+                text: "analisis pre-render".to_string(),
+                words: vec![],
+            }
+        ],
+        ai_effects: vec![],
+    })
+}

@@ -55,37 +55,37 @@
         <IconImage class="w-4 h-4 text-[var(--color-accent)]" /> Branding & Aset Dasar
       </h2>
       <BentoCard class="p-5 flex flex-col gap-3">
-        <!-- Asset Pickers (UI Mock) -->
-        <div class="flex items-center justify-between p-2 bg-black/30 border border-[var(--color-subtle)] rounded hover:border-gray-500 transition-colors cursor-pointer group">
+        <!-- Asset Pickers -->
+        <div @click="selectAsset('intro_video')" class="flex items-center justify-between p-2 bg-black/30 border border-[var(--color-subtle)] rounded hover:border-[var(--color-accent)] transition-colors cursor-pointer group">
           <div class="flex flex-col">
             <span class="text-xs font-bold text-white group-hover:text-[var(--color-accent)] transition-colors">Video Intro</span>
-            <span class="text-[9px] text-gray-500">{{ settings.config.intro_video || 'Belum di-set' }}</span>
+            <span class="text-[9px] text-gray-500 truncate max-w-[200px]" :title="settings.config.intro_video || ''">{{ settings.config.intro_video || 'Belum di-set' }}</span>
           </div>
-          <IconUpload class="w-4 h-4 text-gray-400" />
+          <IconUpload class="w-4 h-4 text-gray-400 group-hover:text-[var(--color-accent)]" />
         </div>
         
-        <div class="flex items-center justify-between p-2 bg-black/30 border border-[var(--color-subtle)] rounded hover:border-gray-500 transition-colors cursor-pointer group">
+        <div @click="selectAsset('outro_video')" class="flex items-center justify-between p-2 bg-black/30 border border-[var(--color-subtle)] rounded hover:border-[var(--color-accent)] transition-colors cursor-pointer group">
           <div class="flex flex-col">
             <span class="text-xs font-bold text-white group-hover:text-[var(--color-accent)] transition-colors">Video Outro</span>
-            <span class="text-[9px] text-gray-500">{{ settings.config.outro_video || 'Belum di-set' }}</span>
+            <span class="text-[9px] text-gray-500 truncate max-w-[200px]" :title="settings.config.outro_video || ''">{{ settings.config.outro_video || 'Belum di-set' }}</span>
           </div>
-          <IconUpload class="w-4 h-4 text-gray-400" />
+          <IconUpload class="w-4 h-4 text-gray-400 group-hover:text-[var(--color-accent)]" />
         </div>
 
-        <div class="flex items-center justify-between p-2 bg-black/30 border border-[var(--color-subtle)] rounded hover:border-gray-500 transition-colors cursor-pointer group">
+        <div @click="selectAsset('watermark_image')" class="flex items-center justify-between p-2 bg-black/30 border border-[var(--color-subtle)] rounded hover:border-[var(--color-accent)] transition-colors cursor-pointer group">
           <div class="flex flex-col">
             <span class="text-xs font-bold text-white group-hover:text-[var(--color-accent)] transition-colors">Gambar Watermark</span>
-            <span class="text-[9px] text-gray-500">{{ settings.config.watermark_image || 'Belum di-set' }}</span>
+            <span class="text-[9px] text-gray-500 truncate max-w-[200px]" :title="settings.config.watermark_image || ''">{{ settings.config.watermark_image || 'Belum di-set' }}</span>
           </div>
-          <IconUpload class="w-4 h-4 text-gray-400" />
+          <IconUpload class="w-4 h-4 text-gray-400 group-hover:text-[var(--color-accent)]" />
         </div>
 
-        <div class="flex items-center justify-between p-2 bg-black/30 border border-[var(--color-subtle)] rounded hover:border-gray-500 transition-colors cursor-pointer group">
+        <div @click="selectAsset('video_frame')" class="flex items-center justify-between p-2 bg-black/30 border border-[var(--color-subtle)] rounded hover:border-[var(--color-accent)] transition-colors cursor-pointer group">
           <div class="flex flex-col">
             <span class="text-xs font-bold text-white group-hover:text-[var(--color-accent)] transition-colors">Background Frame</span>
-            <span class="text-[9px] text-gray-500">{{ settings.config.video_frame || 'Belum di-set' }}</span>
+            <span class="text-[9px] text-gray-500 truncate max-w-[200px]" :title="settings.config.video_frame || ''">{{ settings.config.video_frame || 'Belum di-set' }}</span>
           </div>
-          <IconUpload class="w-4 h-4 text-gray-400" />
+          <IconUpload class="w-4 h-4 text-gray-400 group-hover:text-[var(--color-accent)]" />
         </div>
         <p class="text-[9px] text-gray-500 mt-1">Posisi watermark kini dapat diatur secara real-time di halaman Studio.</p>
       </BentoCard>
@@ -95,7 +95,10 @@
 
 <script setup lang="ts">
 import { useSettingsStore } from '../../stores/settings';
+import { useAppStore } from '../../stores/app';
 import BentoCard from '../BentoCard.vue';
+import { open } from '@tauri-apps/plugin-dialog';
+import { invoke } from '@tauri-apps/api/core';
 
 // Icons
 import IconScissors from '~icons/lucide/scissors';
@@ -104,4 +107,55 @@ import IconImage from '~icons/lucide/image';
 import IconUpload from '~icons/lucide/upload';
 
 const settings = useSettingsStore();
+const appStore = useAppStore();
+
+async function selectAsset(type: 'intro_video' | 'outro_video' | 'watermark_image' | 'video_frame') {
+  let title = '';
+  let filters = [];
+  
+  if (type === 'intro_video' || type === 'outro_video') {
+    title = 'Pilih Video';
+    filters = [{ name: 'Video', extensions: ['mp4', 'mov', 'mkv', 'avi', 'webm'] }];
+  } else {
+    title = 'Pilih Gambar';
+    filters = [{ name: 'Gambar', extensions: ['png', 'jpg', 'jpeg', 'webp'] }];
+  }
+
+  try {
+    const selected = await open({
+      multiple: false,
+      title,
+      filters
+    });
+
+    if (selected && typeof selected === 'string') {
+      const filename = selected.split(/[/\\]/).pop() || 'asset';
+      const safeFilename = `${type}_${Date.now()}_${filename}`;
+      
+      // Salin file ke app_data_dir/assets menggunakan Rust invoke
+      const relPath = await invoke<string>('copy_asset_file', {
+        sourcePath: selected,
+        filename: safeFilename
+      });
+
+      if (relPath) {
+        settings.config[type] = relPath;
+        
+        // Simpan konfigurasi (jika sudah didukung via store/watcher, jika belum ini bisa berguna)
+        appStore.addToast({
+          type: 'success',
+          title: 'Aset Berhasil Diunggah',
+          message: `${filename} berhasil disalin dan siap digunakan.`
+        });
+      }
+    }
+  } catch (e: any) {
+    console.error("Gagal menyalin aset:", e);
+    appStore.addToast({
+      type: 'error',
+      title: 'Upload Gagal',
+      message: e.toString() || 'Gagal menyalin aset'
+    });
+  }
+}
 </script>

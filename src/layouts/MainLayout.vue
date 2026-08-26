@@ -21,6 +21,9 @@
       <!-- Toast Notifications -->
       <TerminalToast />
     </div>
+    
+    <!-- Footer Status Bar -->
+    <AppFooter />
   </div>
 </template>
 
@@ -29,6 +32,7 @@ import MacOsWindowsTitleBar from '../components/MacOsWindowsTitleBar.vue';
 import Sidebar from '../components/Sidebar.vue';
 import GlobalStatusBar from '../components/GlobalStatusBar.vue';
 import TerminalToast from '../components/TerminalToast.vue';
+import AppFooter from '../components/AppFooter.vue';
 </script>
 
 <style>
