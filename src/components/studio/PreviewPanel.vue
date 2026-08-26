@@ -9,12 +9,18 @@
         </h3>
 
         <div
-            class="relative w-full max-w-[320px] aspect-[9/16] bg-gray-900 rounded-lg overflow-hidden border border-gray-800 shadow-2xl"
+            class="relative w-full max-w-[320px] bg-gray-900 rounded-lg overflow-hidden border border-gray-800 shadow-2xl transition-all duration-300"
+            :class="{
+                'aspect-[9/16]': settings.config.output_ratio === '9:16',
+                'aspect-square': settings.config.output_ratio === '1:1',
+                'aspect-video': settings.config.output_ratio === '16:9',
+                'aspect-auto': settings.config.output_ratio === 'original'
+            }"
         >
-            <!-- Iframe Container to crop YouTube to 9:16 -->
+            <!-- Iframe Container to crop YouTube to output ratio -->
             <div
                 v-show="isYoutube"
-                class="absolute top-0 left-1/2 -translate-x-1/2 h-full aspect-video pointer-events-none opacity-90"
+                class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-full aspect-video pointer-events-none opacity-90"
             >
                 <div id="youtube-player" class="w-full h-full"></div>
             </div>
@@ -53,7 +59,7 @@
 
             <!-- Safe Zones Overlay -->
             <div
-                v-show="showSafeZone"
+                v-show="showSafeZone && settings.config.output_ratio === '9:16'"
                 class="absolute inset-0 pointer-events-none"
             >
                 <!-- Bottom Vignette (Title & description area) -->
@@ -82,45 +88,88 @@
                 </div>
             </div>
 
+            <!-- Watermark Overlay -->
+            <img 
+                v-if="watermarkUrl"
+                :src="watermarkUrl"
+                class="absolute left-1/2 -translate-x-1/2 pointer-events-none opacity-50 object-contain w-24 h-24"
+                :class="{
+                    'top-8': settings.config.watermark_position === 'top',
+                    'top-1/2 -translate-y-1/2': settings.config.watermark_position === 'center',
+                    'bottom-32': settings.config.watermark_position === 'bottom'
+                }"
+            />
+            <!-- Watermark Overlay Placeholder -->
+            <div 
+                v-else
+                class="absolute left-1/2 -translate-x-1/2 pointer-events-none opacity-50 text-white font-bold text-sm bg-black/30 px-2 py-1 rounded"
+                :class="{
+                    'top-8': settings.config.watermark_position === 'top',
+                    'top-1/2 -translate-y-1/2': settings.config.watermark_position === 'center',
+                    'bottom-32': settings.config.watermark_position === 'bottom'
+                }"
+            >
+                @cliptzy
+            </div>
+
             <!-- Subtitle Overlay -->
-            <div class="absolute bottom-24 left-0 w-full text-center px-4" v-show="currentSubtitle || !videoStore.selectedSegment">
+            <div 
+                class="absolute left-0 w-full text-center px-4 pointer-events-none flex flex-col items-center justify-center" 
+                :class="{
+                    'top-24': settings.config.subtitle.location === 'top',
+                    'top-1/2 -translate-y-1/2': settings.config.subtitle.location === 'center',
+                    'bottom-24': settings.config.subtitle.location === 'bottom'
+                }"
+                v-show="currentSubtitle || !videoStore.selectedSegment"
+            >
                 <span
                     v-if="settings.config.subtitle.animation === 'hormozi'"
                     key="hormozi"
-                    class="text-2xl font-black uppercase text-yellow-400 drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)]"
+                    class="font-black uppercase drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)]"
                     style="-webkit-text-stroke: 1px black"
+                    :style="subtitleStyle"
                 >
                     {{ currentSubtitle?.text || 'INI SANGAT PENTING!' }}
                 </span>
                 <span
                     v-else-if="settings.config.subtitle.animation === 'karaoke'"
                     key="karaoke"
-                    class="text-xl font-bold text-gray-300 drop-shadow-md flex justify-center flex-wrap gap-x-1.5"
+                    class="font-bold drop-shadow-md flex justify-center flex-wrap gap-x-1.5"
+                    :style="{ fontFamily: subtitleStyle.fontFamily, fontSize: subtitleStyle.fontSize }"
                 >
                     <span 
                         v-if="currentSubtitle"
                         v-for="(w, idx) in currentSubtitle.words" 
                         :key="idx"
-                        :class="w.active ? 'text-green-400 scale-110 transition-transform' : 'text-gray-300'"
+                        class="transition-transform"
+                        :class="w.active ? 'scale-110' : ''"
+                        :style="w.active ? { color: subtitleStyle.color } : { color: '#D1D5DB' }"
                     >
                         {{ w.text.trim() }}
                     </span>
                     <span v-else class="text-gray-300">
-                        <span class="text-green-400 scale-110 inline-block transition-transform">Ini</span> 
+                        <span class="scale-110 inline-block transition-transform" :style="{ color: subtitleStyle.color }">Ini</span> 
                         sangat penting!
                     </span>
                 </span>
                 <span
                     v-else-if="settings.config.subtitle.border_style === 3"
                     key="brutalist"
-                    class="text-xl font-mono uppercase bg-red-600 text-white px-2 py-0.5 shadow-[4px_4px_0px_#000]"
+                    class="font-mono uppercase px-2 py-0.5 shadow-[4px_4px_0px_#000]"
+                    :style="{ 
+                        fontFamily: subtitleStyle.fontFamily, 
+                        fontSize: subtitleStyle.fontSize,
+                        color: subtitleStyle.color,
+                        backgroundColor: brutalistBgColor
+                    }"
                 >
                     {{ currentSubtitle?.text || 'INI SANGAT PENTING' }}
                 </span>
                 <span
                     v-else
                     key="plain"
-                    class="text-xl font-bold text-white drop-shadow-md"
+                    class="font-bold drop-shadow-md"
+                    :style="subtitleStyle"
                 >
                     {{ currentSubtitle?.text || 'Ini sangat penting!' }}
                 </span>
@@ -184,6 +233,7 @@
 
 <script setup lang="ts">
 import { ref, watch, computed, onMounted, onUnmounted } from "vue";
+import { invoke } from "@tauri-apps/api/core";
 import { useVideoStore } from "../../stores/video";
 import { useSettingsStore } from "../../stores/settings";
 import BentoCard from "../BentoCard.vue";
@@ -200,6 +250,21 @@ import IconVolumeX from "~icons/lucide/volume-x";
 const videoStore = useVideoStore();
 const settings = useSettingsStore();
 
+const watermarkUrl = ref<string | null>(null);
+
+watch(() => settings.config.watermark_image, async (newPath) => {
+    if (newPath) {
+        try {
+            watermarkUrl.value = await invoke('read_image_base64', { path: newPath });
+        } catch (e) {
+            console.error("Failed to load watermark:", e);
+            watermarkUrl.value = null;
+        }
+    } else {
+        watermarkUrl.value = null;
+    }
+}, { immediate: true });
+
 const isPlaying = ref(false);
 const localTime = ref(0);
 const showSafeZone = ref(true);
@@ -213,6 +278,45 @@ let ytInterval: any = null;
 
 const isYoutube = computed(() => {
     return videoStore.metadata?.video_id && videoStore.metadata.video_id !== 'local';
+});
+
+const subtitleStyle = computed(() => {
+    let colorHex = '#FFFFFF';
+    const assColor = settings.config.subtitle.color;
+    if (assColor && assColor.length === 10 && assColor.startsWith('&H')) {
+        const b = assColor.substring(4, 6);
+        const g = assColor.substring(6, 8);
+        const r = assColor.substring(8, 10);
+        colorHex = `#${r}${g}${b}`;
+    }
+
+    let fontFamily = settings.config.subtitle.font || 'sans-serif';
+
+    const scale = 568 / 1280; 
+    const fontSizePx = (settings.config.subtitle.font_size || 60) * scale;
+
+    return {
+        color: colorHex,
+        fontFamily: fontFamily,
+        fontSize: `${fontSizePx}px`,
+        lineHeight: '1.2'
+    };
+});
+
+const brutalistBgColor = computed(() => {
+    let colorHex = '#DC2626'; // bg-red-600 default
+    const assColor = settings.config.subtitle.bg_color;
+    // &HAABBGGRR
+    if (assColor && assColor.length === 10 && assColor.startsWith('&H')) {
+        const b = assColor.substring(4, 6);
+        const g = assColor.substring(6, 8);
+        const r = assColor.substring(8, 10);
+        // We ignore alpha for now or handle it if needed.
+        if (assColor !== '&H80000000') {
+            colorHex = `#${r}${g}${b}`;
+        }
+    }
+    return colorHex;
 });
 
 const currentSubtitle = computed(() => {

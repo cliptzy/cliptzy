@@ -51,6 +51,7 @@ pub fn run() {
             commands::cookies::validate_cookies_file,
             commands::config::copy_asset_file,
             commands::config::save_config_file,
+            commands::config::read_image_base64,
             commands::video::analyze_video,
             commands::video::clip_video,
             commands::video::analyze_segment_audio,
