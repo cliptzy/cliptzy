@@ -1,5 +1,4 @@
 use crate::error::CliptzyError;
-use rust_ffmpeg::builder::FFmpegBuilder;
 use std::fs;
 use std::path::{Path, PathBuf};
 

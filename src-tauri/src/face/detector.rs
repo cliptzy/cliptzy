@@ -1,7 +1,5 @@
-use rustface::{Detector, FaceInfo, ImageData};
-use std::fs;
+use rustface::{Detector, FaceInfo};
 use std::path::Path;
-use tracing::{info, warn};
 
 pub struct FaceDetectorWrapper {
     detector: Box<dyn Detector>,

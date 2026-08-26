@@ -1,11 +1,11 @@
 use super::detector::FaceDetectorWrapper;
-use super::models::{FaceKeyframe, NormalizedCenter};
+use super::models::FaceKeyframe;
 use crate::error::CliptzyError;
 use image::GenericImageView;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::Command;
 use tempfile::tempdir;
-use tracing::{info, warn};
+use tracing::info;
 
 const EXTREME_THRESHOLD: f32 = 0.15;
 const JITTER_THRESHOLD: f32 = 0.03;

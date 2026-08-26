@@ -1,6 +1,5 @@
 use crate::error::CliptzyError;
 use rust_ffmpeg::builder::FFmpegBuilder;
-use rust_ffprobe::probe;
 use std::path::Path;
 
 pub async fn probe_local_video(
