@@ -56,36 +56,56 @@
       </h2>
       <BentoCard class="p-5 flex flex-col gap-3">
         <!-- Asset Pickers -->
-        <div @click="selectAsset('intro_video')" class="flex items-center justify-between p-2 bg-black/30 border border-[var(--color-subtle)] rounded hover:border-[var(--color-accent)] transition-colors cursor-pointer group">
-          <div class="flex flex-col">
-            <span class="text-xs font-bold text-white group-hover:text-[var(--color-accent)] transition-colors">Video Intro</span>
-            <span class="text-[9px] text-gray-500 truncate max-w-[200px]" :title="settings.config.intro_video || ''">{{ settings.config.intro_video || 'Belum di-set' }}</span>
+        <div class="flex items-center gap-2">
+          <div @click="selectAsset('intro_video')" class="flex-1 flex items-center justify-between p-2 bg-black/30 border border-[var(--color-subtle)] rounded hover:border-[var(--color-accent)] transition-colors cursor-pointer group">
+            <div class="flex flex-col">
+              <span class="text-xs font-bold text-white group-hover:text-[var(--color-accent)] transition-colors">Video Intro</span>
+              <span class="text-[9px] text-gray-500 truncate max-w-[200px]" :title="settings.config.intro_video || ''">{{ settings.config.intro_video || 'Belum di-set' }}</span>
+            </div>
+            <IconUpload class="w-4 h-4 text-gray-400 group-hover:text-[var(--color-accent)]" />
           </div>
-          <IconUpload class="w-4 h-4 text-gray-400 group-hover:text-[var(--color-accent)]" />
+          <button v-if="settings.config.intro_video" @click="clearAsset('intro_video')" class="p-2 border border-[var(--color-subtle)] rounded hover:border-red-500 hover:bg-red-500/20 transition-colors group" title="Hapus Video Intro">
+            <IconTrash class="w-4 h-4 text-gray-400 group-hover:text-red-500" />
+          </button>
         </div>
         
-        <div @click="selectAsset('outro_video')" class="flex items-center justify-between p-2 bg-black/30 border border-[var(--color-subtle)] rounded hover:border-[var(--color-accent)] transition-colors cursor-pointer group">
-          <div class="flex flex-col">
-            <span class="text-xs font-bold text-white group-hover:text-[var(--color-accent)] transition-colors">Video Outro</span>
-            <span class="text-[9px] text-gray-500 truncate max-w-[200px]" :title="settings.config.outro_video || ''">{{ settings.config.outro_video || 'Belum di-set' }}</span>
+        <div class="flex items-center gap-2">
+          <div @click="selectAsset('outro_video')" class="flex-1 flex items-center justify-between p-2 bg-black/30 border border-[var(--color-subtle)] rounded hover:border-[var(--color-accent)] transition-colors cursor-pointer group">
+            <div class="flex flex-col">
+              <span class="text-xs font-bold text-white group-hover:text-[var(--color-accent)] transition-colors">Video Outro</span>
+              <span class="text-[9px] text-gray-500 truncate max-w-[200px]" :title="settings.config.outro_video || ''">{{ settings.config.outro_video || 'Belum di-set' }}</span>
+            </div>
+            <IconUpload class="w-4 h-4 text-gray-400 group-hover:text-[var(--color-accent)]" />
           </div>
-          <IconUpload class="w-4 h-4 text-gray-400 group-hover:text-[var(--color-accent)]" />
+          <button v-if="settings.config.outro_video" @click="clearAsset('outro_video')" class="p-2 border border-[var(--color-subtle)] rounded hover:border-red-500 hover:bg-red-500/20 transition-colors group" title="Hapus Video Outro">
+            <IconTrash class="w-4 h-4 text-gray-400 group-hover:text-red-500" />
+          </button>
         </div>
 
-        <div @click="selectAsset('watermark_image')" class="flex items-center justify-between p-2 bg-black/30 border border-[var(--color-subtle)] rounded hover:border-[var(--color-accent)] transition-colors cursor-pointer group">
-          <div class="flex flex-col">
-            <span class="text-xs font-bold text-white group-hover:text-[var(--color-accent)] transition-colors">Gambar Watermark</span>
-            <span class="text-[9px] text-gray-500 truncate max-w-[200px]" :title="settings.config.watermark_image || ''">{{ settings.config.watermark_image || 'Belum di-set' }}</span>
+        <div class="flex items-center gap-2">
+          <div @click="selectAsset('watermark_image')" class="flex-1 flex items-center justify-between p-2 bg-black/30 border border-[var(--color-subtle)] rounded hover:border-[var(--color-accent)] transition-colors cursor-pointer group">
+            <div class="flex flex-col">
+              <span class="text-xs font-bold text-white group-hover:text-[var(--color-accent)] transition-colors">Gambar Watermark</span>
+              <span class="text-[9px] text-gray-500 truncate max-w-[200px]" :title="settings.config.watermark_image || ''">{{ settings.config.watermark_image || 'Belum di-set' }}</span>
+            </div>
+            <IconUpload class="w-4 h-4 text-gray-400 group-hover:text-[var(--color-accent)]" />
           </div>
-          <IconUpload class="w-4 h-4 text-gray-400 group-hover:text-[var(--color-accent)]" />
+          <button v-if="settings.config.watermark_image" @click="clearAsset('watermark_image')" class="p-2 border border-[var(--color-subtle)] rounded hover:border-red-500 hover:bg-red-500/20 transition-colors group" title="Hapus Gambar Watermark">
+            <IconTrash class="w-4 h-4 text-gray-400 group-hover:text-red-500" />
+          </button>
         </div>
 
-        <div @click="selectAsset('video_frame')" class="flex items-center justify-between p-2 bg-black/30 border border-[var(--color-subtle)] rounded hover:border-[var(--color-accent)] transition-colors cursor-pointer group">
-          <div class="flex flex-col">
-            <span class="text-xs font-bold text-white group-hover:text-[var(--color-accent)] transition-colors">Background Frame</span>
-            <span class="text-[9px] text-gray-500 truncate max-w-[200px]" :title="settings.config.video_frame || ''">{{ settings.config.video_frame || 'Belum di-set' }}</span>
+        <div class="flex items-center gap-2">
+          <div @click="selectAsset('video_frame')" class="flex-1 flex items-center justify-between p-2 bg-black/30 border border-[var(--color-subtle)] rounded hover:border-[var(--color-accent)] transition-colors cursor-pointer group">
+            <div class="flex flex-col">
+              <span class="text-xs font-bold text-white group-hover:text-[var(--color-accent)] transition-colors">Background Frame</span>
+              <span class="text-[9px] text-gray-500 truncate max-w-[200px]" :title="settings.config.video_frame || ''">{{ settings.config.video_frame || 'Belum di-set' }}</span>
+            </div>
+            <IconUpload class="w-4 h-4 text-gray-400 group-hover:text-[var(--color-accent)]" />
           </div>
-          <IconUpload class="w-4 h-4 text-gray-400 group-hover:text-[var(--color-accent)]" />
+          <button v-if="settings.config.video_frame" @click="clearAsset('video_frame')" class="p-2 border border-[var(--color-subtle)] rounded hover:border-red-500 hover:bg-red-500/20 transition-colors group" title="Hapus Background Frame">
+            <IconTrash class="w-4 h-4 text-gray-400 group-hover:text-red-500" />
+          </button>
         </div>
         <p class="text-[9px] text-gray-500 mt-1">Posisi watermark kini dapat diatur secara real-time di halaman Studio.</p>
       </BentoCard>
@@ -105,9 +125,15 @@ import IconScissors from '~icons/lucide/scissors';
 import IconMic from '~icons/lucide/mic';
 import IconImage from '~icons/lucide/image';
 import IconUpload from '~icons/lucide/upload';
+import IconTrash from '~icons/lucide/trash';
 
 const settings = useSettingsStore();
 const appStore = useAppStore();
+
+function clearAsset(type: 'intro_video' | 'outro_video' | 'watermark_image' | 'video_frame') {
+  // @ts-ignore - dynamic key assignment
+  settings.config[type] = "";
+}
 
 async function selectAsset(type: 'intro_video' | 'outro_video' | 'watermark_image' | 'video_frame') {
   let title = '';
