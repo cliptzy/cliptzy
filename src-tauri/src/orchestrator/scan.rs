@@ -40,11 +40,13 @@ pub async fn scan_video(url: String, cookies_path: Option<String>) -> Result<Sca
         let duration = probe.format.and_then(|f| f.duration).unwrap_or("0".to_string()).parse::<f64>().unwrap_or(0.0);
         
         let title = path.file_name().unwrap_or_default().to_string_lossy().to_string();
+        let config = crate::config::models::AppConfig::load().unwrap_or_default();
+        let min_duration = config.min_duration as f64;
         
-        // Generate sequential segments of 60 seconds
+        // Generate sequential segments based on min_duration
         let mut segments = Vec::new();
         let mut start: f64 = 0.0;
-        let segment_length: f64 = 60.0;
+        let segment_length: f64 = if min_duration > 0.0 { min_duration } else { 60.0 };
         
         while start < duration {
             let end = f64::min(start + segment_length, duration);

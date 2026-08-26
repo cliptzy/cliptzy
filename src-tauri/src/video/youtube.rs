@@ -61,14 +61,31 @@ pub async fn analyze_youtube_video(
 
     let engaged = heatmap.get_highly_engaged_segments(0.5);
 
-    let segments: Vec<SegmentInfo> = engaged
-        .into_iter()
-        .map(|h| SegmentInfo {
-            start: h.start_time,
-            end: h.end_time,
+    let config = crate::config::models::AppConfig::load().unwrap_or_default();
+    let padding = config.padding as f64;
+    let min_duration = config.min_duration as f64;
+    let video_duration = video.duration.unwrap_or(0) as f64;
+
+    let mut segments: Vec<SegmentInfo> = Vec::new();
+    for h in engaged {
+        let mut start = (h.start_time - padding).max(0.0);
+        let mut end = (h.end_time + padding).min(video_duration);
+        
+        if end - start < min_duration {
+            // Extend end first
+            end = (start + min_duration).min(video_duration);
+            // If still not enough (because we hit video_duration limit), extend start backward
+            if end - start < min_duration {
+                start = (end - min_duration).max(0.0);
+            }
+        }
+        
+        segments.push(SegmentInfo {
+            start,
+            end,
             score: h.value,
-        })
-        .collect();
+        });
+    }
 
     // Get the best video/audio format or a fallback URL
     tracing::info!("Mencari format media yang cocok untuk video ID: {}", video.id);
