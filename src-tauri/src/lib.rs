@@ -16,6 +16,7 @@ pub mod transcription;
 pub mod tts;
 pub mod uploaders;
 pub mod video;
+pub mod utils;
 
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -57,6 +58,7 @@ pub fn run() {
             commands::system::check_system_specs,
             commands::system::exit_app,
             commands::system::get_available_hwaccels,
+            commands::system::get_installed_browsers,
             commands::system::get_output_folder_size,
             commands::system::clean_output_folder,
             commands::system::cancel_processing,

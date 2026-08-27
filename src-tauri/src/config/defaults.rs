@@ -93,6 +93,7 @@ impl Default for AppConfig {
             tts_language: "default".to_string(),
             tts_voice: "female".to_string(),
             default_hashtags: "#Shorts #Viral #Cliptzy #fyp".to_string(),
+            browser: None,
 
             subtitle: SubtitleConfig::default(),
             ai: AIConfig::default(),

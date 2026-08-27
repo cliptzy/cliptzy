@@ -19,9 +19,11 @@ pub async fn scan_video(
     url: String,
     cookies_path: Option<String>,
 ) -> Result<ScanResult, CliptzyError> {
+    let deps = crate::utils::AppDependencies::check().map_err(|e| CliptzyError::Download(e))?;
+
     if url.starts_with("http") || url.starts_with("www") {
         // YouTube video
-        let analysis = analyze_youtube_video(&url, cookies_path)
+        let analysis = analyze_youtube_video(&url, cookies_path, &deps.ytdlp)
             .await
             .map_err(|e| CliptzyError::Download(e))?;
 

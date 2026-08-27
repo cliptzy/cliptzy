@@ -26,26 +26,24 @@ pub async fn get_downloader(
         .await
         .map_err(|e| format!("Gagal inisialisasi downloader: {}", e))?;
 
-    if let Some(cookie_file) = cookies_path {
-        if !cookie_file.is_empty() {
-            let app_dir = crate::paths::app_data_dir();
-            let cookie_path = app_dir.join(&cookie_file);
-            if cookie_path.exists() {
-                tracing::info!("Menggunakan file cookies: {:?}", cookie_path);
-                builder = builder.with_cookies(cookie_path);
-            } else if Path::new(&cookie_file).exists() {
-                tracing::info!("Menggunakan file cookies (absolute): {:?}", cookie_file);
-                builder = builder.with_cookies(PathBuf::from(cookie_file));
-            }
-        }
-    }
-
-    builder = builder.with_args(vec![
+    let mut extra_args = vec![
         "--extractor-args".to_string(),
         "youtube:player-client=android,web,default".to_string(),
         "--remote-components".to_string(),
         "ejs:github".to_string(),
-    ]);
+    ];
+
+    if let Some(browser) = cookies_path {
+        if !browser.is_empty() {
+            tracing::info!("Menggunakan cookies dari browser: {}", browser);
+            extra_args.push("--cookies-from-browser".to_string());
+            extra_args.push(browser);
+        }
+    }
+
+    builder = builder.with_args(extra_args);
+
+
 
     builder
         .build()
@@ -56,19 +54,9 @@ pub async fn get_downloader(
 pub async fn analyze_youtube_video(
     url: &str,
     cookies_path: Option<String>,
+    ytdlp_bin: &Path,
 ) -> Result<VideoAnalysisResult, String> {
-    let app_dir = crate::paths::app_data_dir();
-    
-    #[cfg(target_os = "windows")]
-    let ytdlp_bin = app_dir.join("bin").join("yt-dlp.exe");
-    #[cfg(not(target_os = "windows"))]
-    let ytdlp_bin = app_dir.join("bin").join("yt-dlp");
-
-    if !ytdlp_bin.exists() {
-        return Err("Binary yt-dlp tidak ditemukan".into());
-    }
-
-    let mut cmd = tokio::process::Command::new(&ytdlp_bin);
+    let mut cmd = tokio::process::Command::new(ytdlp_bin);
     
     let mut args_to_log = vec!["--dump-single-json".to_string(), "--no-warnings".to_string()];
     cmd.arg("--dump-single-json").arg("--no-warnings");
@@ -81,18 +69,11 @@ pub async fn analyze_youtube_video(
     cmd.arg("--extractor-args").arg("youtube:player-client=android,web,default")
        .arg("--remote-components").arg("ejs:github");
 
-    if let Some(cookie_file) = cookies_path {
-        if !cookie_file.is_empty() {
-            let cookie_path = if std::path::Path::new(&cookie_file).exists() {
-                std::path::PathBuf::from(&cookie_file)
-            } else {
-                app_dir.join(&cookie_file)
-            };
-            if cookie_path.exists() {
-                args_to_log.push("--cookies".to_string());
-                args_to_log.push(cookie_path.to_string_lossy().to_string());
-                cmd.arg("--cookies").arg(cookie_path);
-            }
+    if let Some(browser) = cookies_path {
+        if !browser.is_empty() {
+            args_to_log.push("--cookies-from-browser".to_string());
+            args_to_log.push(browser.clone());
+            cmd.arg("--cookies-from-browser").arg(browser);
         }
     }
     

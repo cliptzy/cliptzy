@@ -112,3 +112,15 @@ Sebelum menulis kode, AI Model WAJIB menjawab pertanyaan berikut:
 
 ### 4.5. Pelaporan Progres Latar Belakang (UI Updates)
 - Menambahkan emisi `ProgressEvent` via Tauri `app_handle.emit()` di dalam *looping* Face Tracker dan modul lainnya. *Frontend* sekarang menampilkan persentase progres pemrosesan secara *real-time* di `GlobalStatusBar.vue`.
+
+### 4.6. Deteksi GPU Fisik & Sinkronisasi Hardware Acceleration
+- **Problem**: Pengaturan *Hardware Acceleration* sebelumnya bergantung pada `ffmpeg -hwaccels` yang hanya mengembalikan *flag* saat di-kompilasi (misal `nvenc` atau `qsv` selalu muncul jika *binary* mendukungnya, walau GPU fisiknya tidak ada). Hal ini menyebabkan *error* rendering atau opsi palsu di UI.
+- **Solusi**: Mengimplementasi `crate::utils::get_system_gpus()` untuk melakukan *polling* akurat ke OS level (`powershell WMI` di Windows, `system_profiler` di Mac). Menyamakan validasi OS dengan kapabilitas *binary* `ffmpeg`, lalu membuat antarmuka Vue (Pinia) agar otomatis melakukan *fallback* ke mode `CPU` bila GPU yang dikonfigurasi tidak terdeteksi.
+
+### 4.7. Background Monitor Utilisasi GPU Tanpa Blocking (Zero-Cost Sharing)
+- **Problem**: Penggunaan *resource* GPU (`gpu_usage`) di dashboard (*monitor.rs*) selalu nol karena `sysinfo` belum memiliki kapabilitas membaca GPU bawaan.
+- **Solusi**: Membuat `std::thread::spawn` yang akan menjalankan perintah `typeperf` secara asinkron di belakang layar (khusus Windows), membaca metrik secara konstan dan menyimpan nilai `max_val` persentase penggunaannya. Agar pengiriman UI tidak menjadi lambat, hasil tersebut disimpan ke `std::sync::atomic::AtomicU32` sehingga `get_system_metrics()` bisa menarik angka secara kilat tanpa *lock* (zero-cost).
+
+### 4.8. Optimasi Performa I/O dengan Refaktor DRY (Dependency Injection)
+- **Problem**: File `AppConfig::load()` dibaca berkali-kali dari disk pada saat *rendering* panas (seperti saat spawn FFmpeg di `cropper.rs` dan `burner.rs`) yang melanggar prinsip *Don't Repeat Yourself* (DRY) dan menyebabkan *bottleneck I/O*.
+- **Solusi**: Memperbaiki arsitektur aplikasi sehingga *Config* ditarik satu kali di level orkestrator (`clip.rs`) dan kemudian nilai konfigurasi yang diperlukan (`HwAccel`) dipassing ke bawah secara beruntun (*pass-by-value/reference*) via `OutputConfig` dan `VideoBurnerConfig`. Selain itu, merombak deteksi utilitas murni agar seluruh pemanggilan `tokio::process::Command::new("ffmpeg")` difilter secara ketat melalui implementasi pembaca `find_executable` (*which* crate).

@@ -56,15 +56,21 @@
           <div class="mt-4 pt-3 border-t border-[var(--color-subtle)] flex flex-col gap-2">
             <div class="flex justify-between items-center">
               <div class="flex flex-col">
-                <span class="text-xs text-gray-400 font-bold">Cookies File</span>
-                <span class="text-[10px] text-gray-500 truncate max-w-[150px]">{{ settings.config.youtube.session || 'Belum diatur' }}</span>
+                <span class="text-xs text-gray-400 font-bold">Browser Cookies</span>
+                <select v-model="settings.config.browser" class="mt-1 bg-black/30 border border-[var(--color-subtle)] rounded py-1 px-2 text-[10px] text-white focus:outline-none focus:border-[var(--color-accent)] cursor-pointer">
+                  <option value="">Pilih Browser</option>
+                  <option value="chrome" :disabled="!installedBrowsers.includes('chrome')">Chrome</option>
+                  <option value="edge" :disabled="!installedBrowsers.includes('edge')">Edge</option>
+                  <option value="firefox" :disabled="!installedBrowsers.includes('firefox')">Firefox</option>
+                  <option value="brave" :disabled="!installedBrowsers.includes('brave')">Brave</option>
+                  <option value="opera" :disabled="!installedBrowsers.includes('opera')">Opera</option>
+                  <option value="vivaldi" :disabled="!installedBrowsers.includes('vivaldi')">Vivaldi</option>
+                  <option value="safari" disabled>Safari</option>
+                </select>
               </div>
               <div class="flex items-center gap-2">
                 <button @click="testCookies" :disabled="isTestingCookies" class="bg-gray-800 text-gray-300 border border-gray-600 text-[10px] font-bold px-3 py-1.5 rounded hover:bg-gray-700 transition-colors flex items-center gap-1 disabled:opacity-50">
                   <IconYoutube class="w-3 h-3" /> {{ isTestingCookies ? 'Testing...' : 'Test yt-dlp' }}
-                </button>
-                <button @click="selectCookiesFile" class="bg-[var(--color-accent)]/10 text-[var(--color-accent)] border border-[var(--color-accent)]/30 text-[10px] font-bold px-3 py-1.5 rounded hover:bg-[var(--color-accent)] hover:text-black transition-colors flex items-center gap-1">
-                  <IconFileText class="w-3 h-3" /> Pilih File
                 </button>
               </div>
             </div>
@@ -150,59 +156,21 @@ import IconHash from '~icons/lucide/hash';
 import IconCloud from '~icons/lucide/cloud';
 import IconUploadCloud from '~icons/lucide/upload-cloud';
 import IconDownloadCloud from '~icons/lucide/download-cloud';
-import IconFileText from '~icons/lucide/file-text';
-import { open } from '@tauri-apps/plugin-dialog';
+
 
 const appStore = useAppStore();
 const auth = useAuthStore();
 const settings = useSettingsStore();
 const router = useRouter();
 
-const selectCookiesFile = async () => {
-  try {
-    const selected = await open({
-      multiple: false,
-      filters: [{
-        name: 'Text Files',
-        extensions: ['txt']
-      }]
-    });
-    
-    if (selected && typeof selected === 'string') {
-      const result = await invoke<any>('validate_cookies_file', { cookiesPath: selected });
-      if (result.valid) {
-        const destPath = await invoke<string>('copy_cookies_file', { sourcePath: selected });
-        settings.config.youtube.session = destPath;
-        appStore.addToast({
-          type: 'success',
-          title: 'Cookies Disimpan',
-          message: `File cookies berhasil disalin. ${result.message}`,
-        });
-      } else {
-        appStore.addToast({
-          type: 'error',
-          title: 'Cookies Tidak Valid',
-          message: result.message,
-        });
-      }
-    }
-  } catch (err: any) {
-    appStore.addToast({
-      type: 'error',
-      title: 'Gagal',
-      message: err.toString(),
-    });
-  }
-};
-
 const isTestingCookies = ref(false);
 
 const testCookies = async () => {
-  if (!settings.config.youtube.session) {
+  if (!settings.config.browser) {
     appStore.addToast({
       type: 'error',
-      title: 'Tidak Ada Cookies',
-      message: 'Silakan pilih file cookies terlebih dahulu.',
+      title: 'Tidak Ada Browser',
+      message: 'Silakan pilih browser terlebih dahulu.',
     });
     return;
   }
@@ -215,7 +183,7 @@ const testCookies = async () => {
   });
 
   try {
-    const result = await invoke<any>('test_youtube_cookies', { cookiesPath: settings.config.youtube.session });
+    const result = await invoke<any>('test_youtube_cookies', { browserName: settings.config.browser });
     if (result.valid) {
       appStore.addToast({
         type: 'success',
@@ -253,6 +221,7 @@ const outputSize = ref(0.0);
 const isCalculatingSize = ref(true);
 const isClearing = ref(false);
 const isSyncing = ref(false);
+const installedBrowsers = ref<string[]>([]);
 
 const backupConfig = async () => {
   isSyncing.value = true;
@@ -325,8 +294,13 @@ const refreshSize = async () => {
   }
 };
 
-onMounted(() => {
+onMounted(async () => {
   refreshSize();
+  try {
+    installedBrowsers.value = await invoke<string[]>('get_installed_browsers');
+  } catch (e) {
+    console.error("Gagal mendapatkan daftar browser:", e);
+  }
 });
 
 const clearCache = async () => {

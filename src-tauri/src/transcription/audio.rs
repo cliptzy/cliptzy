@@ -8,6 +8,7 @@ pub async fn extract_audio_segment(
     end: f64,
     output_path: &Path,
     cookies_path: Option<&str>,
+    ytdlp_bin: &Path,
 ) -> Result<(), CliptzyError> {
     let app_dir = crate::paths::app_data_dir();
 
@@ -28,12 +29,7 @@ pub async fn extract_audio_segment(
                 "Mengunduh audio penuh untuk di-cache: {:?}",
                 cached_audio_path
             );
-            let yt_dlp_bin = app_dir.join("bin").join(if cfg!(target_os = "windows") {
-                "yt-dlp.exe"
-            } else {
-                "yt-dlp"
-            });
-            let mut cmd = tokio::process::Command::new(&yt_dlp_bin);
+            let mut cmd = tokio::process::Command::new(ytdlp_bin);
 
             cmd.arg("-f")
                 .arg("bestaudio")
@@ -49,16 +45,9 @@ pub async fn extract_audio_segment(
                 .arg("-o")
                 .arg(cached_audio_path.to_string_lossy().to_string());
 
-            if let Some(cookie) = cookies_path {
-                if !cookie.is_empty() {
-                    let cookie_file = if Path::new(cookie).exists() {
-                        Path::new(cookie).to_path_buf()
-                    } else {
-                        app_dir.join(cookie)
-                    };
-                    if cookie_file.exists() {
-                        cmd.arg("--cookies").arg(cookie_file);
-                    }
+            if let Some(browser) = cookies_path {
+                if !browser.is_empty() {
+                    cmd.arg("--cookies-from-browser").arg(browser);
                 }
             }
 

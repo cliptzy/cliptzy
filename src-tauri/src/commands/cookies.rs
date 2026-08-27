@@ -125,7 +125,7 @@ pub async fn validate_cookies_file(cookies_path: String) -> Result<serde_json::V
 }
 
 #[tauri::command]
-pub async fn test_youtube_cookies(cookies_path: String) -> Result<serde_json::Value, String> {
+pub async fn test_youtube_cookies(browser_name: String) -> Result<serde_json::Value, String> {
     let app_dir = crate::paths::app_data_dir();
 
     #[cfg(target_os = "windows")]
@@ -137,16 +137,11 @@ pub async fn test_youtube_cookies(cookies_path: String) -> Result<serde_json::Va
         return Err("Binary yt-dlp tidak ditemukan".into());
     }
 
-    let cookie_path = if std::path::Path::new(&cookies_path).exists() {
-        std::path::PathBuf::from(cookies_path)
-    } else {
-        app_dir.join(cookies_path)
-    };
-
     let mut cmd = tokio::process::Command::new(&ytdlp_bin);
-    cmd.arg("--cookies")
-        .arg(&cookie_path)
-        .arg("--extractor-args")
+    if !browser_name.is_empty() {
+        cmd.arg("--cookies-from-browser").arg(&browser_name);
+    }
+    cmd.arg("--extractor-args")
         .arg("youtube:player-client=android,web,default")
         .arg("--remote-components")
         .arg("ejs:github")

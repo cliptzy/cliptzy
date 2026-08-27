@@ -3,7 +3,8 @@ pub async fn analyze_video(
     url: String,
     cookies_path: Option<String>,
 ) -> Result<serde_json::Value, String> {
-    let result = crate::video::youtube::analyze_youtube_video(&url, cookies_path).await?;
+    let deps = crate::utils::AppDependencies::check()?;
+    let result = crate::video::youtube::analyze_youtube_video(&url, cookies_path, &deps.ytdlp).await?;
     Ok(serde_json::to_value(result).unwrap_or(serde_json::json!({})))
 }
 
@@ -29,6 +30,8 @@ pub async fn clip_video(
     let app_dir = crate::paths::app_data_dir();
     let job_dir = app_dir.join("jobs").join(uuid::Uuid::new_v4().to_string());
 
+    let deps = crate::utils::AppDependencies::check().map_err(|e| CliptzyError::Download(e))?;
+
     let ctx = PipelineContext {
         job_dir,
         video_id: payload.video_id.clone(),
@@ -37,6 +40,7 @@ pub async fn clip_video(
         progress_tx,
         app_handle: app.clone(),
         metadata: HashMap::new(),
+        deps,
     };
 
     let mut use_case = ClipVideoUseCase::new(ctx);
@@ -82,7 +86,8 @@ pub async fn analyze_segment_audio(
 
     // Load config to check for youtube cookies
     let config = crate::config::models::AppConfig::load().unwrap_or_default();
-    let cookies_path = config.youtube.session.as_deref().filter(|s| !s.is_empty());
+    let cookies_path = config.browser.as_deref().filter(|s| !s.is_empty());
+    let deps = crate::utils::AppDependencies::check().map_err(|e| CliptzyError::Download(e))?;
 
     // 1. Extract audio chunk (pass the original YouTube URL so yt-dlp can handle cookies/throttling)
     tracing::info!("Tahap 1: Ekstraksi WAV melalui yt-dlp/FFmpeg...");
@@ -92,6 +97,7 @@ pub async fn analyze_segment_audio(
         end,
         &audio_wav_path,
         cookies_path,
+        &deps.ytdlp,
     )
     .await?;
 

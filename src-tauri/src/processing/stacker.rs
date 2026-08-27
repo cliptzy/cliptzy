@@ -39,7 +39,8 @@ pub async fn stack_video(
 
     fs::write(&concat_file_path, file_content).map_err(CliptzyError::Io)?;
 
-    let mut cmd = tokio::process::Command::new("ffmpeg");
+    let ffmpeg_bin = crate::utils::find_executable("ffmpeg").unwrap_or_else(|| std::path::PathBuf::from("ffmpeg"));
+    let mut cmd = tokio::process::Command::new(&ffmpeg_bin);
     cmd.arg("-y")
         .arg("-f")
         .arg("concat")

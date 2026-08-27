@@ -50,9 +50,12 @@ export const useVideoStore = defineStore('video', () => {
     
     try {
       const appStore = useAppStore();
+      const settingsStore = (await import('./settings')).useSettingsStore();
+      
       appStore.setProgress({ stage: 'ANALYSIS', label: 'Fetching metadata...', current: 1, total: 100 });
       
-      const result: any = await invoke('scan_video', { url, cookiesPath: null });
+      const browserName = settingsStore.config?.browser || null;
+      const result: any = await invoke('scan_video', { url, cookiesPath: browserName });
       console.log('SCAN_VIDEO_RESULT:', result);
       
       appStore.setProgress({ stage: 'ANALYSIS', label: 'Done', current: 100, total: 100 });

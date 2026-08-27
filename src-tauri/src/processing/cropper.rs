@@ -6,6 +6,7 @@ use std::path::Path;
 pub struct OutputConfig {
     pub width: u32,
     pub height: u32,
+    pub hw_accel: crate::processing::ffmpeg::hwaccel::HwAccel,
 }
 
 impl Default for OutputConfig {
@@ -13,6 +14,7 @@ impl Default for OutputConfig {
         Self {
             width: 1080,
             height: 1920,
+            hw_accel: crate::processing::ffmpeg::hwaccel::HwAccel::Cpu,
         }
     }
 }
@@ -74,7 +76,7 @@ impl CropStrategy for DefaultCrop {
         graph.add_node(scale);
         graph.add_node(crop);
 
-        let hw_accel = crate::processing::ffmpeg::hwaccel::HwAccel::detect(None);
+        let hw_accel = &output_config.hw_accel;
 
         let mut builder = FFmpegBuilder::new().map_err(|e| CliptzyError::FFmpeg {
             code: -1,
@@ -161,7 +163,7 @@ impl CropStrategy for FullCrop {
         graph.add_node(fg_scale);
         graph.add_node(overlay);
 
-        let hw_accel = crate::processing::ffmpeg::hwaccel::HwAccel::detect(None);
+        let hw_accel = &output_config.hw_accel;
 
         let mut builder = FFmpegBuilder::new().map_err(|e| CliptzyError::FFmpeg {
             code: -1,
@@ -292,7 +294,7 @@ impl CropStrategy for FullFaceCrop {
         graph.add_node(vstack);
         graph.add_node(overlay);
 
-        let hw_accel = crate::processing::ffmpeg::hwaccel::HwAccel::detect(None);
+        let hw_accel = &output_config.hw_accel;
 
         let mut builder = FFmpegBuilder::new().map_err(|e| CliptzyError::FFmpeg {
             code: -1,

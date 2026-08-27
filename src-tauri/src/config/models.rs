@@ -85,6 +85,7 @@ pub struct AppConfig {
     pub tts_language: String,
     pub tts_voice: String,
     pub default_hashtags: String,
+    pub browser: Option<String>,
 
     pub subtitle: SubtitleConfig,
     pub ai: AIConfig,

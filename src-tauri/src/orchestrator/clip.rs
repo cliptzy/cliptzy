@@ -60,6 +60,7 @@ impl ClipVideoUseCase {
             payload.end,
             &source_video,
             payload.cookies_path.clone(),
+            &self.ctx.deps.ytdlp,
             Some(&self.ctx.app_handle),
             self.ctx.cancel_token.clone(),
         )
@@ -100,7 +101,11 @@ impl ClipVideoUseCase {
         }
 
         let cropper = create_crop_strategy(&payload.crop_mode);
-        let out_config = OutputConfig::default();
+        let hw_accel = crate::processing::ffmpeg::hwaccel::HwAccel::detect(Some(&self.ctx.config.hw_accel));
+        let out_config = OutputConfig {
+            hw_accel: hw_accel.clone(),
+            ..OutputConfig::default()
+        };
         let total_duration = payload.end - payload.start;
         let handle_clone = self.ctx.app_handle.clone();
         
@@ -176,6 +181,7 @@ impl ClipVideoUseCase {
                     duration,
                     &audio_wav,
                     None,
+                    &self.ctx.deps.ytdlp,
                 )
                 .await?;
 
@@ -255,6 +261,7 @@ impl ClipVideoUseCase {
                 config: sub_config_opt,
                 watermark_path: self.ctx.config.watermark_image.clone(),
                 watermark_position: self.ctx.config.watermark_position.clone(),
+                hw_accel: hw_accel.clone(),
             };
             crate::processing::burner::burn_video_effects(
                 &current_video,

@@ -1,3 +1,4 @@
+#[derive(Clone, Debug, PartialEq)]
 pub enum HwAccel {
     VideoToolbox, // macOS
     Nvenc,        // NVIDIA
@@ -10,10 +11,10 @@ impl HwAccel {
     pub fn detect(config_override: Option<&str>) -> Self {
         if let Some(cfg) = config_override {
             match cfg.to_lowercase().as_str() {
-                "nvenc" => return HwAccel::Nvenc,
-                "amf" => return HwAccel::Amf,
-                "qsv" => return HwAccel::Qsv,
-                "videotoolbox" => return HwAccel::VideoToolbox,
+                "nvenc" | "nvidia" => return HwAccel::Nvenc,
+                "amf" | "amd" => return HwAccel::Amf,
+                "qsv" | "intel" => return HwAccel::Qsv,
+                "videotoolbox" | "mac" => return HwAccel::VideoToolbox,
                 "cpu" | "software" => return HwAccel::Cpu,
                 _ => {} // Fallthrough
             }

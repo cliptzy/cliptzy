@@ -54,6 +54,7 @@ regex = "1.13.1"
 rustface = "0.1.7"
 image = "0.25.10"
 tempfile = "3.27.0"
+which = "8.0.6"
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration

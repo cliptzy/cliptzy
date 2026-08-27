@@ -102,6 +102,7 @@ export interface AppConfig {
   tts_language: string;
   tts_voice: string;
   default_hashtags: string;
+  browser: string | null;
   
   subtitle: SubtitleConfig;
   ai: AIConfig;
@@ -143,6 +144,7 @@ const defaultSettings: AppConfig = {
   tts_language: "default",
   tts_voice: "female",
   default_hashtags: "#Shorts #Viral #Cliptzy #fyp",
+  browser: null,
   
   subtitle: {
     enabled: true,

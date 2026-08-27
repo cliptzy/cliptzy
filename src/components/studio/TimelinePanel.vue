@@ -207,7 +207,7 @@ const handleRender = async () => {
                 end: seg.end,
                 crop_mode: props.cropMode,
                 use_subtitle: true,
-                cookies_path: settingsStore.config.youtube.session || null
+                cookies_path: settingsStore.config.browser || null
             };
             
             console.log("Invoking clip_video for segment", payload);

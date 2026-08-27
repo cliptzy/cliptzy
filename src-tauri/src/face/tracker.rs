@@ -47,7 +47,8 @@ pub async fn get_face_keyframes(
 
     let frame_pattern = tmp_dir.path().join("frame_%04d.jpg");
 
-    let mut child = Command::new("ffmpeg")
+    let ffmpeg_bin = crate::utils::find_executable("ffmpeg").unwrap_or_else(|| std::path::PathBuf::from("ffmpeg"));
+    let mut child = Command::new(&ffmpeg_bin)
         .args(&[
             "-y",
             "-hide_banner",

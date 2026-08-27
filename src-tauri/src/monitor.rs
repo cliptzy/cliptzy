@@ -20,6 +20,70 @@ static NETWORKS: Lazy<Mutex<Networks>> =
     Lazy::new(|| Mutex::new(Networks::new_with_refreshed_list()));
 static LAST_REFRESH: Lazy<Mutex<Instant>> = Lazy::new(|| Mutex::new(Instant::now()));
 
+static GPU_USAGE: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+static INIT_GPU_MONITOR: std::sync::Once = std::sync::Once::new();
+
+pub fn start_gpu_monitor() {
+    INIT_GPU_MONITOR.call_once(|| {
+        std::thread::spawn(|| {
+            #[cfg(target_os = "windows")]
+            {
+                use std::process::{Command, Stdio};
+                use std::io::{BufRead, BufReader};
+                
+                let mut child = match Command::new("typeperf")
+                    .arg("\\GPU Engine(*)\\Utilization Percentage")
+                    .stdout(Stdio::piped())
+                    .stderr(Stdio::null())
+                    .spawn() {
+                        Ok(c) => c,
+                        Err(_) => return,
+                    };
+
+                if let Some(stdout) = child.stdout.take() {
+                    let reader = BufReader::new(stdout);
+                    for line in reader.lines() {
+                        if let Ok(line) = line {
+                            if !line.starts_with("\"") || line.contains("PDH_") || line.contains("Time") { 
+                                continue; 
+                            }
+                            let parts: Vec<&str> = line.split(',').collect();
+                            let mut max_val: f32 = 0.0;
+                            for part in parts.iter().skip(1) {
+                                let clean = part.trim_matches('"');
+                                if let Ok(v) = clean.parse::<f32>() {
+                                    if v > max_val { max_val = v; }
+                                }
+                            }
+                            GPU_USAGE.store(max_val.to_bits(), std::sync::atomic::Ordering::Relaxed);
+                        }
+                    }
+                }
+            }
+            
+            #[cfg(not(target_os = "windows"))]
+            {
+                // Fallback for nvidia-smi on Linux/Mac
+                use std::process::Command;
+                loop {
+                    if let Ok(output) = Command::new("nvidia-smi")
+                        .args(&["--query-gpu=utilization.gpu", "--format=csv,noheader,nounits"])
+                        .output() 
+                    {
+                        let text = String::from_utf8_lossy(&output.stdout);
+                        if let Some(val) = text.trim().lines().next() {
+                            if let Ok(v) = val.parse::<f32>() {
+                                GPU_USAGE.store(v.to_bits(), std::sync::atomic::Ordering::Relaxed);
+                            }
+                        }
+                    }
+                    std::thread::sleep(std::time::Duration::from_secs(1));
+                }
+            }
+        });
+    });
+}
+
 pub fn get_system_metrics() -> ProcessMetrics {
     let mut sys = SYSTEM.lock().unwrap();
     sys.refresh_all();
@@ -52,6 +116,10 @@ pub fn get_system_metrics() -> ProcessMetrics {
         (0.0, 0)
     };
 
+    start_gpu_monitor();
+    let gpu_val = f32::from_bits(GPU_USAGE.load(std::sync::atomic::Ordering::Relaxed));
+    let has_gpu = gpu_val > 0.0 || !crate::utils::get_system_gpus().is_empty();
+
     ProcessMetrics {
         cpu_usage: cpu,
         memory_mb: mem,
@@ -59,8 +127,8 @@ pub fn get_system_metrics() -> ProcessMetrics {
         system_used_memory_mb: sys.used_memory() / 1_048_576,
         network_rx_kbps: rx_kbps,
         network_tx_kbps: tx_kbps,
-        has_gpu: false, // sysinfo tidak punya API bawaan untuk GPU usage secara umum
-        gpu_usage: None,
+        has_gpu,
+        gpu_usage: Some(gpu_val),
     }
 }
 

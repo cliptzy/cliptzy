@@ -30,6 +30,7 @@ pub struct PipelineContext {
     pub progress_tx: ProgressTx,
     pub app_handle: tauri::AppHandle,
     pub metadata: HashMap<String, serde_json::Value>,
+    pub deps: crate::utils::AppDependencies,
 }
 
 #[async_trait::async_trait]

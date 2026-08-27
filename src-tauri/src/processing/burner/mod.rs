@@ -15,6 +15,7 @@ pub struct VideoBurnerConfig {
     pub config: Option<crate::transcription::models::SubtitleConfig>,
     pub watermark_path: Option<String>,
     pub watermark_position: String,
+    pub hw_accel: crate::processing::ffmpeg::hwaccel::HwAccel,
 }
 
 pub async fn burn_video_effects(
@@ -53,7 +54,7 @@ pub async fn burn_video_effects(
         final_a = audio::apply_normalization(&mut graph);
     }
 
-    let hw_accel = crate::processing::ffmpeg::hwaccel::HwAccel::detect(None);
+    let hw_accel = &config.hw_accel;
 
     let mut builder = FFmpegBuilder::new().map_err(|e| CliptzyError::FFmpeg {
         code: -1,

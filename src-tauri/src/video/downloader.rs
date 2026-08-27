@@ -46,21 +46,13 @@ pub async fn download_segment(
     end: f64,
     output_path: &Path,
     cookies_path: Option<String>,
+    ytdlp_bin: &Path,
     progress: Option<&tauri::AppHandle>,
     cancel_token: CancellationToken,
 ) -> Result<(), CliptzyError> {
     let app_dir = crate::paths::app_data_dir();
 
-    #[cfg(target_os = "windows")]
-    let ytdlp_bin = app_dir.join("bin").join("yt-dlp.exe");
-    #[cfg(not(target_os = "windows"))]
-    let ytdlp_bin = app_dir.join("bin").join("yt-dlp");
-
-    if !ytdlp_bin.exists() {
-        return Err(CliptzyError::Download("yt-dlp binary not found".into()));
-    }
-
-    let mut cmd = Command::new(&ytdlp_bin);
+    let mut cmd = Command::new(ytdlp_bin);
     cmd.arg(url)
         .arg("-f")
         .arg("bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best")
@@ -81,14 +73,9 @@ pub async fn download_segment(
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
 
-    if let Some(cookie) = cookies_path {
-        if !cookie.is_empty() {
-            let cookie_path = app_dir.join(&cookie);
-            if cookie_path.exists() {
-                cmd.arg("--cookies").arg(cookie_path);
-            } else if Path::new(&cookie).exists() {
-                cmd.arg("--cookies").arg(cookie);
-            }
+    if let Some(browser) = cookies_path {
+        if !browser.is_empty() {
+            cmd.arg("--cookies-from-browser").arg(browser);
         }
     }
 
