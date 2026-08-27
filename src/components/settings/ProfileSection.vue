@@ -65,7 +65,7 @@
                   <option value="brave" :disabled="!installedBrowsers.includes('brave')">Brave</option>
                   <option value="opera" :disabled="!installedBrowsers.includes('opera')">Opera</option>
                   <option value="vivaldi" :disabled="!installedBrowsers.includes('vivaldi')">Vivaldi</option>
-                  <option value="safari" disabled>Safari</option>
+                  <option value="safari" :disabled="!installedBrowsers.includes('safari')">Safari</option>
                 </select>
               </div>
               <button @click="testCookies" :disabled="isTestingCookies" class="text-[10px] font-bold px-4 py-2 rounded-xl transition-all disabled:opacity-50 flex items-center gap-1 shadow-sm bg-red-500 text-white hover:bg-red-600">
