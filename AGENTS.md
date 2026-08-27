@@ -85,6 +85,8 @@ Sebelum menulis kode, AI Model WAJIB menjawab pertanyaan berikut:
 2. ✅ Apakah saya menggunakan Crate Rust (seperti `reqwest`, `tokio`, dsb) atau CLI (seperti memanggil `ffmpeg.exe` via `std::process::Command`) alih-alih server Python?
 3. ✅ Apakah semua perintah di-*expose* ke Frontend melalui `#[tauri::command]`?
 
+---
+
 ## 🛠️ BAGIAN 4: LOG IMPLEMENTASI & PENYELESAIAN MASALAH (WORK LOG)
 
 ### 4.1. YouTube Bypass (Error 429 & PO Token)
@@ -124,3 +126,20 @@ Sebelum menulis kode, AI Model WAJIB menjawab pertanyaan berikut:
 ### 4.8. Optimasi Performa I/O dengan Refaktor DRY (Dependency Injection)
 - **Problem**: File `AppConfig::load()` dibaca berkali-kali dari disk pada saat *rendering* panas (seperti saat spawn FFmpeg di `cropper.rs` dan `burner.rs`) yang melanggar prinsip *Don't Repeat Yourself* (DRY) dan menyebabkan *bottleneck I/O*.
 - **Solusi**: Memperbaiki arsitektur aplikasi sehingga *Config* ditarik satu kali di level orkestrator (`clip.rs`) dan kemudian nilai konfigurasi yang diperlukan (`HwAccel`) dipassing ke bawah secara beruntun (*pass-by-value/reference*) via `OutputConfig` dan `VideoBurnerConfig`. Selain itu, merombak deteksi utilitas murni agar seluruh pemanggilan `tokio::process::Command::new("ffmpeg")` difilter secara ketat melalui implementasi pembaca `find_executable` (*which* crate).
+
+### 4.9. Sistem Job Management berbasis Video ID & Caching Segmen
+- **Problem**: Penggunaan `uuidv4` untuk *job directory* menyebabkan video mentah (`source.mp4`) didownload ulang setiap kali *user* merender segmen dari video YouTube yang sama, sehingga sangat boros bandwidth dan waktu.
+- **Solusi**: Mengganti *job ID* menggunakan format `video_id` dari metadata YouTube. File-file intermediet (seperti video sumber, audio WAV, dan *subtitles*) kini dinamai berdasarkan urutan/indeks segmennya (misal `source_1.mp4`, `subtitles_2.ass`). Ini memungkinkan aplikasi menggunakan mekanisme *cache* sehingga video yang sama tidak diunduh ulang di render klip berikutnya.
+
+### 4.10. Implementasi Multi-Mode Pelacakan Wajah (Face Tracking Modes)
+- **Problem**: Proses *face tracking* menggunakan *Optical Flow* sangat presisi namun berat, sementara *user* mungkin menginginkan opsi yang lebih cepat atau statis.
+- **Solusi**: Menambahkan opsi dropdown "Metode Pelacakan Wajah" di UI Inspector yang tersinkronisasi permanen ke file konfigurasi `AppConfig` Rust:
+  1. **Sinematik (Mulus & Lambat)**: Memakai `optical-flow-lk` dengan *Exponential Moving Average* untuk gerakan kamera yang halus.
+  2. **Dinamis (Standard AI)**: Memakai `rustface` murni untuk deteksi presisi namun statis yang diekstrak per detik (*fast*).
+  3. **Statis (Kunci Posisi Awal)**: Mengekstrak eksklusif *1 frame* pertama saja (`-vframes 1`) untuk mencari wajah dan menguncinya selamanya guna kecepatan render ultra-tinggi.
+
+### 4.11. Optimasi Ukuran File Output FFmpeg (Bitrate & CRF Control)
+- **Problem**: FFmpeg melakukan *re-encoding* (crop, burn subtitle) tanpa batas *bitrate* yang jelas, menyebabkan output membengkak ekstrem (contoh: *source* 20MB menjadi *output* 204MB dengan *bitrate* di atas 20.000 kbps).
+- **Solusi**: Menyuntikkan limitasi ukuran secara proaktif di `HwAccel::encode_args()` pada `hwaccel.rs`.
+  - Untuk *CPU Encoder* (`libx264`): Menggunakan `-crf 26` dipadukan dengan limitasi maksimum `-maxrate 4000k` dan `-bufsize 8000k`.
+  - Untuk *Hardware Encoder* (NVENC, QSV, AMF): Secara paksa menggunakan target `-b:v 3000k` dengan `-maxrate 4000k`. Ini akan menekan ukuran file tetap kecil (cocok untuk distribusi Shorts/Reels) tanpa kompromi kualitas yang tampak.
