@@ -1,13 +1,11 @@
 <template>
-  <div class="h-screen w-full bg-[var(--color-base)] text-white flex flex-col font-sans overflow-hidden selection:bg-[var(--color-accent)] selection:text-black">
+  <div class="h-screen w-full bg-[var(--color-base)] text-[var(--color-text-main)] flex flex-col font-sans overflow-hidden selection:bg-gray-200 dark:bg-gray-800 selection:text-black">
     <MacOsWindowsTitleBar />
+    <TopNavbar />
     
-    <div class="flex-1 flex flex-col md:flex-row overflow-hidden relative">
-      <!-- Sidebar / Bottom Dock -->
-      <Sidebar />
-      
+    <div class="flex-1 flex flex-col overflow-hidden relative">
       <!-- Main Content Area -->
-      <main class="flex-1 overflow-y-auto p-4 md:p-8 relative scroll-smooth">
+      <main class="flex-1 overflow-y-auto px-4 md:px-8 pb-4 relative scroll-smooth">
         <router-view v-slot="{ Component }">
           <transition name="fade-scale" mode="out-in">
             <component :is="Component" />
@@ -29,7 +27,7 @@
 
 <script setup lang="ts">
 import MacOsWindowsTitleBar from '../components/MacOsWindowsTitleBar.vue';
-import Sidebar from '../components/Sidebar.vue';
+import TopNavbar from '../components/TopNavbar.vue';
 import GlobalStatusBar from '../components/GlobalStatusBar.vue';
 import TerminalToast from '../components/TerminalToast.vue';
 import AppFooter from '../components/AppFooter.vue';

@@ -1,11 +1,29 @@
 <template>
   <div
-    class="bg-[var(--color-surface)] border border-[var(--color-subtle)] rounded-[24px] shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] overflow-hidden transition-all duration-300"
+    class="rounded-[32px] transition-colors duration-300 ease-out overflow-hidden"
+    :class="disableRandomBg ? '' : randomBg"
   >
     <slot></slot>
   </div>
 </template>
 
 <script setup lang="ts">
-// Komponen wrapper dasar untuk grid Bento
+import { ref } from 'vue';
+
+defineProps({
+  disableRandomBg: {
+    type: Boolean,
+    default: false
+  }
+});
+
+const pastelColors = [
+  'bg-gray-100 dark:bg-gray-900',
+  'bg-slate-100 dark:bg-slate-900',
+  'bg-zinc-100 dark:bg-zinc-900',
+  'bg-neutral-100 dark:bg-neutral-900',
+  'bg-stone-100 dark:bg-stone-900'
+];
+
+const randomBg = ref(pastelColors[Math.floor(Math.random() * pastelColors.length)]);
 </script>

@@ -1,17 +1,43 @@
 @import "tailwindcss";
+@custom-variant dark (&:is(.dark *));
 
 @theme {
-  --color-base: #09090B;
-  --color-surface: #18181B;
-  --color-subtle: #27272A;
-  --color-accent: #D9F99D;
-  --font-sans: "Geist Sans", ui-sans-serif, system-ui, sans-serif;
+  /* Default Light Theme (Pastel) */
+  --color-base: #F9FAFB;
+  --color-surface: #FFFFFF;
+  --color-subtle: #F3F4F6;
+  --color-accent: #E87389; 
+  --color-text-main: #1f2937;
+  --color-text-muted: #6b7280;
+
+  /* Additional Pastel Cards */
+  --color-pastel-blue: #dbeafe;
+  --color-pastel-green: #6ee7b7;
+  --color-pastel-twitter: #93c5fd;
+  --color-pastel-yellow: #fde68a;
+
+  --font-sans: "Inter", "Geist Sans", ui-sans-serif, system-ui, sans-serif;
 }
+
+@layer base {
+  body {
+    @apply bg-[var(--color-base)] text-[var(--color-text-main)] transition-colors duration-300;
+  }
+  
+  .dark body {
+    --color-base: #0F172A;
+    --color-surface: #1E293B;
+    --color-subtle: #334155;
+    --color-text-main: #F8FAFC;
+    --color-text-muted: #94A3B8;
+  }
+}
+
 @layer utilities {
     /* Custom Thin Scrollbar */
     ::-webkit-scrollbar {
-        width: 4px;
-        height: 4px;
+        width: 6px;
+        height: 6px;
     }
 
     ::-webkit-scrollbar-track {
@@ -19,21 +45,21 @@
     }
 
     ::-webkit-scrollbar-thumb {
-        background-color: transparent;
-        border-radius: 4px;
+        background-color: var(--color-subtle);
+        border-radius: 8px;
     }
 
     *:hover::-webkit-scrollbar-thumb {
-        background-color: rgba(255, 255, 255, 0.15);
+        background-color: var(--color-subtle);
     }
 
     ::-webkit-scrollbar-thumb:hover {
-        background-color: var(--color-accent) !important;
+        background-color: var(--color-text-muted) !important;
     }
 
     /* Firefox */
     * {
         scrollbar-width: thin;
-        scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+        scrollbar-color: var(--color-subtle) transparent;
     }
 }

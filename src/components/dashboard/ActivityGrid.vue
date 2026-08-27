@@ -1,37 +1,37 @@
 <template>
-  <div class="flex-1 min-h-0 mt-2 flex flex-col">
-    <div class="flex items-center justify-between mb-4">
-      <h3 class="text-xl font-bold">Aktivitas Terakhir & Antrean</h3>
-      <button class="text-sm text-gray-400 hover:text-[var(--color-accent)] transition-colors flex items-center gap-1">
+ <BentoCard class="flex-1 min-h-0 mt-2 flex flex-col p-6">
+    <div class="flex items-center justify-between mb-6">
+      <h3 class="text-lg font-black text-gray-900 dark:text-gray-100 tracking-wide">Aktivitas Terakhir & Antrean</h3>
+      <button class="text-xs font-bold text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors flex items-center gap-1 bg-white/60 hover:bg-white dark:bg-black/30 dark:hover:bg-black/50 px-4 py-2 rounded-full shadow-sm">
         Lihat Semua <IconArrowRight class="w-4 h-4" />
       </button>
     </div>
     
-    <TransitionGroup name="list" tag="div" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 overflow-y-auto pb-8 pr-2 relative custom-scrollbar">
+    <TransitionGroup name="list" tag="div" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 overflow-y-auto pb-4 pr-2 relative custom-scrollbar">
       <!-- Empty State -->
-      <div v-if="!recentActivities.length" key="empty" class="col-span-full py-12 flex flex-col items-center justify-center border-2 border-dashed border-[var(--color-subtle)] rounded-[24px]">
-        <IconInbox class="w-12 h-12 text-gray-600 mb-3" />
-        <p class="text-gray-400">Belum ada aktivitas. Mulai buat klip di Studio!</p>
+      <div v-if="!recentActivities.length" key="empty" class="col-span-full py-12 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-800 rounded-3xl">
+        <IconInbox class="w-12 h-12 text-gray-400 dark:text-gray-600 mb-3" />
+        <p class="text-gray-700 dark:text-gray-300 font-bold text-sm">Belum ada aktivitas. Mulai buat klip di Studio!</p>
       </div>
 
       <!-- Activity Cards -->
-      <BentoCard v-for="activity in recentActivities" :key="activity.id" class="p-4 flex gap-4 items-start hover:border-gray-500 transition-colors group cursor-pointer">
-        <div class="w-20 h-28 bg-gray-800 rounded-lg overflow-hidden shrink-0 relative">
+      <div v-for="activity in recentActivities" :key="activity.id" class="p-4 flex gap-4 items-start bg-white/60 dark:bg-black/30 rounded-3xl transition-colors group cursor-pointer shadow-sm hover:bg-white dark:hover:bg-black/50">
+        <div class="w-20 h-28 bg-gray-100 dark:bg-gray-900/50 rounded-2xl overflow-hidden shrink-0 relative">
           <img :src="activity.thumbnail" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-          <div class="absolute bottom-1 right-1 bg-black/70 px-1.5 rounded text-[10px] font-mono">{{ activity.duration }}</div>
+          <div class="absolute bottom-1 right-1 bg-black/70 text-white px-1.5 py-0.5 rounded text-[10px] font-mono font-bold">{{ activity.duration }}</div>
         </div>
         <div class="flex flex-col py-1 h-full">
-          <span class="text-[10px] uppercase font-bold tracking-wider mb-1" :class="activity.status === 'Selesai' ? 'text-[var(--color-accent)]' : 'text-yellow-400'">
+          <span class="text-[10px] uppercase font-black tracking-widest mb-1" :class="activity.status === 'Selesai' ? 'text-gray-700 dark:text-gray-400' : 'text-gray-700 dark:text-gray-400'">
             {{ activity.status }}
           </span>
-          <h4 class="font-semibold text-sm line-clamp-2 mb-2 group-hover:text-[var(--color-accent)] transition-colors">{{ activity.title }}</h4>
-          <div class="mt-auto flex items-center gap-2 text-xs text-gray-500">
+          <h4 class="font-bold text-sm line-clamp-2 mb-2 text-gray-900 dark:text-gray-100 transition-colors">{{ activity.title }}</h4>
+          <div class="mt-auto flex items-center gap-2 text-xs font-bold text-gray-700 dark:text-gray-300">
             <IconCalendar class="w-3 h-3" /> {{ activity.time }}
           </div>
         </div>
-      </BentoCard>
+      </div>
     </TransitionGroup>
-  </div>
+  </BentoCard>
 </template>
 
 <script setup lang="ts">

@@ -1,16 +1,16 @@
 <template>
   <div class="w-full xl:w-[280px] flex flex-col gap-4 overflow-y-auto pr-1 custom-scrollbar shrink-0">
     <!-- Visual Crop & Tracking Controller -->
-    <BentoCard class="p-4 shrink-0">
-      <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-        <IconCrop class="w-4 h-4 text-[var(--color-accent)]" /> Mode Crop & Rasio
+  <BentoCard class="p-6 shrink-0">
+      <h3 class="text-lg font-black text-gray-900 dark:text-gray-100 tracking-wide mb-4 flex items-center gap-2">
+        <IconCrop class="w-5 h-5" /> Mode Crop & Rasio
       </h3>
       <div class="flex flex-col gap-4">
         
         <!-- Output Ratio -->
         <div class="flex flex-col gap-1">
-          <span class="text-[10px] text-gray-400 uppercase font-bold">Rasio Output</span>
-          <select v-model="settings.config.output_ratio" class="w-full bg-black/50 border border-[var(--color-subtle)] rounded p-1.5 text-xs text-white focus:outline-none focus:border-[var(--color-accent)]">
+          <span class="text-[10px] text-gray-700 dark:text-gray-300 uppercase font-bold">Rasio Output</span>
+          <select v-model="settings.config.output_ratio" class="w-full bg-white/50 dark:bg-black/30 border-none rounded-xl p-2 text-xs font-bold text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 cursor-pointer">
             <option value="9:16">9:16 (Shorts / Reels)</option>
             <option value="1:1">1:1 (Square)</option>
             <option value="16:9">16:9 (Landscape)</option>
@@ -20,39 +20,39 @@
 
         <!-- Crop Mode -->
         <div class="flex flex-col gap-3">
-          <span class="text-[10px] text-gray-400 uppercase font-bold">Tipe Tampilan (Layout)</span>
+          <span class="text-[10px] text-gray-700 dark:text-gray-300 uppercase font-bold">Tipe Tampilan (Layout)</span>
           <label class="flex items-center gap-3 cursor-pointer group">
             <input type="radio" name="cropMode" value="default" v-model="settings.config.crop_mode" class="hidden" />
-            <div class="w-4 h-4 rounded-full border flex items-center justify-center group-hover:border-[var(--color-accent)] transition-colors" :class="settings.config.crop_mode === 'default' ? 'border-[var(--color-accent)]' : 'border-gray-500'">
-              <div v-show="settings.config.crop_mode === 'default'" class="w-2 h-2 rounded-full bg-[var(--color-accent)]"></div>
+            <div class="w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors" :class="settings.config.crop_mode === 'default' ? 'border-gray-700 dark:border-gray-400' : 'border-gray-400 dark:border-gray-700'">
+              <div v-show="settings.config.crop_mode === 'default'" class="w-2 h-2 rounded-full bg-gray-700 dark:bg-gray-400"></div>
             </div>
-            <span class="text-sm font-medium transition-colors" :class="settings.config.crop_mode === 'default' ? 'text-white' : 'text-gray-400 group-hover:text-gray-200'">Center Crop (Default)</span>
+            <span class="text-sm font-bold transition-colors" :class="settings.config.crop_mode === 'default' ? 'text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-400'">Center Crop (Default)</span>
           </label>
           <label class="flex items-center gap-3 cursor-pointer group">
             <input type="radio" name="cropMode" value="full" v-model="settings.config.crop_mode" class="hidden" />
-            <div class="w-4 h-4 rounded-full border flex items-center justify-center group-hover:border-[var(--color-accent)] transition-colors" :class="settings.config.crop_mode === 'full' ? 'border-[var(--color-accent)]' : 'border-gray-500'">
-              <div v-show="settings.config.crop_mode === 'full'" class="w-2 h-2 rounded-full bg-[var(--color-accent)]"></div>
+            <div class="w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors" :class="settings.config.crop_mode === 'full' ? 'border-gray-700 dark:border-gray-400' : 'border-gray-400 dark:border-gray-700'">
+              <div v-show="settings.config.crop_mode === 'full'" class="w-2 h-2 rounded-full bg-gray-700 dark:bg-gray-400"></div>
             </div>
-            <span class="text-sm font-medium transition-colors" :class="settings.config.crop_mode === 'full' ? 'text-white' : 'text-gray-400 group-hover:text-gray-200'">Full + Blur Background</span>
+            <span class="text-sm font-bold transition-colors" :class="settings.config.crop_mode === 'full' ? 'text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-400'">Full + Blur Background</span>
           </label>
           <label class="flex items-center gap-3 cursor-pointer group">
             <input type="radio" name="cropMode" value="full_face" v-model="settings.config.crop_mode" class="hidden" />
-            <div class="w-4 h-4 rounded-full border flex items-center justify-center group-hover:border-[var(--color-accent)] transition-colors" :class="settings.config.crop_mode === 'full_face' ? 'border-[var(--color-accent)]' : 'border-gray-500'">
-              <div v-show="settings.config.crop_mode === 'full_face'" class="w-2 h-2 rounded-full bg-[var(--color-accent)]"></div>
+            <div class="w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors" :class="settings.config.crop_mode === 'full_face' ? 'border-gray-700 dark:border-gray-400' : 'border-gray-400 dark:border-gray-700'">
+              <div v-show="settings.config.crop_mode === 'full_face'" class="w-2 h-2 rounded-full bg-gray-700 dark:bg-gray-400"></div>
             </div>
-            <span class="text-sm font-medium transition-colors" :class="settings.config.crop_mode === 'full_face' ? 'text-white' : 'text-gray-400 group-hover:text-gray-200'">Face Track + Full (Split)</span>
+            <span class="text-sm font-bold transition-colors" :class="settings.config.crop_mode === 'full_face' ? 'text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-400'">Face Track + Full (Split)</span>
           </label>
         </div>
 
         <!-- Face Tracking Mode -->
-        <div class="flex flex-col gap-1 border-t border-[var(--color-subtle)] pt-4 mt-1">
-          <span class="text-[10px] text-gray-400 uppercase font-bold">Metode Pelacakan Wajah</span>
-          <select v-model="settings.config.face_tracking_mode" class="w-full bg-black/50 border border-[var(--color-subtle)] rounded p-1.5 text-xs text-white focus:outline-none focus:border-[var(--color-accent)]">
+        <div class="flex flex-col gap-1 border-t border-gray-300 dark:border-gray-800 pt-4 mt-1">
+          <span class="text-[10px] text-gray-700 dark:text-gray-300 uppercase font-bold">Metode Pelacakan Wajah</span>
+          <select v-model="settings.config.face_tracking_mode" class="w-full bg-white/50 dark:bg-black/30 border-none rounded-xl p-2 text-xs font-bold text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 cursor-pointer">
             <option value="cinematic">Sinematik (Mulus & Lambat)</option>
             <option value="fast">Dinamis (Standard AI)</option>
             <option value="static">Statis (Kunci Posisi Awal)</option>
           </select>
-          <span class="text-[9px] text-gray-500 mt-1 leading-tight">
+          <span class="text-[9px] text-gray-700 dark:text-gray-400 mt-1 font-medium leading-tight">
             Menentukan bagaimana kamera mengikuti wajah saat di-crop.
           </span>
         </div>
@@ -60,22 +60,22 @@
     </BentoCard>
 
     <!-- AI & Subtitle Command Center -->
-    <BentoCard class="p-4 shrink-0">
-      <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-        <IconSparkles class="w-4 h-4 text-[var(--color-accent)]" /> AI Processing
+  <BentoCard class="p-6 shrink-0">
+      <h3 class="text-lg font-black text-gray-900 dark:text-gray-100 tracking-wide mb-4 flex items-center gap-2">
+        <IconSparkles class="w-5 h-5" /> AI Processing
       </h3>
-      <div class="flex flex-col gap-4">
+      <div class="flex flex-col gap-5">
         <div class="flex items-center justify-between">
           <div class="flex flex-col">
-            <span class="text-sm font-semibold text-white">Whisper AI</span>
-            <span class="text-[10px] text-gray-500">Subtitle otomatis</span>
+            <span class="text-sm font-bold text-gray-900 dark:text-gray-100">Whisper AI</span>
+            <span class="text-[10px] text-gray-700 dark:text-gray-300 font-medium">Subtitle otomatis</span>
           </div>
           <ToggleSwitch v-model="aiWhisper" />
         </div>
         <div class="flex items-center justify-between">
           <div class="flex flex-col">
-            <span class="text-sm font-semibold text-white">Auto B-Roll</span>
-            <span class="text-[10px] text-gray-500">Sisipkan overlay</span>
+            <span class="text-sm font-bold text-gray-900 dark:text-gray-100">Auto B-Roll</span>
+            <span class="text-[10px] text-gray-700 dark:text-gray-300 font-medium">Sisipkan overlay</span>
           </div>
           <ToggleSwitch v-model="aiBRoll" />
         </div>
@@ -83,81 +83,81 @@
     </BentoCard>
 
     <!-- Subtitle Styling & Customization -->
-    <BentoCard class="p-4 flex flex-col gap-4 shrink-0">
-      <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-2">
-        <IconType class="w-4 h-4 text-[var(--color-accent)]" /> Kustomisasi Subtitle
+  <BentoCard class="p-6 flex flex-col gap-4 shrink-0">
+      <h3 class="text-lg font-black text-gray-900 dark:text-gray-100 tracking-wide mb-2 flex items-center gap-2">
+        <IconType class="w-5 h-5" /> Kustomisasi Subtitle
       </h3>
       
       <!-- Presets -->
       <div class="grid grid-cols-2 gap-2">
-        <button @click="settings.config.subtitle.animation = 'hormozi'; settings.config.subtitle.border_style = 1" class="p-2 rounded border transition-all text-left flex flex-col gap-1 group" :class="settings.config.subtitle.animation === 'hormozi' ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/10' : 'border-[var(--color-subtle)] bg-white/5 hover:border-gray-500'">
-          <span class="font-black text-xs uppercase text-yellow-400">Hormozi</span>
+        <button @click="settings.config.subtitle.animation = 'hormozi'; settings.config.subtitle.border_style = 1" class="p-3 rounded-2xl transition-all text-center flex flex-col items-center justify-center gap-1 bg-white/50 dark:bg-black/30 hover:bg-white dark:hover:bg-black/50" :class="settings.config.subtitle.animation === 'hormozi' ? 'ring-2 ring-gray-500 shadow-sm' : ''">
+          <span class="font-black text-xs uppercase text-gray-500">Hormozi</span>
         </button>
-        <button @click="settings.config.subtitle.animation = 'karaoke'; settings.config.subtitle.border_style = 1" class="p-2 rounded border transition-all text-left flex flex-col gap-1 group" :class="settings.config.subtitle.animation === 'karaoke' ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/10' : 'border-[var(--color-subtle)] bg-white/5 hover:border-gray-500'">
-          <span class="font-bold text-xs text-green-400">Karaoke</span>
+        <button @click="settings.config.subtitle.animation = 'karaoke'; settings.config.subtitle.border_style = 1" class="p-3 rounded-2xl transition-all text-center flex flex-col items-center justify-center gap-1 bg-white/50 dark:bg-black/30 hover:bg-white dark:hover:bg-black/50" :class="settings.config.subtitle.animation === 'karaoke' ? 'ring-2 ring-gray-500 shadow-sm' : ''">
+          <span class="font-black text-xs text-gray-500">Karaoke</span>
         </button>
-        <button @click="settings.config.subtitle.border_style = 3; settings.config.subtitle.animation = 'none'" class="p-2 rounded border transition-all text-left flex flex-col gap-1 col-span-2 group" :class="settings.config.subtitle.border_style === 3 ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/10' : 'border-[var(--color-subtle)] bg-white/5 hover:border-gray-500'">
-          <span class="font-mono text-xs uppercase tracking-widest text-white bg-red-600 px-1 w-fit">BRUTALIST BOX</span>
+        <button @click="settings.config.subtitle.border_style = 3; settings.config.subtitle.animation = 'none'" class="p-3 rounded-2xl transition-all text-center flex flex-col items-center justify-center gap-1 col-span-2 bg-white/50 dark:bg-black/30 hover:bg-white dark:hover:bg-black/50" :class="settings.config.subtitle.border_style === 3 ? 'ring-2 ring-gray-500 shadow-sm' : ''">
+          <span class="font-mono text-xs uppercase tracking-widest text-white bg-red-600 px-2 py-0.5 font-bold">BRUTALIST BOX</span>
         </button>
       </div>
 
       <!-- Action Generate Subtitle -->
-      <div v-if="aiWhisper" class="mt-1">
-        <GlowButton @click="handleGenerateSubtitle" :disabled="videoStore.isAnalyzing || !videoStore.metadata?.stream_url" class="w-full py-2 text-xs">
+      <div v-if="aiWhisper" class="mt-2">
+        <button @click="handleGenerateSubtitle" :disabled="videoStore.isAnalyzing || !videoStore.metadata?.stream_url" class="w-full py-3 rounded-full text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm bg-black text-white dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200">
           <span v-if="videoStore.isAnalyzing" class="flex items-center justify-center gap-2">
-            <IconLoader class="w-3 h-3 animate-spin" /> Sedang Generate...
+            <IconLoader class="w-4 h-4 animate-spin" /> Sedang Generate...
           </span>
-          <span v-else>Generate Subtitle (Pre-Analysis)</span>
-        </GlowButton>
+          <span v-else>Generate Subtitle</span>
+        </button>
       </div>
 
       <!-- Deep Subtitle Settings -->
-      <div class="flex flex-col gap-3 mt-2 border-t border-[var(--color-subtle)] pt-4">
+      <div class="flex flex-col gap-4 mt-2 border-t border-gray-300 dark:border-gray-800 pt-4">
         <div class="grid grid-cols-2 gap-3">
           <div class="flex flex-col gap-1">
-            <span class="text-[9px] text-gray-400 uppercase font-bold">Font</span>
-            <select v-model="settings.config.subtitle.font" class="w-full bg-black/50 border border-[var(--color-subtle)] rounded p-1.5 text-[10px] text-white focus:outline-none focus:border-[var(--color-accent)]">
+            <span class="text-[9px] text-gray-700 dark:text-gray-300 uppercase font-bold">Font</span>
+            <select v-model="settings.config.subtitle.font" class="w-full bg-white/50 dark:bg-black/30 border-none rounded-xl p-2 text-[10px] font-bold text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 cursor-pointer">
               <option value="Arial">Arial</option>
               <option value="Impact">Impact</option>
               <option value="TheBoldFont">TheBoldFont</option>
             </select>
           </div>
           <div class="flex flex-col gap-1">
-            <span class="text-[9px] text-gray-400 uppercase font-bold">Warna</span>
-            <select v-model="settings.config.subtitle.color" class="w-full bg-black/50 border border-[var(--color-subtle)] rounded p-1.5 text-[10px] text-white focus:outline-none focus:border-[var(--color-accent)]">
+            <span class="text-[9px] text-gray-700 dark:text-gray-300 uppercase font-bold">Warna</span>
+            <select v-model="settings.config.subtitle.color" class="w-full bg-white/50 dark:bg-black/30 border-none rounded-xl p-2 text-[10px] font-bold text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 cursor-pointer">
               <option value="&H0000FFFF">Kuning</option>
               <option value="&H00FFFFFF">Putih</option>
               <option value="&H0000FF00">Hijau</option>
             </select>
           </div>
           <div class="flex flex-col gap-1">
-            <span class="text-[9px] text-gray-400 uppercase font-bold">Posisi Y</span>
-            <select v-model="settings.config.subtitle.location" class="w-full bg-black/50 border border-[var(--color-subtle)] rounded p-1.5 text-[10px] text-white focus:outline-none focus:border-[var(--color-accent)]">
+            <span class="text-[9px] text-gray-700 dark:text-gray-300 uppercase font-bold">Posisi Y</span>
+            <select v-model="settings.config.subtitle.location" class="w-full bg-white/50 dark:bg-black/30 border-none rounded-xl p-2 text-[10px] font-bold text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 cursor-pointer">
               <option value="bottom">Bawah</option>
               <option value="center">Tengah</option>
               <option value="top">Atas</option>
             </select>
           </div>
           <div class="flex flex-col gap-1">
-            <span class="text-[9px] text-gray-400 uppercase font-bold">Maks Kata ({{ settings.config.subtitle.max_words }})</span>
-            <input type="range" min="1" max="10" v-model.number="settings.config.subtitle.max_words" class="w-full h-1 bg-[var(--color-subtle)] rounded-lg appearance-none cursor-pointer accent-[var(--color-accent)] mt-1.5" />
+            <span class="text-[9px] text-gray-700 dark:text-gray-300 uppercase font-bold">Maks Kata ({{ settings.config.subtitle.max_words }})</span>
+            <input type="range" min="1" max="10" v-model.number="settings.config.subtitle.max_words" class="w-full h-2 bg-gray-300 dark:bg-gray-800 rounded-lg appearance-none cursor-pointer mt-1.5" />
           </div>
         </div>
         <div class="flex flex-col gap-1">
-          <span class="text-[9px] text-gray-400 uppercase font-bold">Ukuran Font ({{ settings.config.subtitle.font_size }})</span>
-          <input type="range" min="20" max="150" v-model.number="settings.config.subtitle.font_size" class="w-full h-1 bg-[var(--color-subtle)] rounded-lg appearance-none cursor-pointer accent-[var(--color-accent)] mt-1" />
+          <span class="text-[9px] text-gray-700 dark:text-gray-300 uppercase font-bold">Ukuran Font ({{ settings.config.subtitle.font_size }})</span>
+          <input type="range" min="20" max="150" v-model.number="settings.config.subtitle.font_size" class="w-full h-2 bg-gray-300 dark:bg-gray-800 rounded-lg appearance-none cursor-pointer mt-1" />
         </div>
       </div>
     </BentoCard>
 
     <!-- Branding / Watermark -->
-    <BentoCard class="p-4 shrink-0">
-      <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-        <IconImage class="w-4 h-4 text-[var(--color-accent)]" /> Branding
+  <BentoCard class="p-6 shrink-0">
+      <h3 class="text-lg font-black text-gray-900 dark:text-gray-100 tracking-wide mb-3 flex items-center gap-2">
+        <IconImage class="w-5 h-5" /> Branding
       </h3>
-      <div class="flex flex-col gap-1">
-        <span class="text-[10px] text-gray-400 uppercase font-bold">Posisi Watermark</span>
-        <select v-model="settings.config.watermark_position" class="w-full bg-black/50 border border-[var(--color-subtle)] rounded p-2 text-xs text-white focus:outline-none focus:border-[var(--color-accent)]">
+      <div class="flex flex-col gap-2">
+        <span class="text-[10px] text-gray-700 dark:text-gray-300 uppercase font-bold">Posisi Watermark</span>
+        <select v-model="settings.config.watermark_position" class="w-full bg-white/50 dark:bg-black/30 border-none rounded-xl p-3 text-xs font-bold text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 cursor-pointer">
           <option value="top">Atas (Top)</option>
           <option value="center">Tengah (Center)</option>
           <option value="bottom">Bawah (Bottom)</option>
@@ -172,7 +172,6 @@ import { useSettingsStore } from '../../stores/settings';
 import { useVideoStore } from '../../stores/video';
 import BentoCard from '../BentoCard.vue';
 import ToggleSwitch from '../ToggleSwitch.vue';
-import GlowButton from '../GlowButton.vue';
 
 // Icons
 import IconCrop from '~icons/lucide/crop';

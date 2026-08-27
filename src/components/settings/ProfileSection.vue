@@ -1,63 +1,64 @@
 <template>
   <div class="flex flex-col gap-6">
     <!-- Profil Sistem -->
-    <section class="flex flex-col gap-3">
-      <h2 class="text-sm font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-        <IconUser class="w-4 h-4 text-[var(--color-accent)]" /> Profil Sistem
+  <BentoCard class="p-6 flex flex-col gap-5">
+      <h2 class="text-lg font-black text-gray-900 dark:text-gray-100 tracking-wide flex items-center gap-2">
+        <IconUser class="w-5 h-5" /> Profil Sistem
       </h2>
-      <BentoCard class="p-5 flex items-center justify-between group">
+      <div class="flex items-center justify-between group">
         <div class="flex items-center gap-4">
-          <img v-if="auth.avatarUrl" :src="auth.avatarUrl" class="w-12 h-12 rounded-full border-2 border-[var(--color-subtle)]" />
-          <div v-else class="w-12 h-12 rounded-full bg-[var(--color-accent)]/20 flex items-center justify-center text-[var(--color-accent)] font-bold text-xl border-2 border-[var(--color-subtle)]">
+          <img v-if="auth.avatarUrl" :src="auth.avatarUrl" class="w-12 h-12 rounded-full border-2 border-white/50" />
+          <div v-else class="w-12 h-12 rounded-full bg-gray-500/20 flex items-center justify-center text-gray-700 dark:text-gray-300 font-bold text-xl border-2 border-gray-200 dark:border-gray-800">
             {{ auth.displayName ? auth.displayName.charAt(0).toUpperCase() : 'U' }}
           </div>
           <div class="flex flex-col min-w-0">
-            <span class="font-bold text-white text-base truncate">{{ auth.displayName || 'Google User' }}</span>
-            <span class="text-xs text-gray-400 truncate">{{ auth.email || 'Email tidak tersedia' }}</span>
+            <span class="font-bold text-gray-900 dark:text-gray-100 text-base truncate">{{ auth.displayName || 'Google User' }}</span>
+            <span class="text-xs text-gray-700 dark:text-gray-300 truncate">{{ auth.email || 'Email tidak tersedia' }}</span>
           </div>
         </div>
         <div class="flex flex-col items-end gap-2">
-          <span class="text-[10px] font-medium text-green-400 bg-green-400/10 px-2 py-0.5 rounded border border-green-400/20">Tersinkronisasi</span>
-          <button @click="handleLogout" class="text-[10px] text-red-500 hover:underline">Logout</button>
+          <span class="text-[10px] font-medium text-gray-600 bg-gray-100 dark:text-gray-400 dark:bg-gray-400/10 px-2 py-0.5 rounded-full border border-gray-200 dark:border-gray-400/20">Tersinkronisasi</span>
+          <button @click="handleLogout" class="text-[10px] font-bold text-red-500 hover:underline">Logout</button>
         </div>
-      </BentoCard>
-    </section>
+      </div>
+    </BentoCard>
 
     <!-- Sinkronisasi Cloud -->
-    <section class="flex flex-col gap-3">
-      <h2 class="text-sm font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-        <IconCloud class="w-4 h-4 text-[var(--color-accent)]" /> Sinkronisasi Cloud
+  <BentoCard class="p-6 flex flex-col gap-5">
+      <h2 class="text-lg font-black text-gray-900 dark:text-gray-100 tracking-wide flex items-center gap-2">
+        <IconCloud class="w-5 h-5" /> Sinkronisasi Cloud
       </h2>
-      <BentoCard class="p-4 flex gap-2">
-        <button @click="backupConfig" :disabled="isSyncing" class="flex-1 py-2 px-3 bg-[var(--color-accent)]/10 text-[var(--color-accent)] hover:bg-[var(--color-accent)] hover:text-black border border-[var(--color-accent)]/30 rounded text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+      <div class="flex gap-2">
+        <button @click="backupConfig" :disabled="isSyncing" class="flex-1 py-3 px-3 rounded-2xl text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm bg-black text-white dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200">
           <IconUploadCloud class="w-4 h-4" /> {{ isSyncing ? 'Memproses...' : 'Backup Config' }}
         </button>
-        <button @click="restoreConfig" :disabled="isSyncing" class="flex-1 py-2 px-3 bg-white/5 text-white hover:bg-white/20 border border-[var(--color-subtle)] rounded text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+        <button @click="restoreConfig" :disabled="isSyncing" class="flex-1 py-3 px-3 bg-white/60 dark:bg-black/30 text-gray-900 dark:text-gray-100 hover:bg-white dark:hover:bg-black/50 rounded-2xl text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm">
           <IconDownloadCloud class="w-4 h-4" /> Restore Config
         </button>
-      </BentoCard>
-    </section>
+      </div>
+    </BentoCard>
 
     <!-- Akun Sosial -->
-    <section class="flex flex-col gap-3">
-      <h2 class="text-sm font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-        <IconLink class="w-4 h-4 text-[var(--color-accent)]" /> Akun Sosial
+  <BentoCard class="p-6 flex flex-col gap-5">
+      <h2 class="text-lg font-black text-gray-900 dark:text-gray-100 tracking-wide flex items-center gap-2">
+        <IconLink class="w-5 h-5" /> Akun Sosial
       </h2>
       <div class="flex flex-col gap-3">
-        <BentoCard class="p-4 flex flex-col group hover:border-gray-500 transition-colors">
+        <!-- YouTube -->
+        <div class="flex flex-col p-4 bg-white/60 dark:bg-black/30 rounded-2xl transition-colors shadow-sm">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
-              <div class="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center"><IconYoutube class="w-4 h-4 text-red-500" /></div>
-              <div class="flex flex-col"><span class="font-bold text-white text-sm">YouTube</span><span class="text-[10px] text-gray-400">yt-dlp cookies</span></div>
+              <div class="w-10 h-10 rounded-full bg-red-100 dark:bg-red-500/20 flex items-center justify-center"><IconYoutube class="w-5 h-5 text-red-500" /></div>
+              <div class="flex flex-col"><span class="font-bold text-gray-900 dark:text-gray-100 text-sm">YouTube</span><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">yt-dlp cookies</span></div>
             </div>
-            <span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span></span>
+            <span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-gray-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-gray-500"></span></span>
           </div>
           
-          <div class="mt-4 pt-3 border-t border-[var(--color-subtle)] flex flex-col gap-2">
+          <div class="mt-4 pt-4 border-t border-gray-300 dark:border-gray-800 flex flex-col gap-3">
             <div class="flex justify-between items-center">
               <div class="flex flex-col">
-                <span class="text-xs text-gray-400 font-bold">Browser Cookies</span>
-                <select v-model="settings.config.browser" class="mt-1 bg-black/30 border border-[var(--color-subtle)] rounded py-1 px-2 text-[10px] text-white focus:outline-none focus:border-[var(--color-accent)] cursor-pointer">
+                <span class="text-xs text-gray-900 dark:text-gray-100 font-bold">Browser Cookies</span>
+                <select v-model="settings.config.browser" class="mt-1 bg-white/80 dark:bg-black/50 border-none rounded-xl py-1.5 px-2 text-[11px] font-bold text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 cursor-pointer shadow-sm">
                   <option value="">Pilih Browser</option>
                   <option value="chrome" :disabled="!installedBrowsers.includes('chrome')">Chrome</option>
                   <option value="edge" :disabled="!installedBrowsers.includes('edge')">Edge</option>
@@ -68,71 +69,71 @@
                   <option value="safari" disabled>Safari</option>
                 </select>
               </div>
-              <div class="flex items-center gap-2">
-                <button @click="testCookies" :disabled="isTestingCookies" class="bg-gray-800 text-gray-300 border border-gray-600 text-[10px] font-bold px-3 py-1.5 rounded hover:bg-gray-700 transition-colors flex items-center gap-1 disabled:opacity-50">
-                  <IconYoutube class="w-3 h-3" /> {{ isTestingCookies ? 'Testing...' : 'Test yt-dlp' }}
-                </button>
-              </div>
+              <button @click="testCookies" :disabled="isTestingCookies" class="text-[10px] font-bold px-4 py-2 rounded-xl transition-all disabled:opacity-50 flex items-center gap-1 shadow-sm bg-black text-white dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200">
+                <IconYoutube class="w-3 h-3" /> {{ isTestingCookies ? 'Testing...' : 'Test yt-dlp' }}
+              </button>
             </div>
           </div>
-        </BentoCard>
-        <BentoCard class="p-4 flex items-center justify-between group hover:border-gray-500 transition-colors">
+        </div>
+        
+        <!-- TikTok -->
+        <div class="flex items-center justify-between p-4 bg-white/60 dark:bg-black/30 rounded-2xl transition-colors shadow-sm">
           <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-full bg-white/5 border border-[var(--color-subtle)] flex items-center justify-center"><IconTiktok class="w-4 h-4 text-white" /></div>
-            <div class="flex flex-col"><span class="font-bold text-white text-sm">TikTok</span><span class="text-[10px] text-yellow-500">Perlu Login</span></div>
+            <div class="w-10 h-10 rounded-full bg-black text-white dark:bg-white dark:text-black shadow-sm flex items-center justify-center"><IconTiktok class="w-5 h-5" /></div>
+            <div class="flex flex-col"><span class="font-bold text-gray-900 dark:text-gray-100 text-sm">TikTok</span><span class="text-[10px] text-gray-700 dark:text-gray-300 font-bold">Perlu Login</span></div>
           </div>
-          <button class="bg-[var(--color-accent)] text-black text-[10px] font-bold px-2 py-1 rounded hover:scale-105 transition-transform">Hubungkan</button>
-        </BentoCard>
+          <button class="text-[10px] font-bold px-3 py-1.5 rounded-xl hover:scale-105 transition-transform shadow-sm bg-black text-white dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200">Hubungkan</button>
+        </div>
         
         <!-- Default Tags Input -->
-        <BentoCard class="p-4 flex flex-col gap-2 border-[var(--color-subtle)]">
-          <span class="text-[10px] text-gray-400 uppercase font-bold">Default Hashtags</span>
+        <div class="flex flex-col gap-2 mt-2">
+          <span class="text-[10px] text-gray-900 dark:text-gray-100 uppercase font-bold">Default Hashtags</span>
           
-          <!-- Badges Display -->
           <div class="flex flex-wrap gap-1.5" v-if="parsedHashtags.length > 0">
-            <span v-for="(tag, idx) in parsedHashtags" :key="idx" class="px-2 py-0.5 text-[10px] bg-[var(--color-accent)]/20 text-[var(--color-accent)] border border-[var(--color-accent)]/30 rounded-full font-medium">
+            <span v-for="(tag, idx) in parsedHashtags" :key="idx" class="px-2 py-0.5 text-[10px] bg-gray-700/10 text-gray-700 dark:bg-gray-400/20 dark:text-gray-300 rounded-full font-bold shadow-sm">
               {{ tag.startsWith('#') ? tag : '#' + tag }}
             </span>
           </div>
 
           <div class="relative group mt-1">
-            <IconHash class="absolute left-3 top-2 w-3 h-3 text-gray-500" />
+            <IconHash class="absolute left-3 top-2.5 w-4 h-4 text-gray-700/50 dark:text-gray-300/50" />
             <textarea 
               v-model="settings.config.default_hashtags" 
               placeholder="viral fyp podcast" 
               rows="2"
-              class="w-full bg-black/30 border border-[var(--color-subtle)] rounded py-1.5 pl-8 pr-3 text-xs text-white focus:outline-none focus:border-[var(--color-accent)] resize-y custom-scrollbar" 
+              class="w-full bg-white/60 dark:bg-black/30 border-none rounded-2xl py-2 pl-9 pr-3 text-sm font-bold text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 placeholder-gray-700/50 dark:placeholder-gray-300/50 resize-y custom-scrollbar transition-all shadow-sm" 
             ></textarea>
           </div>
-          <p class="text-[9px] text-gray-500">Pisahkan dengan spasi. Hashtag ini akan otomatis ditambahkan ke setiap video yang diunggah.</p>
-        </BentoCard>
+          <p class="text-[9px] font-bold text-gray-700 dark:text-gray-300">Pisahkan dengan spasi. Hashtag ini akan otomatis ditambahkan ke setiap video yang diunggah.</p>
+        </div>
       </div>
-    </section>
+    </BentoCard>
 
     <!-- Penyimpanan -->
-    <section class="flex flex-col gap-3">
-      <h2 class="text-sm font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-        <IconHardDrive class="w-4 h-4 text-[var(--color-accent)]" /> Penyimpanan
+  <BentoCard class="p-6 flex flex-col gap-5 relative">
+      <h2 class="text-lg font-black text-gray-900 dark:text-gray-100 tracking-wide flex items-center gap-2">
+        <IconHardDrive class="w-5 h-5" /> Penyimpanan
       </h2>
-      <BentoCard class="p-5 flex flex-col items-center relative">
-        <div v-if="isCalculatingSize" class="absolute inset-0 bg-black/50 flex items-center justify-center rounded-xl backdrop-blur-sm z-10">
-          <span class="text-xs text-[var(--color-accent)] animate-pulse">Menghitung...</span>
+      
+      <div class="flex flex-col items-center relative">
+        <div v-if="isCalculatingSize" class="absolute inset-0 bg-gray-100/50 dark:bg-gray-900/50 flex items-center justify-center rounded-2xl backdrop-blur-sm z-10">
+          <span class="text-xs font-bold text-gray-700 dark:text-gray-300 animate-pulse">Menghitung...</span>
         </div>
         <div class="relative w-32 h-32 flex items-center justify-center">
           <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-            <circle cx="50" cy="50" r="40" stroke="rgba(255,255,255,0.05)" stroke-width="8" fill="none" />
-            <circle cx="50" cy="50" r="40" stroke="var(--color-accent)" stroke-width="8" fill="none" stroke-linecap="round" stroke-dasharray="251.2" :stroke-dashoffset="calculateDashOffset()" class="transition-all duration-1000 ease-out shadow-[0_0_15px_var(--color-accent)]" />
+            <circle cx="50" cy="50" r="40" stroke="rgba(0,0,0,0.05)" stroke-width="8" fill="none" />
+            <circle cx="50" cy="50" r="40" stroke="#ca8a04" stroke-width="8" fill="none" stroke-linecap="round" stroke-dasharray="251.2" :stroke-dashoffset="calculateDashOffset()" class="transition-all duration-1000 ease-out" />
           </svg>
           <div class="absolute inset-0 flex flex-col items-center justify-center">
-            <span class="text-xl font-black text-white">{{ outputSize.toFixed(2) }}</span>
-            <span class="text-[9px] text-gray-400 font-medium">GB Terpakai</span>
+            <span class="text-xl font-black text-gray-900 dark:text-gray-100">{{ outputSize.toFixed(2) }}</span>
+            <span class="text-[10px] text-gray-700 dark:text-gray-300 font-bold">GB Terpakai</span>
           </div>
         </div>
-        <button @click="clearCache" :disabled="isClearing" class="mt-4 w-full py-2 rounded border border-red-500/30 text-red-400 text-xs font-bold hover:bg-red-500 hover:text-white transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-          <IconTrash2 class="w-3 h-3" /> {{ isClearing ? 'Membersihkan...' : 'Bersihkan Folder Output' }}
+        <button @click="clearCache" :disabled="isClearing" class="mt-6 w-full py-3 rounded-full text-red-600 bg-red-100 dark:bg-red-900/30 dark:text-red-400 text-xs font-bold hover:bg-red-500 hover:text-white dark:hover:bg-red-500 dark:hover:text-white transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
+          <IconTrash2 class="w-4 h-4" /> {{ isClearing ? 'Membersihkan...' : 'Bersihkan Folder Output' }}
         </button>
-      </BentoCard>
-    </section>
+      </div>
+    </BentoCard>
   </div>
 </template>
 

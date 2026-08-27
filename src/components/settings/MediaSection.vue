@@ -1,115 +1,113 @@
 <template>
   <div class="flex flex-col gap-6">
     <!-- Pengaturan Editing -->
-    <section class="flex flex-col gap-3">
-      <h2 class="text-sm font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-        <IconScissors class="w-4 h-4 text-[var(--color-accent)]" /> Standar Pemotongan
+  <BentoCard class="p-6 flex flex-col gap-5">
+      <h2 class="text-lg font-black text-gray-900 dark:text-gray-100 tracking-wide flex items-center gap-2">
+        <IconScissors class="w-5 h-5" /> Standar Pemotongan
       </h2>
-      <BentoCard class="p-5 flex flex-col gap-4">
-        <div class="flex flex-col gap-1">
-           <div class="flex justify-between">
-             <span class="text-[10px] text-gray-400 uppercase font-bold">Durasi Minimal Klip</span>
-             <span class="text-[10px] text-white font-mono">{{ settings.config.min_duration }} Detik</span>
+      <div class="flex flex-col gap-4">
+        <div class="flex flex-col gap-2">
+           <div class="flex justify-between items-center">
+             <span class="text-xs font-bold text-gray-900 dark:text-gray-100">Durasi Minimal Klip</span>
+             <span class="text-xs font-black bg-white/60 dark:bg-black/30 px-3 py-1 rounded-full text-gray-900 dark:text-gray-100">{{ settings.config.min_duration }} Detik</span>
            </div>
-           <input type="range" min="10" max="600" step="10" v-model.number="settings.config.min_duration" class="w-full h-1 bg-[var(--color-subtle)] rounded-lg appearance-none cursor-pointer accent-[var(--color-accent)] mt-1" />
+           <input type="range" min="10" max="600" step="10" v-model.number="settings.config.min_duration" class="w-full h-2 bg-gray-300 dark:bg-gray-800 rounded-lg appearance-none cursor-pointer mt-1" />
         </div>
-        <div class="flex flex-col gap-1">
-           <div class="flex justify-between">
-             <span class="text-[10px] text-gray-400 uppercase font-bold">Padding Waktu Klip</span>
-             <span class="text-[10px] text-white font-mono">{{ settings.config.padding }} Detik</span>
+        <div class="flex flex-col gap-2 pt-2 border-t border-gray-300 dark:border-gray-800">
+           <div class="flex justify-between items-center">
+             <span class="text-xs font-bold text-gray-900 dark:text-gray-100">Padding Waktu Klip</span>
+             <span class="text-xs font-black bg-white/60 dark:bg-black/30 px-3 py-1 rounded-full text-gray-900 dark:text-gray-100">{{ settings.config.padding }} Detik</span>
            </div>
-           <input type="range" min="-10" max="30" step="1" v-model.number="settings.config.padding" class="w-full h-1 bg-[var(--color-subtle)] rounded-lg appearance-none cursor-pointer accent-[var(--color-accent)] mt-1" />
+           <input type="range" min="-10" max="30" step="1" v-model.number="settings.config.padding" class="w-full h-2 bg-gray-300 dark:bg-gray-800 rounded-lg appearance-none cursor-pointer mt-1" />
         </div>
-      </BentoCard>
-    </section>
+      </div>
+    </BentoCard>
 
     <!-- TTS Voice -->
-    <section class="flex flex-col gap-3">
-      <h2 class="text-sm font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-        <IconMic class="w-4 h-4 text-[var(--color-accent)]" /> Text-to-Speech (AI Voice)
+  <BentoCard class="p-6 flex flex-col gap-5">
+      <h2 class="text-lg font-black text-gray-900 dark:text-gray-100 tracking-wide flex items-center gap-2">
+        <IconMic class="w-5 h-5" /> Text-to-Speech (AI Voice)
       </h2>
-      <BentoCard class="p-5 flex flex-col gap-3">
-        <div class="grid grid-cols-2 gap-3">
-          <div class="flex flex-col gap-1">
-            <span class="text-[10px] text-gray-400 uppercase font-bold">Bahasa Utama</span>
-            <select v-model="settings.config.tts_language" class="w-full bg-black/50 border border-[var(--color-subtle)] rounded p-2 text-xs text-white focus:outline-none focus:border-[var(--color-accent)]">
-              <option value="default">Deteksi Otomatis</option>
-              <option value="id">Indonesia</option>
-              <option value="en">English</option>
-            </select>
-          </div>
-          <div class="flex flex-col gap-1">
-            <span class="text-[10px] text-gray-400 uppercase font-bold">Karakter Suara</span>
-            <select v-model="settings.config.tts_voice" class="w-full bg-black/50 border border-[var(--color-subtle)] rounded p-2 text-xs text-white focus:outline-none focus:border-[var(--color-accent)]">
-              <option value="female">Wanita</option>
-              <option value="male">Pria</option>
-            </select>
-          </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div class="flex flex-col gap-2">
+          <span class="text-[10px] text-gray-900 dark:text-gray-100 uppercase font-bold">Bahasa Utama</span>
+          <select v-model="settings.config.tts_language" class="w-full bg-white/60 dark:bg-black/30 border-none rounded-2xl p-3 text-sm font-bold text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors cursor-pointer">
+            <option value="default">Deteksi Otomatis</option>
+            <option value="id">Indonesia</option>
+            <option value="en">English</option>
+          </select>
         </div>
-      </BentoCard>
-    </section>
+        <div class="flex flex-col gap-2">
+          <span class="text-[10px] text-gray-900 dark:text-gray-100 uppercase font-bold">Karakter Suara</span>
+          <select v-model="settings.config.tts_voice" class="w-full bg-white/60 dark:bg-black/30 border-none rounded-2xl p-3 text-sm font-bold text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors cursor-pointer">
+            <option value="female">Wanita</option>
+            <option value="male">Pria</option>
+          </select>
+        </div>
+      </div>
+    </BentoCard>
 
     <!-- Aset Media (Intro/Outro/Watermark) -->
-    <section class="flex flex-col gap-3">
-      <h2 class="text-sm font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-        <IconImage class="w-4 h-4 text-[var(--color-accent)]" /> Branding & Aset Dasar
+  <BentoCard class="p-6 flex flex-col gap-5">
+      <h2 class="text-lg font-black text-gray-900 dark:text-gray-100 tracking-wide flex items-center gap-2">
+        <IconImage class="w-5 h-5" /> Branding & Aset Dasar
       </h2>
-      <BentoCard class="p-5 flex flex-col gap-3">
+      <div class="flex flex-col gap-3">
         <!-- Asset Pickers -->
         <div class="flex items-center gap-2">
-          <div @click="selectAsset('intro_video')" class="flex-1 flex items-center justify-between p-2 bg-black/30 border border-[var(--color-subtle)] rounded hover:border-[var(--color-accent)] transition-colors cursor-pointer group">
+          <div @click="selectAsset('intro_video')" class="flex-1 flex items-center justify-between p-3 bg-white/50 dark:bg-black/30 rounded-2xl hover:bg-white dark:hover:bg-black/50 transition-colors cursor-pointer group shadow-sm">
             <div class="flex flex-col">
-              <span class="text-xs font-bold text-white group-hover:text-[var(--color-accent)] transition-colors">Video Intro</span>
-              <span class="text-[9px] text-gray-500 truncate max-w-[200px]" :title="settings.config.intro_video || ''">{{ settings.config.intro_video || 'Belum di-set' }}</span>
+              <span class="text-sm font-bold text-gray-900 dark:text-gray-100">Video Intro</span>
+              <span class="text-xs font-bold text-gray-700 dark:text-gray-300 truncate max-w-[200px]" :title="settings.config.intro_video || ''">{{ settings.config.intro_video || 'Belum di-set' }}</span>
             </div>
-            <IconUpload class="w-4 h-4 text-gray-400 group-hover:text-[var(--color-accent)]" />
+            <IconUpload class="w-5 h-5 text-gray-700 dark:text-gray-400 group-hover:scale-110 transition-transform" />
           </div>
-          <button v-if="settings.config.intro_video" @click="clearAsset('intro_video')" class="p-2 border border-[var(--color-subtle)] rounded hover:border-red-500 hover:bg-red-500/20 transition-colors group" title="Hapus Video Intro">
-            <IconTrash class="w-4 h-4 text-gray-400 group-hover:text-red-500" />
+          <button v-if="settings.config.intro_video" @click="clearAsset('intro_video')" class="p-3 bg-white/50 dark:bg-black/30 rounded-2xl hover:bg-red-500 hover:text-white dark:hover:bg-red-500 transition-colors group shadow-sm" title="Hapus Video Intro">
+            <IconTrash class="w-5 h-5 text-red-500 group-hover:text-white" />
           </button>
         </div>
         
         <div class="flex items-center gap-2">
-          <div @click="selectAsset('outro_video')" class="flex-1 flex items-center justify-between p-2 bg-black/30 border border-[var(--color-subtle)] rounded hover:border-[var(--color-accent)] transition-colors cursor-pointer group">
+          <div @click="selectAsset('outro_video')" class="flex-1 flex items-center justify-between p-3 bg-white/50 dark:bg-black/30 rounded-2xl hover:bg-white dark:hover:bg-black/50 transition-colors cursor-pointer group shadow-sm">
             <div class="flex flex-col">
-              <span class="text-xs font-bold text-white group-hover:text-[var(--color-accent)] transition-colors">Video Outro</span>
-              <span class="text-[9px] text-gray-500 truncate max-w-[200px]" :title="settings.config.outro_video || ''">{{ settings.config.outro_video || 'Belum di-set' }}</span>
+              <span class="text-sm font-bold text-gray-900 dark:text-gray-100">Video Outro</span>
+              <span class="text-xs font-bold text-gray-700 dark:text-gray-300 truncate max-w-[200px]" :title="settings.config.outro_video || ''">{{ settings.config.outro_video || 'Belum di-set' }}</span>
             </div>
-            <IconUpload class="w-4 h-4 text-gray-400 group-hover:text-[var(--color-accent)]" />
+            <IconUpload class="w-5 h-5 text-gray-700 dark:text-gray-400 group-hover:scale-110 transition-transform" />
           </div>
-          <button v-if="settings.config.outro_video" @click="clearAsset('outro_video')" class="p-2 border border-[var(--color-subtle)] rounded hover:border-red-500 hover:bg-red-500/20 transition-colors group" title="Hapus Video Outro">
-            <IconTrash class="w-4 h-4 text-gray-400 group-hover:text-red-500" />
+          <button v-if="settings.config.outro_video" @click="clearAsset('outro_video')" class="p-3 bg-white/50 dark:bg-black/30 rounded-2xl hover:bg-red-500 hover:text-white dark:hover:bg-red-500 transition-colors group shadow-sm" title="Hapus Video Outro">
+            <IconTrash class="w-5 h-5 text-red-500 group-hover:text-white" />
           </button>
         </div>
 
         <div class="flex items-center gap-2">
-          <div @click="selectAsset('watermark_image')" class="flex-1 flex items-center justify-between p-2 bg-black/30 border border-[var(--color-subtle)] rounded hover:border-[var(--color-accent)] transition-colors cursor-pointer group">
+          <div @click="selectAsset('watermark_image')" class="flex-1 flex items-center justify-between p-3 bg-white/50 dark:bg-black/30 rounded-2xl hover:bg-white dark:hover:bg-black/50 transition-colors cursor-pointer group shadow-sm">
             <div class="flex flex-col">
-              <span class="text-xs font-bold text-white group-hover:text-[var(--color-accent)] transition-colors">Gambar Watermark</span>
-              <span class="text-[9px] text-gray-500 truncate max-w-[200px]" :title="settings.config.watermark_image || ''">{{ settings.config.watermark_image || 'Belum di-set' }}</span>
+              <span class="text-sm font-bold text-gray-900 dark:text-gray-100">Gambar Watermark</span>
+              <span class="text-xs font-bold text-gray-700 dark:text-gray-300 truncate max-w-[200px]" :title="settings.config.watermark_image || ''">{{ settings.config.watermark_image || 'Belum di-set' }}</span>
             </div>
-            <IconUpload class="w-4 h-4 text-gray-400 group-hover:text-[var(--color-accent)]" />
+            <IconUpload class="w-5 h-5 text-gray-700 dark:text-gray-400 group-hover:scale-110 transition-transform" />
           </div>
-          <button v-if="settings.config.watermark_image" @click="clearAsset('watermark_image')" class="p-2 border border-[var(--color-subtle)] rounded hover:border-red-500 hover:bg-red-500/20 transition-colors group" title="Hapus Gambar Watermark">
-            <IconTrash class="w-4 h-4 text-gray-400 group-hover:text-red-500" />
+          <button v-if="settings.config.watermark_image" @click="clearAsset('watermark_image')" class="p-3 bg-white/50 dark:bg-black/30 rounded-2xl hover:bg-red-500 hover:text-white dark:hover:bg-red-500 transition-colors group shadow-sm" title="Hapus Gambar Watermark">
+            <IconTrash class="w-5 h-5 text-red-500 group-hover:text-white" />
           </button>
         </div>
 
         <div class="flex items-center gap-2">
-          <div @click="selectAsset('video_frame')" class="flex-1 flex items-center justify-between p-2 bg-black/30 border border-[var(--color-subtle)] rounded hover:border-[var(--color-accent)] transition-colors cursor-pointer group">
+          <div @click="selectAsset('video_frame')" class="flex-1 flex items-center justify-between p-3 bg-white/50 dark:bg-black/30 rounded-2xl hover:bg-white dark:hover:bg-black/50 transition-colors cursor-pointer group shadow-sm">
             <div class="flex flex-col">
-              <span class="text-xs font-bold text-white group-hover:text-[var(--color-accent)] transition-colors">Background Frame</span>
-              <span class="text-[9px] text-gray-500 truncate max-w-[200px]" :title="settings.config.video_frame || ''">{{ settings.config.video_frame || 'Belum di-set' }}</span>
+              <span class="text-sm font-bold text-gray-900 dark:text-gray-100">Background Frame</span>
+              <span class="text-xs font-bold text-gray-700 dark:text-gray-300 truncate max-w-[200px]" :title="settings.config.video_frame || ''">{{ settings.config.video_frame || 'Belum di-set' }}</span>
             </div>
-            <IconUpload class="w-4 h-4 text-gray-400 group-hover:text-[var(--color-accent)]" />
+            <IconUpload class="w-5 h-5 text-gray-700 dark:text-gray-400 group-hover:scale-110 transition-transform" />
           </div>
-          <button v-if="settings.config.video_frame" @click="clearAsset('video_frame')" class="p-2 border border-[var(--color-subtle)] rounded hover:border-red-500 hover:bg-red-500/20 transition-colors group" title="Hapus Background Frame">
-            <IconTrash class="w-4 h-4 text-gray-400 group-hover:text-red-500" />
+          <button v-if="settings.config.video_frame" @click="clearAsset('video_frame')" class="p-3 bg-white/50 dark:bg-black/30 rounded-2xl hover:bg-red-500 hover:text-white dark:hover:bg-red-500 transition-colors group shadow-sm" title="Hapus Background Frame">
+            <IconTrash class="w-5 h-5 text-red-500 group-hover:text-white" />
           </button>
         </div>
-        <p class="text-[9px] text-gray-500 mt-1">Posisi watermark kini dapat diatur secara real-time di halaman Studio.</p>
-      </BentoCard>
-    </section>
+        <p class="text-[10px] text-gray-700 dark:text-gray-300 mt-1 font-bold">Posisi watermark kini dapat diatur secara real-time di halaman Studio.</p>
+      </div>
+    </BentoCard>
   </div>
 </template>
 

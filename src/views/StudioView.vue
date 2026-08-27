@@ -29,6 +29,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import { invoke } from '@tauri-apps/api/core';
 import { useVideoStore } from '../stores/video';
 
 // Import refactored components

@@ -2,24 +2,26 @@
   <div class="w-full xl:w-[380px] flex flex-col gap-4 h-full min-h-0 shrink-0">
     
     <!-- URL Input -->
-    <BentoCard class="p-4 bg-[var(--color-surface)] shrink-0">
-      <div class="flex flex-col gap-3">
-        <div class="flex items-center bg-black/30 rounded-lg border border-[var(--color-subtle)] focus-within:border-[var(--color-accent)] transition-colors px-3 py-2">
-          <IconYoutube class="w-5 h-5 text-red-500 mr-2 shrink-0" />
+  <BentoCard class="p-6 shrink-0">
+      <div class="flex flex-col gap-4">
+        <h3 class="text-lg font-black text-gray-900 dark:text-gray-100 tracking-wide mb-1 flex items-center gap-2">
+          <IconYoutube class="w-5 h-5 text-red-500" /> Sumber Video
+        </h3>
+        <div class="flex items-center bg-white/60 dark:bg-black/30 rounded-2xl focus-within:ring-2 focus-within:ring-gray-500 transition-all px-4 py-3">
           <input
             v-model="videoUrl"
             @keydown.enter="handleLoadVideo"
             type="text"
             placeholder="URL YouTube / Path Lokal"
-            class="w-full bg-transparent border-none text-white text-sm focus:ring-0 focus:outline-none placeholder-gray-500"
+            class="w-full bg-transparent border-none text-gray-900 dark:text-gray-100 font-bold text-sm focus:ring-0 focus:outline-none placeholder-gray-700/60 dark:placeholder-emerald-400/50"
           />
         </div>
-        <GlowButton @click="handleLoadVideo" :disabled="videoStore.isLoading || !videoUrl" class="w-full py-2">
-          <span v-if="videoStore.isLoading" class="flex items-center justify-center gap-2 text-sm font-bold">
+        <button @click="handleLoadVideo" :disabled="videoStore.isLoading || !videoUrl" class="w-full py-3 rounded-full text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm bg-black text-white dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200">
+          <span v-if="videoStore.isLoading" class="flex items-center justify-center gap-2">
             <IconLoader class="w-4 h-4 animate-spin" /> Memuat Video...
           </span>
-          <span v-else class="text-sm font-bold">Load Video</span>
-        </GlowButton>
+          <span v-else>Load Video</span>
+        </button>
       </div>
     </BentoCard>
 
@@ -29,58 +31,52 @@
       enter-from-class="opacity-0 -translate-y-4"
       enter-to-class="opacity-100 translate-y-0"
     >
-      <BentoCard v-if="videoStore.metadata" class="p-3 flex gap-3 overflow-hidden group shrink-0">
-        <div class="w-24 h-14 shrink-0 rounded overflow-hidden relative bg-black">
-          <img :src="videoStore.metadata.thumbnail_url" class="w-full h-full object-cover group-hover:scale-110 transition-transform" />
-          <div class="absolute bottom-1 right-1 bg-black/80 px-1 rounded text-[9px] font-mono border border-white/10">
-            {{ formatDuration(videoStore.metadata.duration) }}
+   <BentoCard v-if="videoStore.metadata" class="p-4 shrink-0">
+        <div class="flex items-start gap-4">
+          <div class="w-32 aspect-video bg-slate-300 dark:bg-slate-800 rounded-xl overflow-hidden shrink-0 relative group">
+            <img :src="videoStore.metadata.thumbnail_url" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+            <div class="absolute bottom-1 right-1 bg-black/80 text-white text-[10px] font-mono font-bold px-1.5 rounded">
+              {{ formatDuration(videoStore.metadata.duration) }}
+            </div>
           </div>
-        </div>
-        <div class="flex flex-col justify-center min-w-0">
-          <h4 class="text-sm font-bold truncate text-white" :title="videoStore.metadata.title">{{ videoStore.metadata.title }}</h4>
-          <p class="text-[11px] text-gray-400 truncate">{{ videoStore.metadata.uploader || 'YouTube Video' }}</p>
+          <div class="flex flex-col flex-1 min-w-0">
+            <h3 class="font-bold text-sm text-gray-900 dark:text-gray-100 line-clamp-2 leading-tight mb-1" :title="videoStore.metadata.title">{{ videoStore.metadata.title }}</h3>
+            <span class="text-xs font-bold text-gray-700 dark:text-slate-400 mb-2">{{ videoStore.metadata.uploader || 'YouTube Video' }}</span>
+            
+            <div class="flex flex-wrap gap-2 mt-auto">
+              <span class="text-[10px] font-bold bg-white/60 dark:bg-black/30 text-gray-900 dark:text-gray-300 px-2 py-0.5 rounded-full shadow-sm">{{ (videoStore.metadata.view_count || 0).toLocaleString() }} Views</span>
+            </div>
+          </div>
         </div>
       </BentoCard>
     </Transition>
 
     <!-- Segment List & Scan Controls -->
-    <BentoCard class="p-4 flex-1 flex flex-col min-h-[300px]">
-      <div class="flex items-center justify-between mb-3 gap-2">
-        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2 whitespace-nowrap">
-          <IconList class="w-4 h-4 text-[var(--color-accent)]" /> Segmen
+  <BentoCard class="p-6 flex-1 flex flex-col min-h-[300px]">
+      <div class="flex items-center justify-between mb-4 gap-2">
+        <h3 class="text-lg font-black text-gray-900 dark:text-gray-100 tracking-wide flex items-center gap-2 whitespace-nowrap">
+          <IconList class="w-5 h-5" /> Segmen
         </h3>
         
         <!-- Scan Mode Tabs -->
-        <div class="flex bg-black/50 p-1 rounded-lg border border-[var(--color-subtle)] shrink-0 overflow-x-auto custom-scrollbar">
-          <button 
-            @click="scanMode = 'heatmap'" 
-            class="px-2 py-1 rounded text-[10px] font-bold transition-colors"
-            :class="scanMode === 'heatmap' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300'"
-          >Heatmap</button>
-          <button 
-            @click="scanMode = 'ai'" 
-            class="px-2 py-1 rounded text-[10px] font-bold transition-colors"
-            :class="scanMode === 'ai' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300'"
-          >AI</button>
-          <button 
-            @click="scanMode = 'custom'" 
-            class="px-2 py-1 rounded text-[10px] font-bold transition-colors"
-            :class="scanMode === 'custom' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300'"
-          >Manual</button>
+        <div class="flex bg-white/50 dark:bg-black/30 p-1 rounded-xl shrink-0 overflow-x-auto custom-scrollbar shadow-sm">
+          <button @click="scanMode = 'heatmap'" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-black text-white dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200" :class="scanMode === 'heatmap' ? 'shadow-sm' : 'opacity-50 hover:opacity-100'" >Heatmap</button>
+          <button @click="scanMode = 'ai'" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-black text-white dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200" :class="scanMode === 'ai' ? 'shadow-sm' : 'opacity-50 hover:opacity-100'" >AI</button>
+          <button @click="scanMode = 'custom'" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-black text-white dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200" :class="scanMode === 'custom' ? 'shadow-sm' : 'opacity-50 hover:opacity-100'" >Manual</button>
         </div>
       </div>
 
       <!-- TAB CUSTOM -->
       <div v-if="scanMode === 'custom'" class="flex-1 flex flex-col gap-3">
-        <div class="text-xs text-gray-400 mb-2">Tentukan waktu mulai dan selesai secara manual.</div>
+        <div class="text-xs text-[var(--color-text-muted)] mb-2">Tentukan waktu mulai dan selesai secara manual.</div>
         <div class="flex gap-2">
           <div class="flex-1">
-            <label class="text-[10px] uppercase text-gray-500 font-bold ml-1">Mulai</label>
-            <input type="text" placeholder="00:00" class="w-full bg-black/30 border border-[var(--color-subtle)] rounded-lg p-2 text-sm text-center focus:border-[var(--color-accent)] focus:outline-none" />
+            <label class="text-[10px] uppercase text-[var(--color-text-muted)] font-bold ml-1">Mulai</label>
+            <input type="text" placeholder="00:00" class="w-full bg-gray-50 dark:bg-black/30 border border-[var(--color-subtle)] rounded-lg p-2 text-sm text-center focus:border-[var(--color-accent)] focus:outline-none" />
           </div>
           <div class="flex-1">
-            <label class="text-[10px] uppercase text-gray-500 font-bold ml-1">Selesai</label>
-            <input type="text" placeholder="01:00" class="w-full bg-black/30 border border-[var(--color-subtle)] rounded-lg p-2 text-sm text-center focus:border-[var(--color-accent)] focus:outline-none" />
+            <label class="text-[10px] uppercase text-[var(--color-text-muted)] font-bold ml-1">Selesai</label>
+            <input type="text" placeholder="01:00" class="w-full bg-gray-50 dark:bg-black/30 border border-[var(--color-subtle)] rounded-lg p-2 text-sm text-center focus:border-[var(--color-accent)] focus:outline-none" />
           </div>
         </div>
         <GlowButton class="w-full py-1.5 mt-2 text-xs">Tambahkan Segmen</GlowButton>
@@ -89,20 +85,20 @@
       <!-- TAB AI -->
       <div v-else-if="scanMode === 'ai'" class="flex-1 flex flex-col relative min-h-0">
         <div v-if="videoStore.isScanningAI" class="absolute inset-0 z-10 bg-[var(--color-surface)]/80 backdrop-blur-sm flex flex-col items-center justify-center">
-          <IconLoader class="w-6 h-6 animate-spin text-[var(--color-accent)] mb-2" />
-          <span class="text-xs text-gray-400">Menganalisis AI...</span>
+          <IconLoader class="w-6 h-6 animate-spin text-gray-900 dark:text-gray-100 mb-2" />
+          <span class="text-xs text-[var(--color-text-muted)]">Menganalisis AI...</span>
         </div>
 
         <div v-if="!videoStore.metadata?.ai_segments || videoStore.metadata.ai_segments.length === 0" class="flex-1 flex flex-col items-center justify-center text-center gap-3 opacity-80 py-6">
-          <IconSparkles class="w-8 h-8 text-yellow-400" />
+          <IconSparkles class="w-8 h-8 text-gray-400" />
           <p class="text-xs text-gray-300 px-4">Klik <b>Scan AI</b> untuk membiarkan LLM mencari momen viral (butuh waktu lebih lama).</p>
           <GlowButton @click="handleScanAI" :disabled="!videoStore.metadata" class="py-1 px-4 text-xs">Jalankan AI Scan</GlowButton>
         </div>
 
         <div v-else class="flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-2">
           <div class="flex justify-between items-center mb-1 px-1">
-            <span class="text-[10px] text-gray-400 font-bold uppercase">{{ videoStore.metadata.ai_segments.length }} Klip Ditemukan</span>
-            <button @click="toggleSelectAll('ai')" class="text-[10px] text-[var(--color-accent)] hover:text-white transition-colors">
+            <span class="text-[10px] text-[var(--color-text-muted)] font-bold uppercase">{{ videoStore.metadata.ai_segments.length }} Klip Ditemukan</span>
+            <button @click="toggleSelectAll('ai')" class="text-[10px] text-gray-900 dark:text-gray-100 hover:text-[var(--color-text-main)] transition-colors">
               Toggle Select All
             </button>
           </div>
@@ -112,19 +108,19 @@
             <div class="pt-0.5">
               <label class="relative w-4 h-4 block cursor-pointer" @click.stop>
                 <input type="checkbox" v-model="segment.selectedForRender" class="peer sr-only" />
-                <div class="w-4 h-4 border-2 border-gray-500 rounded peer-checked:bg-[var(--color-accent)] peer-checked:border-[var(--color-accent)] transition-all flex items-center justify-center">
+                <div class="w-4 h-4 border-2 border-gray-500 rounded peer-checked:bg-gray-200 dark:bg-gray-800 peer-checked:border-[var(--color-accent)] transition-all flex items-center justify-center">
                   <IconCheck class="w-3 h-3 text-black opacity-0 peer-checked:opacity-100" />
                 </div>
               </label>
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex justify-between items-center mb-1">
-                <span class="text-xs font-bold text-white group-hover:text-yellow-400 transition-colors">AI Klip #{{ idx + 1 }}</span>
-                <span class="text-[10px] font-mono text-gray-400 bg-white/5 px-1.5 rounded border border-white/10">
+                <span class="text-xs font-bold text-[var(--color-text-main)] group-hover:text-gray-400 transition-colors">AI Klip #{{ idx + 1 }}</span>
+                <span class="text-[10px] font-mono text-[var(--color-text-muted)] bg-white/5 px-1.5 rounded border border-white/10">
                   {{ formatDuration(segment.start) }} - {{ formatDuration(segment.end) }}
                 </span>
               </div>
-              <div class="text-[10px] text-gray-500 line-clamp-2">{{ segment.reason || 'Momen menarik' }}</div>
+              <div class="text-[10px] text-[var(--color-text-muted)] line-clamp-2">{{ segment.reason || 'Momen menarik' }}</div>
             </div>
           </div>
         </div>
@@ -133,20 +129,20 @@
       <!-- TAB HEATMAP -->
       <div v-else class="flex-1 flex flex-col relative min-h-0">
         <div v-if="videoStore.isScanning" class="absolute inset-0 z-10 bg-[var(--color-surface)]/80 backdrop-blur-sm flex flex-col items-center justify-center">
-          <IconLoader class="w-6 h-6 animate-spin text-[var(--color-accent)] mb-2" />
-          <span class="text-xs text-gray-400">Mencari momen...</span>
+          <IconLoader class="w-6 h-6 animate-spin text-gray-900 dark:text-gray-100 mb-2" />
+          <span class="text-xs text-[var(--color-text-muted)]">Mencari momen...</span>
         </div>
         
         <div v-if="!videoStore.metadata?.segments || videoStore.metadata.segments.length === 0" class="flex-1 flex flex-col items-center justify-center text-center gap-3 opacity-80 py-6">
-          <IconTrending class="w-8 h-8 text-[var(--color-accent)]" />
+          <IconTrending class="w-8 h-8 text-gray-900 dark:text-gray-100" />
           <p class="text-xs text-gray-300 px-4">Klik <b>Scan Heatmap</b> untuk menganalisis retensi penonton dan mendapatkan klip terbaik.</p>
           <GlowButton @click="handleScanHeatmap" :disabled="!videoStore.metadata" class="py-1 px-4 text-xs">Jalankan Scan Heatmap</GlowButton>
         </div>
 
         <div v-else class="flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-2">
           <div class="flex justify-between items-center mb-1 px-1">
-            <span class="text-[10px] text-gray-400 font-bold uppercase">{{ videoStore.metadata.segments.length }} Klip Ditemukan</span>
-            <button @click="toggleSelectAll('heatmap')" class="text-[10px] text-[var(--color-accent)] hover:text-white transition-colors">
+            <span class="text-[10px] text-[var(--color-text-muted)] font-bold uppercase">{{ videoStore.metadata.segments.length }} Klip Ditemukan</span>
+            <button @click="toggleSelectAll('heatmap')" class="text-[10px] text-gray-900 dark:text-gray-100 hover:text-[var(--color-text-main)] transition-colors">
               Toggle Select All
             </button>
           </div>
@@ -156,23 +152,23 @@
             <div class="pt-0.5">
               <label class="relative w-4 h-4 block cursor-pointer" @click.stop>
                 <input type="checkbox" v-model="segment.selectedForRender" class="peer sr-only" />
-                <div class="w-4 h-4 border-2 border-gray-500 rounded peer-checked:bg-[var(--color-accent)] peer-checked:border-[var(--color-accent)] transition-all flex items-center justify-center">
+                <div class="w-4 h-4 border-2 border-gray-500 rounded peer-checked:bg-gray-200 dark:bg-gray-800 peer-checked:border-[var(--color-accent)] transition-all flex items-center justify-center">
                   <IconCheck class="w-3 h-3 text-black opacity-0 peer-checked:opacity-100" />
                 </div>
               </label>
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex justify-between items-center mb-1">
-                <span class="text-xs font-bold text-white group-hover:text-[var(--color-accent)] transition-colors">Klip #{{ idx + 1 }}</span>
-                <span class="text-[10px] font-mono text-gray-400 bg-white/5 px-1.5 rounded border border-white/10">
+                <span class="text-xs font-bold text-[var(--color-text-main)] group-hover:text-gray-900 dark:text-gray-100 transition-colors">Klip #{{ idx + 1 }}</span>
+                <span class="text-[10px] font-mono text-[var(--color-text-muted)] bg-white/5 px-1.5 rounded border border-white/10">
                   {{ formatDuration(segment.start) }} - {{ formatDuration(segment.end) }}
                 </span>
               </div>
               <div class="flex justify-between items-center">
-                <span class="text-[10px] text-gray-500">Durasi: {{ Math.round(segment.end - segment.start) }}s</span>
+                <span class="text-[10px] text-[var(--color-text-muted)]">Durasi: {{ Math.round(segment.end - segment.start) }}s</span>
                 <div class="flex items-center gap-1">
                   <div class="w-16 h-1.5 bg-gray-800 rounded-full overflow-hidden">
-                    <div class="h-full bg-[var(--color-accent)]" :style="`width: ${Math.min(100, (segment.score || 0.5) * 100)}%`"></div>
+                    <div class="h-full bg-gray-200 dark:bg-gray-800" :style="`width: ${Math.min(100, (segment.score || 0.5) * 100)}%`"></div>
                   </div>
                 </div>
               </div>

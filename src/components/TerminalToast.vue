@@ -4,21 +4,21 @@
       <div 
         v-for="toast in appStore.toasts" 
         :key="toast.id"
-        class="bg-[#09090b]/95 border border-[var(--color-subtle)] rounded-lg p-3 shadow-[0_8px_30px_rgba(0,0,0,0.5)] backdrop-blur-md pointer-events-auto flex items-start gap-3 overflow-hidden group"
+        class="bg-white/95 dark:bg-[#09090b]/95 border border-[var(--color-subtle)] rounded-lg p-3 shadow-[0_8px_30px_rgba(0,0,0,0.5)] backdrop-blur-md pointer-events-auto flex items-start gap-3 overflow-hidden group"
       >
         <!-- Border highlight based on type -->
         <div class="absolute left-0 top-0 bottom-0 w-1" :class="{
-          'bg-[var(--color-accent)]': toast.type === 'success',
+          'bg-gray-500': toast.type === 'success',
           'bg-red-500': toast.type === 'error',
-          'bg-yellow-500': toast.type === 'warning',
-          'bg-blue-500': toast.type === 'info'
+          'bg-gray-500': toast.type === 'warning',
+          'bg-gray-500': toast.type === 'info'
         }"></div>
         
         <div class="mt-0.5 shrink-0" :class="{
-          'text-[var(--color-accent)]': toast.type === 'success',
+          'text-gray-500': toast.type === 'success',
           'text-red-500': toast.type === 'error',
-          'text-yellow-500': toast.type === 'warning',
-          'text-blue-500': toast.type === 'info'
+          'text-gray-500': toast.type === 'warning',
+          'text-gray-500': toast.type === 'info'
         }">
           <IconCheckCircle v-if="toast.type === 'success'" class="w-4 h-4" />
           <IconXCircle v-else-if="toast.type === 'error'" class="w-4 h-4" />
@@ -27,11 +27,11 @@
         </div>
         
         <div class="flex-1 flex flex-col">
-          <span class="font-bold text-white text-xs font-mono uppercase tracking-widest">{{ toast.title }}</span>
-          <span v-if="toast.message" class="text-[10px] text-gray-400 font-mono mt-1 leading-relaxed break-words">{{ toast.message }}</span>
+          <span class="font-bold text-[var(--color-text-main)] text-xs font-mono uppercase tracking-widest">{{ toast.title }}</span>
+          <span v-if="toast.message" class="text-[10px] text-[var(--color-text-muted)] font-mono mt-1 leading-relaxed break-words">{{ toast.message }}</span>
         </div>
         
-        <button @click="appStore.removeToast(toast.id)" class="text-gray-500 hover:text-white shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button @click="appStore.removeToast(toast.id)" class="text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
           <IconX class="w-4 h-4" />
         </button>
       </div>

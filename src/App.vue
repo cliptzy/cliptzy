@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import { computed, ref, onMounted } from "vue";
 import { useRoute } from "vue-router";
-import { useAuthStore } from "./stores/auth";
+
 import { invoke } from "@tauri-apps/api/core";
 import MainLayout from "./layouts/MainLayout.vue";
 import BlankLayout from "./layouts/BlankLayout.vue";
 
 const route = useRoute();
-const auth = useAuthStore();
 
 interface SystemSpecs {
     meets_requirements: boolean;
@@ -69,10 +68,10 @@ const layout = computed(() => {
                 </svg>
             </div>
 
-            <h2 class="text-xl font-bold text-white text-center mb-2">
+            <h2 class="text-xl font-bold text-[var(--color-text-main)] text-center mb-2">
                 Spesifikasi Minimal Tidak Terpenuhi
             </h2>
-            <p class="text-sm text-gray-400 text-center mb-6">
+            <p class="text-sm text-[var(--color-text-muted)] text-center mb-6">
                 Aplikasi tidak dapat dilanjutkan karena sistem Anda tidak
                 memenuhi spesifikasi minimal untuk menjalankan proses AI &
                 Rendering.
@@ -95,7 +94,7 @@ const layout = computed(() => {
 
             <button
                 @click="closeApp"
-                class="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-xl transition-colors duration-200"
+                class="w-full py-3 bg-red-600 hover:bg-red-700 text-[var(--color-text-main)] font-medium rounded-xl transition-colors duration-200"
             >
                 Tutup Aplikasi
             </button>

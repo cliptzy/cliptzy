@@ -5,27 +5,27 @@
   >
     <div class="bg-[var(--color-surface)]/90 border border-[var(--color-subtle)] rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-4 w-80 backdrop-blur-md">
       <div class="flex justify-between items-center mb-2">
-        <span class="text-xs font-bold text-[var(--color-accent)] uppercase tracking-widest flex items-center gap-2">
-          <div class="w-2 h-2 rounded-full bg-[var(--color-accent)] animate-pulse shadow-[0_0_8px_var(--color-accent)]"></div>
+        <span class="text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-widest flex items-center gap-2">
+          <div class="w-2 h-2 rounded-full bg-gray-200 dark:bg-gray-800 animate-pulse shadow-[0_0_8px_var(--color-accent)]"></div>
           {{ appStore.currentProgressEvent?.stage || 'PROCESSING' }}
         </span>
-        <span class="text-xs text-white font-mono font-medium">{{ Math.round(appStore.globalProgress) }}%</span>
+        <span class="text-xs text-[var(--color-text-main)] font-mono font-medium">{{ Math.round(appStore.globalProgress) }}%</span>
       </div>
-      <div class="w-full h-1.5 bg-[#27272A] rounded-full overflow-hidden mb-3 shadow-inner">
+      <div class="w-full h-1.5 bg-gray-200 dark:bg-[#27272A] rounded-full overflow-hidden mb-3 shadow-inner">
         <div 
-          class="h-full bg-[var(--color-accent)] transition-all duration-300 ease-out shadow-[0_0_8px_var(--color-accent)] relative"
+          class="h-full bg-gray-200 dark:bg-gray-800 transition-all duration-300 ease-out shadow-[0_0_8px_var(--color-accent)] relative"
           :style="{ width: `${appStore.globalProgress}%` }"
         >
           <div class="absolute inset-0 bg-white/20 w-full animate-[shimmer_2s_infinite]"></div>
         </div>
       </div>
       <div class="flex items-center justify-between">
-        <p class="text-xs text-gray-400 truncate flex-1" :title="appStore.progressLabel">
+        <p class="text-xs text-[var(--color-text-muted)] truncate flex-1" :title="appStore.progressLabel">
           {{ appStore.progressLabel || 'Initializing task...' }}
         </p>
         <button 
           @click="cancelProcessing" 
-          class="ml-2 px-2 py-0.5 bg-red-500/20 text-red-500 border border-red-500/50 rounded text-[10px] font-bold hover:bg-red-500 hover:text-white transition-colors"
+          class="ml-2 px-2 py-0.5 bg-red-500/20 text-red-500 border border-red-500/50 rounded text-[10px] font-bold hover:bg-red-500 hover:text-[var(--color-text-main)] transition-colors"
         >
           BATAL
         </button>

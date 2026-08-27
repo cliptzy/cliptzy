@@ -17,6 +17,7 @@ export interface VideoMetadata {
   duration: number;
   thumbnail_url: string;
   uploader?: string;
+  view_count?: number;
   heatmap?: any[];
   segments?: VideoSegment[];
   ai_segments?: VideoSegment[];

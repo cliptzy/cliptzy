@@ -1,9 +1,10 @@
 <template>
     <BentoCard
-        class="flex-1 flex flex-col items-center justify-center bg-black relative overflow-hidden group p-4 border border-[var(--color-subtle)] h-full min-h-[400px]"
+        disable-random-bg
+        class="flex-1 flex flex-col items-center justify-center bg-black relative overflow-hidden group p-4 h-full min-h-[400px]"
     >
         <h3
-            class="absolute top-4 left-4 text-xs font-bold text-gray-500 uppercase tracking-wider z-10 flex items-center gap-2"
+            class="absolute top-4 left-4 text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider z-10 flex items-center gap-2"
         >
             <IconMonitorPlay class="w-4 h-4" /> Preview
         </h3>
@@ -77,10 +78,10 @@
 
                 <!-- Safe Zone Rectangle -->
                 <div
-                    class="absolute left-2 right-14 top-16 bottom-32 border border-yellow-400/40 rounded-lg shadow-[inset_0_0_20px_rgba(250,204,21,0.1)] transition-opacity duration-300 border-dashed"
+                    class="absolute left-2 right-14 top-16 bottom-32 border border-gray-400/40 rounded-lg shadow-[inset_0_0_20px_rgba(250,204,21,0.1)] transition-opacity duration-300 border-dashed"
                 >
                     <span
-                        class="absolute top-2 left-2 text-[8px] font-mono text-yellow-400/90 font-bold"
+                        class="absolute top-2 left-2 text-[8px] font-mono text-gray-400/90 font-bold"
                         >SAFE ZONE</span
                     >
                 </div>
@@ -100,7 +101,7 @@
             <!-- Watermark Overlay Placeholder -->
             <div
                 v-else
-                class="absolute left-1/2 -translate-x-1/2 pointer-events-none opacity-50 text-white font-bold text-sm bg-black/30 px-2 py-1 rounded"
+                class="absolute left-1/2 -translate-x-1/2 pointer-events-none opacity-50 text-[var(--color-text-main)] font-bold text-sm bg-gray-50 dark:bg-black/30 px-2 py-1 rounded"
                 :class="{
                     'top-8': settings.config.watermark_position === 'top',
                     'top-1/2 -translate-y-1/2': settings.config.watermark_position === 'center',
@@ -178,22 +179,14 @@
         <div
             class="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-black/60 backdrop-blur-xl px-6 py-2 rounded-full border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10"
         >
-            <button
-                class="text-white hover:text-[var(--color-accent)] transition-colors"
-                @click="seekRelative(-5)"
-            >
+            <button class="text-[var(--color-text-main)] hover:text-gray-900 dark:text-gray-100 transition-colors" @click="seekRelative(-5)" >
                 <IconSkipBack class="w-5 h-5" />
             </button>
-            <button @click="togglePlay"
-                class="w-10 h-10 bg-white text-black rounded-full flex items-center justify-center hover:scale-105 transition-transform shadow-[0_0_15px_rgba(255,255,255,0.3)]"
-            >
+            <button @click="togglePlay" class="w-10 h-10 bg-white text-black rounded-full flex items-center justify-center hover:scale-105 transition-transform shadow-[0_0_15px_rgba(255,255,255,0.3)]" >
                 <IconPause v-if="isPlaying" class="w-5 h-5" />
                 <IconPlay v-else class="w-5 h-5 ml-1" />
             </button>
-            <button
-                class="text-white hover:text-[var(--color-accent)] transition-colors"
-                @click="seekRelative(5)"
-            >
+            <button class="text-[var(--color-text-main)] hover:text-gray-900 dark:text-gray-100 transition-colors" @click="seekRelative(5)" >
                 <IconSkipForward class="w-5 h-5" />
             </button>
 
@@ -201,7 +194,7 @@
 
             <!-- Volume Control -->
             <div class="flex items-center gap-2 group/volume w-24">
-                <button @click="toggleMute" class="text-white hover:text-[var(--color-accent)] transition-colors shrink-0">
+                <button @click="toggleMute" class="text-[var(--color-text-main)] hover:text-gray-900 dark:text-gray-100 transition-colors shrink-0">
                     <IconVolumeX v-if="isMuted || volume === 0" class="w-5 h-5" />
                     <IconVolume2 v-else class="w-5 h-5" />
                 </button>
@@ -217,12 +210,7 @@
 
             <div class="w-px h-6 bg-white/20 mx-2"></div>
 
-            <button
-                class="text-white hover:text-[var(--color-accent)] transition-colors"
-                @click="showSafeZone = !showSafeZone"
-                :class="{ 'text-[var(--color-accent)]': showSafeZone }"
-                title="Toggle UI Safe Zones"
-            >
+            <button class="text-[var(--color-text-main)] hover:text-gray-900 dark:text-gray-100 transition-colors" @click="showSafeZone = !showSafeZone" :class="{ 'text-gray-900 dark:text-gray-100': showSafeZone }" title="Toggle UI Safe Zones" >
                 <IconLayoutTemplate class="w-5 h-5" />
             </button>
         </div>

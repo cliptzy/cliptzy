@@ -1,14 +1,5 @@
 <template>
-  <button
-    class="relative inline-flex items-center justify-center px-6 py-3 font-semibold text-black bg-[var(--color-accent)] rounded-full group focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-accent)] focus:ring-offset-[var(--color-base)] transition-all duration-300"
-    :class="[disabled ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02] active:scale-95']"
-    :disabled="disabled"
-    @click="$emit('click', $event)"
-  >
-    <div
-      v-if="glow && !disabled"
-      class="absolute inset-0 rounded-full blur-md bg-[var(--color-accent)] opacity-40 group-hover:opacity-70 transition-opacity duration-300 -z-10"
-    ></div>
+  <button class="relative inline-flex items-center justify-center px-6 py-3 font-semibold rounded-full group focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 dark:focus:ring-white transition-all duration-300 bg-white/60 text-gray-900 dark:bg-black/30 dark:text-gray-100 hover:bg-white dark:hover:bg-black/50" :class="[disabled ? 'opacity-50 cursor-not-allowed' : 'active:scale-95']" :disabled="disabled" @click="$emit('click', $event)" >
     <slot></slot>
   </button>
 </template>
