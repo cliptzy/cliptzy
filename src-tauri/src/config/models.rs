@@ -74,6 +74,7 @@ pub struct AppConfig {
 
     pub job_dir: String,
     pub crop_mode: String,
+    pub face_tracking_mode: String,
     pub merge_clips: bool,
     pub ui_locked: bool,
 

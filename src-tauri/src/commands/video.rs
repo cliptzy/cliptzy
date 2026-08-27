@@ -1,19 +1,20 @@
-#[tauri::command]
-pub async fn analyze_video(
-    url: String,
-    cookies_path: Option<String>,
-) -> Result<serde_json::Value, String> {
-    let deps = crate::utils::AppDependencies::check()?;
-    let result = crate::video::youtube::analyze_youtube_video(&url, cookies_path, &deps.ytdlp).await?;
-    Ok(serde_json::to_value(result).unwrap_or(serde_json::json!({})))
-}
-
 use crate::config::models::AppConfig;
 use crate::error::CliptzyError;
 use crate::orchestrator::clip::{ClipPayload, ClipResult, ClipVideoUseCase};
 use crate::orchestrator::pipeline::PipelineContext;
 use std::collections::HashMap;
 use tokio_util::sync::CancellationToken;
+
+#[tauri::command]
+pub async fn analyze_video(
+    url: String,
+    cookies_path: Option<String>,
+) -> Result<serde_json::Value, String> {
+    let deps = crate::utils::AppDependencies::check()?;
+    let result =
+        crate::video::youtube::analyze_youtube_video(&url, cookies_path, &deps.ytdlp).await?;
+    Ok(serde_json::to_value(result).unwrap_or(serde_json::json!({})))
+}
 
 #[tauri::command]
 pub async fn clip_video(
@@ -28,7 +29,7 @@ pub async fn clip_video(
 
     // Setup job dir
     let app_dir = crate::paths::app_data_dir();
-    let job_dir = app_dir.join("jobs").join(uuid::Uuid::new_v4().to_string());
+    let job_dir = app_dir.join("jobs").join(payload.video_id.clone());
 
     let deps = crate::utils::AppDependencies::check().map_err(|e| CliptzyError::Download(e))?;
 

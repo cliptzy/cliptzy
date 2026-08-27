@@ -82,6 +82,7 @@ impl Default for AppConfig {
 
             job_dir: "".to_string(),
             crop_mode: "default".to_string(),
+            face_tracking_mode: "cinematic".to_string(),
             merge_clips: false,
             ui_locked: false,
 

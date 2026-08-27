@@ -8,16 +8,14 @@ use tokio::process::Command;
 use tempfile::tempdir;
 use tracing::info;
 
-const EXTREME_THRESHOLD: f32 = 0.15;
-const JITTER_THRESHOLD: f32 = 0.03;
-
 pub async fn get_face_keyframes(
     video_path: &Path,
     interval_sec: f32,
+    tracking_mode: String,
     app_handle: Option<tauri::AppHandle>,
     cancel_token: tokio_util::sync::CancellationToken,
 ) -> Result<Vec<FaceKeyframe>, CliptzyError> {
-    info!("Starting face keyframe extraction for {:?}", video_path);
+    info!("Starting face keyframe extraction for {:?} with mode: {}", video_path, tracking_mode);
 
     let model_dir = Path::new("models");
     std::fs::create_dir_all(model_dir).ok();
@@ -43,23 +41,45 @@ pub async fn get_face_keyframes(
         FaceDetectorWrapper::new(&model_path).map_err(|e| CliptzyError::Internal(e))?;
 
     let tmp_dir = tempdir().map_err(|e| CliptzyError::Internal(format!("Tempdir error: {}", e)))?;
-    let fps_str = format!("1/{}", interval_sec);
+    
+    let fps = if tracking_mode == "cinematic" {
+        15.0
+    } else {
+        1.0 / interval_sec
+    };
+    
+    let fps_str = format!("{}", fps);
 
     let frame_pattern = tmp_dir.path().join("frame_%04d.jpg");
 
     let ffmpeg_bin = crate::utils::find_executable("ffmpeg").unwrap_or_else(|| std::path::PathBuf::from("ffmpeg"));
+    
+    let mut args = vec![
+        "-y".to_string(),
+        "-hide_banner".to_string(),
+        "-loglevel".to_string(),
+        "error".to_string(),
+        "-i".to_string(),
+        video_path.to_str().unwrap().to_string(),
+    ];
+    
+    if tracking_mode == "static" {
+        args.push("-vframes".to_string());
+        args.push("1".to_string());
+    }
+    
+    let scale_opt = if tracking_mode == "cinematic" {
+        "scale=-1:240"
+    } else {
+        "scale=-1:360"
+    };
+    
+    args.push("-vf".to_string());
+    args.push(format!("fps={},{}", fps_str, scale_opt));
+    args.push(frame_pattern.to_str().unwrap().to_string());
+
     let mut child = Command::new(&ffmpeg_bin)
-        .args(&[
-            "-y",
-            "-hide_banner",
-            "-loglevel",
-            "error",
-            "-i",
-            video_path.to_str().unwrap(),
-            "-vf",
-            &format!("fps={},scale=-1:360", fps_str),
-            frame_pattern.to_str().unwrap(),
-        ])
+        .args(&args)
         .spawn()
         .map_err(|e| CliptzyError::FFmpeg {
             code: -1,
@@ -100,6 +120,11 @@ pub async fn get_face_keyframes(
     let mut last_cy = 0.5;
     let total_frames = paths.len();
 
+    let mut prev_pyramid: Option<Vec<image::GrayImage>> = None;
+    let mut prev_point: Option<(f32, f32)> = None;
+    let mut last_detection_frame = -100;
+    let force_detect_interval = (fps * 2.0) as isize;
+
     for (i, path) in paths.iter().enumerate() {
         if cancel_token.is_cancelled() {
             return Err(CliptzyError::Cancelled);
@@ -112,7 +137,7 @@ pub async fn get_face_keyframes(
                     app,
                     &ProgressEvent {
                         stage: "tracking".into(),
-                        label: format!("Mendeteksi wajah: frame {}/{}", i + 1, total_frames),
+                        label: format!("Melacak titik wajah: frame {}/{}", i + 1, total_frames),
                         current: pct as u32,
                         total: 100,
                         detail: None,
@@ -121,7 +146,7 @@ pub async fn get_face_keyframes(
             }
         }
 
-        let ts = i as f32 * interval_sec;
+        let ts = i as f32 / fps;
         let img = match image::open(path) {
             Ok(i) => i,
             Err(_) => {
@@ -131,84 +156,140 @@ pub async fn get_face_keyframes(
         };
 
         let (w, h) = img.dimensions();
-        // convert to grayscale for rustface
         let gray = img.to_luma8();
-
-        let faces = detector.detect_faces(gray.as_raw(), w, h);
-
-        if let Some(largest) = faces.iter().max_by(|a, b| {
-            let area_a = a.bbox().width() * a.bbox().height();
-            let area_b = b.bbox().width() * b.bbox().height();
-            area_a.cmp(&area_b)
-        }) {
-            let bbox = largest.bbox();
-            let cx = (bbox.x() as f32 + bbox.width() as f32 / 2.0) / w as f32;
-            let cy = (bbox.y() as f32 + bbox.height() as f32 / 2.0) / h as f32;
-
-            let cx = cx.clamp(0.0, 1.0);
-            let cy = cy.clamp(0.0, 1.0);
-
-            last_cx = cx;
-            last_cy = cy;
-            raw_keyframes.push((ts, cx, cy));
+        let mut point_tracked = false;
+        
+        let curr_pyramid = if tracking_mode == "cinematic" {
+            Some(optical_flow_lk::build_pyramid(&gray, 3))
         } else {
-            raw_keyframes.push((ts, last_cx, last_cy));
+            None
+        };
+
+        if tracking_mode == "cinematic" {
+            if let (Some(prev_pyr), Some(prev_pt), Some(curr_pyr)) = (&prev_pyramid, &prev_point, &curr_pyramid) {
+                let next_res = optical_flow_lk::calc_optical_flow_ex(
+                    prev_pyr,
+                    curr_pyr,
+                    &[*prev_pt],
+                    None,
+                    15, // window_size
+                    30, // max_iterations
+                    optical_flow_lk::DEFAULT_MIN_EIGEN_THRESHOLD,
+                );
+
+                if let Some(res) = next_res.first() {
+                    if res.status == optical_flow_lk::TrackStatus::Tracked {
+                        if res.pos.0 >= 0.0 && res.pos.0 < w as f32 && res.pos.1 >= 0.0 && res.pos.1 < h as f32 {
+                            if i as isize - last_detection_frame < force_detect_interval {
+                                point_tracked = true;
+                                prev_point = Some(res.pos);
+                                last_cx = res.pos.0 / w as f32;
+                                last_cy = res.pos.1 / h as f32;
+                                raw_keyframes.push((ts, last_cx, last_cy));
+                            }
+                        }
+                    }
+                }
+            }
         }
+
+        if !point_tracked {
+            let faces = detector.detect_faces(gray.as_raw(), w, h);
+            if let Some(largest) = faces.iter().max_by(|a, b| {
+                let area_a = a.bbox().width() * a.bbox().height();
+                let area_b = b.bbox().width() * b.bbox().height();
+                area_a.cmp(&area_b)
+            }) {
+                let bbox = largest.bbox();
+                
+                let px = bbox.x() as f32 + bbox.width() as f32 / 2.0;
+                let py = if tracking_mode == "cinematic" {
+                    bbox.y() as f32 + bbox.height() as f32 * 0.4
+                } else {
+                    bbox.y() as f32 + bbox.height() as f32 / 2.0
+                };
+                
+                let px = px.clamp(0.0, w as f32 - 1.0);
+                let py = py.clamp(0.0, h as f32 - 1.0);
+
+                prev_point = Some((px, py));
+                last_detection_frame = i as isize;
+
+                last_cx = px / w as f32;
+                last_cy = py / h as f32;
+                raw_keyframes.push((ts, last_cx, last_cy));
+            } else {
+                prev_point = None; 
+                raw_keyframes.push((ts, last_cx, last_cy));
+            }
+        }
+
+        prev_pyramid = curr_pyramid;
     }
 
     let mut keyframes = Vec::new();
     if !raw_keyframes.is_empty() {
-        let mut classified = Vec::new();
-        let (mut stable_cx, mut stable_cy) = (raw_keyframes[0].1, raw_keyframes[0].2);
-        classified.push(FaceKeyframe {
-            timestamp: raw_keyframes[0].0 as f64,
-            cx: stable_cx,
-            cy: stable_cy,
-            mode: "cut".to_string(),
-        });
+        if tracking_mode == "cinematic" {
+            let alpha = 0.15;
+            let mut smooth_cx = raw_keyframes[0].1;
+            let mut smooth_cy = raw_keyframes[0].2;
 
-        for i in 1..raw_keyframes.len() {
-            let (ts, cx, cy) = raw_keyframes[i];
-            let dist = ((cx - stable_cx).powi(2) + (cy - stable_cy).powi(2)).sqrt();
+            for (ts, cx, cy) in raw_keyframes {
+                smooth_cx = alpha * cx + (1.0 - alpha) * smooth_cx;
+                smooth_cy = alpha * cy + (1.0 - alpha) * smooth_cy;
 
-            let (final_cx, final_cy, mode) = if dist < JITTER_THRESHOLD {
-                (stable_cx, stable_cy, "glide")
-            } else if dist > EXTREME_THRESHOLD {
-                stable_cx = cx;
-                stable_cy = cy;
-                (cx, cy, "cut")
-            } else {
-                stable_cx = cx;
-                stable_cy = cy;
-                (cx, cy, "glide")
-            };
-
-            classified.push(FaceKeyframe {
-                timestamp: ts as f64,
-                cx: final_cx,
-                cy: final_cy,
-                mode: mode.to_string(),
-            });
-        }
-
-        if classified.len() > 2 {
-            keyframes.push(classified[0].clone());
-            for i in 1..classified.len() - 1 {
-                let prev = &keyframes.last().unwrap();
-                let curr = &classified[i];
-                let next = &classified[i + 1];
-
-                if (prev.cx - curr.cx).abs() < 0.0001
-                    && (prev.cy - curr.cy).abs() < 0.0001
-                    && (curr.cx - next.cx).abs() < 0.0001
-                    && (curr.cy - next.cy).abs() < 0.0001
-                {
-                    continue;
+                if ts % interval_sec < (1.0 / fps) {
+                    keyframes.push(FaceKeyframe {
+                        timestamp: ts as f64,
+                        cx: smooth_cx,
+                        cy: smooth_cy,
+                        mode: "glide".to_string(),
+                    });
                 }
-                keyframes.push(curr.clone());
             }
-            keyframes.push(classified.last().unwrap().clone());
+        } else if tracking_mode == "static" {
+            // For static mode, there's only 1 frame extracted anyway
+            keyframes.push(FaceKeyframe {
+                timestamp: 0.0,
+                cx: raw_keyframes[0].1,
+                cy: raw_keyframes[0].2,
+                mode: "cut".to_string(),
+            });
         } else {
+            // "fast" mode (old behavior)
+            // It just passes the raw keyframes, maybe apply jitter filter?
+            let mut classified = Vec::new();
+            let (mut stable_cx, mut stable_cy) = (raw_keyframes[0].1, raw_keyframes[0].2);
+            classified.push(FaceKeyframe {
+                timestamp: raw_keyframes[0].0 as f64,
+                cx: stable_cx,
+                cy: stable_cy,
+                mode: "cut".to_string(),
+            });
+            
+            for i in 1..raw_keyframes.len() {
+                let (ts, cx, cy) = raw_keyframes[i];
+                let dist = ((cx - stable_cx).powi(2) + (cy - stable_cy).powi(2)).sqrt();
+
+                let (final_cx, final_cy, mode) = if dist < 0.03 {
+                    (stable_cx, stable_cy, "glide")
+                } else if dist > 0.15 {
+                    stable_cx = cx;
+                    stable_cy = cy;
+                    (cx, cy, "cut")
+                } else {
+                    stable_cx = cx;
+                    stable_cy = cy;
+                    (cx, cy, "glide")
+                };
+
+                classified.push(FaceKeyframe {
+                    timestamp: ts as f64,
+                    cx: final_cx,
+                    cy: final_cy,
+                    mode: mode.to_string(),
+                });
+            }
             keyframes = classified;
         }
     }

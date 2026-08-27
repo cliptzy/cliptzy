@@ -15,6 +15,7 @@ pub struct ClipPayload {
     pub crop_mode: String,
     pub use_subtitle: bool,
     pub cookies_path: Option<String>,
+    pub segment_index: u32,
 }
 
 #[derive(Serialize, Clone, Debug)]
@@ -37,34 +38,49 @@ impl ClipVideoUseCase {
         let job_dir = &self.ctx.job_dir;
         std::fs::create_dir_all(job_dir)?;
 
-        let source_video = job_dir.join("source.mp4");
-        let cropped_video = job_dir.join("cropped.mp4");
-        let final_video = job_dir.join("final.mp4");
-        let thumb_path = job_dir.join("thumbnail.jpg");
+        let idx = payload.segment_index;
+        let source_video = job_dir.join(format!("source_{}.mp4", idx));
+        let cropped_video = job_dir.join(format!("cropped_{}.mp4", idx));
+        let final_video = job_dir.join(format!("final_{}.mp4", idx));
+        let thumb_path = job_dir.join(format!("thumbnail_{}.jpg", idx));
 
         // 1. Download Segment
-        emit_progress(
-            &self.ctx.app_handle,
-            &ProgressEvent {
-                stage: "download".into(),
-                label: "Mendownload segmen video...".into(),
-                current: 10,
-                total: 100,
-                detail: None,
-            },
-        );
+        if source_video.exists() {
+            emit_progress(
+                &self.ctx.app_handle,
+                &ProgressEvent {
+                    stage: "download".into(),
+                    label: "Menggunakan video dari cache...".into(),
+                    current: 100,
+                    total: 100,
+                    detail: None,
+                },
+            );
+            tracing::info!("Using cached source video: {:?}", source_video);
+        } else {
+            emit_progress(
+                &self.ctx.app_handle,
+                &ProgressEvent {
+                    stage: "download".into(),
+                    label: "Mendownload segmen video...".into(),
+                    current: 10,
+                    total: 100,
+                    detail: None,
+                },
+            );
 
-        download_segment(
-            &payload.url,
-            payload.start,
-            payload.end,
-            &source_video,
-            payload.cookies_path.clone(),
-            &self.ctx.deps.ytdlp,
-            Some(&self.ctx.app_handle),
-            self.ctx.cancel_token.clone(),
-        )
-        .await?;
+            download_segment(
+                &payload.url,
+                payload.start,
+                payload.end,
+                &source_video,
+                payload.cookies_path.clone(),
+                &self.ctx.deps.ytdlp,
+                Some(&self.ctx.app_handle),
+                self.ctx.cancel_token.clone(),
+            )
+            .await?;
+        }
 
         // 2. Removed Probe Video due to rust_ffprobe parsing bugs
 
@@ -92,7 +108,8 @@ impl ClipVideoUseCase {
                     detail: None,
                 },
             );
-            match crate::face::tracker::get_face_keyframes(&source_video, 1.0, Some(self.ctx.app_handle.clone()), self.ctx.cancel_token.clone()).await {
+            let tracking_mode = self.ctx.config.face_tracking_mode.clone();
+            match crate::face::tracker::get_face_keyframes(&source_video, 1.0, tracking_mode, Some(self.ctx.app_handle.clone()), self.ctx.cancel_token.clone()).await {
                 Ok(kfs) => keyframes = Some(kfs),
                 Err(e) => {
                     tracing::warn!("Face tracking failed: {}. Fallback to center.", e);
@@ -173,7 +190,18 @@ impl ClipVideoUseCase {
 
             if payload.use_subtitle {
                 // Extract audio for Whisper using existing audio module
-                let audio_wav = job_dir.join("audio_16k.wav");
+                emit_progress(
+                    &self.ctx.app_handle,
+                    &ProgressEvent {
+                        stage: "subtitle".into(),
+                        label: "Mengekstrak audio untuk AI Transcription...".into(),
+                        current: 62,
+                        total: 100,
+                        detail: None,
+                    },
+                );
+                
+                let audio_wav = job_dir.join(format!("audio_16k_{}.wav", idx));
                 let duration = payload.end - payload.start;
                 crate::transcription::audio::extract_audio_segment(
                     &current_video.to_string_lossy(),
@@ -186,6 +214,16 @@ impl ClipVideoUseCase {
                 .await?;
 
                 // Transcribe
+                emit_progress(
+                    &self.ctx.app_handle,
+                    &ProgressEvent {
+                        stage: "subtitle".into(),
+                        label: "Menyiapkan AI Whisper...".into(),
+                        current: 65,
+                        total: 100,
+                        detail: None,
+                    },
+                );
                 let whisper_model = if self.ctx.config.subtitle.whisper_model.is_empty() {
                     "tiny".to_string()
                 } else {
@@ -195,10 +233,31 @@ impl ClipVideoUseCase {
                     crate::transcription::whisper::ensure_model_exists(&whisper_model).await?;
                 let transcriber =
                     crate::transcription::whisper::WhisperTranscriber::new(&model_path)?;
+                    
+                emit_progress(
+                    &self.ctx.app_handle,
+                    &ProgressEvent {
+                        stage: "subtitle".into(),
+                        label: "Menjalankan Transkripsi Teks (Whisper)...".into(),
+                        current: 70,
+                        total: 100,
+                        detail: None,
+                    },
+                );
                 let transcript = transcriber.transcribe(&audio_wav).await?;
 
                 // Generate ASS
-                let ass_path = job_dir.join("subtitles.ass");
+                emit_progress(
+                    &self.ctx.app_handle,
+                    &ProgressEvent {
+                        stage: "subtitle".into(),
+                        label: "Menyusun format Subtitle (ASS)...".into(),
+                        current: 75,
+                        total: 100,
+                        detail: None,
+                    },
+                );
+                let ass_path = job_dir.join(format!("subtitles_{}.ass", idx));
                 let mut sub_config = crate::transcription::models::SubtitleConfig::default();
                 if !self.ctx.config.subtitle.font.is_empty() {
                     sub_config.font = self.ctx.config.subtitle.font.clone();
@@ -253,7 +312,18 @@ impl ClipVideoUseCase {
             }
 
             // Burn Subtitle (and optionally Watermark)
-            let subbed_video = job_dir.join("subbed.mp4");
+            emit_progress(
+                &self.ctx.app_handle,
+                &ProgressEvent {
+                    stage: "subtitle".into(),
+                    label: "Mempersiapkan proses rendering efek...".into(),
+                    current: 78,
+                    total: 100,
+                    detail: None,
+                },
+            );
+            
+            let subbed_video = job_dir.join(format!("subbed_{}.mp4", idx));
             let burn_config = crate::processing::burner::VideoBurnerConfig {
                 ass_path: ass_path_opt,
                 vfx_overlay_path: None,

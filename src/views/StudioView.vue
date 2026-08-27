@@ -5,7 +5,6 @@
       
       <!-- LEFT PANEL: Inspector -->
       <InspectorPanel 
-        v-model:cropMode="cropMode"
         v-model:aiWhisper="aiWhisper"
         v-model:aiBRoll="aiBRoll"
       />
@@ -24,7 +23,7 @@
     </div>
 
     <!-- Bottom Area: Timeline & Action -->
-    <TimelinePanel :cropMode="cropMode" />
+    <TimelinePanel />
   </div>
 </template>
 
@@ -41,7 +40,6 @@ import TimelinePanel from '../components/studio/TimelinePanel.vue';
 const videoStore = useVideoStore();
 const videoUrl = ref('');
 
-const cropMode = ref('default');
 const aiWhisper = ref(true);
 const aiBRoll = ref(false);
 const scanMode = ref('heatmap');

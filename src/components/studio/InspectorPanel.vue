@@ -20,28 +20,41 @@
 
         <!-- Crop Mode -->
         <div class="flex flex-col gap-3">
-          <span class="text-[10px] text-gray-400 uppercase font-bold">Tipe Tracking</span>
+          <span class="text-[10px] text-gray-400 uppercase font-bold">Tipe Tampilan (Layout)</span>
           <label class="flex items-center gap-3 cursor-pointer group">
-            <input type="radio" name="cropMode" value="default" v-model="cropMode" class="hidden" />
-            <div class="w-4 h-4 rounded-full border flex items-center justify-center group-hover:border-[var(--color-accent)] transition-colors" :class="cropMode === 'default' ? 'border-[var(--color-accent)]' : 'border-gray-500'">
-              <div v-show="cropMode === 'default'" class="w-2 h-2 rounded-full bg-[var(--color-accent)]"></div>
+            <input type="radio" name="cropMode" value="default" v-model="settings.config.crop_mode" class="hidden" />
+            <div class="w-4 h-4 rounded-full border flex items-center justify-center group-hover:border-[var(--color-accent)] transition-colors" :class="settings.config.crop_mode === 'default' ? 'border-[var(--color-accent)]' : 'border-gray-500'">
+              <div v-show="settings.config.crop_mode === 'default'" class="w-2 h-2 rounded-full bg-[var(--color-accent)]"></div>
             </div>
-            <span class="text-sm font-medium transition-colors" :class="cropMode === 'default' ? 'text-white' : 'text-gray-400 group-hover:text-gray-200'">Center Crop (Default)</span>
+            <span class="text-sm font-medium transition-colors" :class="settings.config.crop_mode === 'default' ? 'text-white' : 'text-gray-400 group-hover:text-gray-200'">Center Crop (Default)</span>
           </label>
           <label class="flex items-center gap-3 cursor-pointer group">
-            <input type="radio" name="cropMode" value="full" v-model="cropMode" class="hidden" />
-            <div class="w-4 h-4 rounded-full border flex items-center justify-center group-hover:border-[var(--color-accent)] transition-colors" :class="cropMode === 'full' ? 'border-[var(--color-accent)]' : 'border-gray-500'">
-              <div v-show="cropMode === 'full'" class="w-2 h-2 rounded-full bg-[var(--color-accent)]"></div>
+            <input type="radio" name="cropMode" value="full" v-model="settings.config.crop_mode" class="hidden" />
+            <div class="w-4 h-4 rounded-full border flex items-center justify-center group-hover:border-[var(--color-accent)] transition-colors" :class="settings.config.crop_mode === 'full' ? 'border-[var(--color-accent)]' : 'border-gray-500'">
+              <div v-show="settings.config.crop_mode === 'full'" class="w-2 h-2 rounded-full bg-[var(--color-accent)]"></div>
             </div>
-            <span class="text-sm font-medium transition-colors" :class="cropMode === 'full' ? 'text-white' : 'text-gray-400 group-hover:text-gray-200'">Full + Blur Background</span>
+            <span class="text-sm font-medium transition-colors" :class="settings.config.crop_mode === 'full' ? 'text-white' : 'text-gray-400 group-hover:text-gray-200'">Full + Blur Background</span>
           </label>
           <label class="flex items-center gap-3 cursor-pointer group">
-            <input type="radio" name="cropMode" value="full_face" v-model="cropMode" class="hidden" />
-            <div class="w-4 h-4 rounded-full border flex items-center justify-center group-hover:border-[var(--color-accent)] transition-colors" :class="cropMode === 'full_face' ? 'border-[var(--color-accent)]' : 'border-gray-500'">
-              <div v-show="cropMode === 'full_face'" class="w-2 h-2 rounded-full bg-[var(--color-accent)]"></div>
+            <input type="radio" name="cropMode" value="full_face" v-model="settings.config.crop_mode" class="hidden" />
+            <div class="w-4 h-4 rounded-full border flex items-center justify-center group-hover:border-[var(--color-accent)] transition-colors" :class="settings.config.crop_mode === 'full_face' ? 'border-[var(--color-accent)]' : 'border-gray-500'">
+              <div v-show="settings.config.crop_mode === 'full_face'" class="w-2 h-2 rounded-full bg-[var(--color-accent)]"></div>
             </div>
-            <span class="text-sm font-medium transition-colors" :class="cropMode === 'full_face' ? 'text-white' : 'text-gray-400 group-hover:text-gray-200'">Face Track + Full (Split)</span>
+            <span class="text-sm font-medium transition-colors" :class="settings.config.crop_mode === 'full_face' ? 'text-white' : 'text-gray-400 group-hover:text-gray-200'">Face Track + Full (Split)</span>
           </label>
+        </div>
+
+        <!-- Face Tracking Mode -->
+        <div class="flex flex-col gap-1 border-t border-[var(--color-subtle)] pt-4 mt-1">
+          <span class="text-[10px] text-gray-400 uppercase font-bold">Metode Pelacakan Wajah</span>
+          <select v-model="settings.config.face_tracking_mode" class="w-full bg-black/50 border border-[var(--color-subtle)] rounded p-1.5 text-xs text-white focus:outline-none focus:border-[var(--color-accent)]">
+            <option value="cinematic">Sinematik (Mulus & Lambat)</option>
+            <option value="fast">Dinamis (Standard AI)</option>
+            <option value="static">Statis (Kunci Posisi Awal)</option>
+          </select>
+          <span class="text-[9px] text-gray-500 mt-1 leading-tight">
+            Menentukan bagaimana kamera mengikuti wajah saat di-crop.
+          </span>
         </div>
       </div>
     </BentoCard>
@@ -171,7 +184,6 @@ import IconLoader from '~icons/lucide/loader-2';
 const settings = useSettingsStore();
 const videoStore = useVideoStore();
 
-const cropMode = defineModel('cropMode', { type: String, default: 'auto' });
 const aiWhisper = defineModel('aiWhisper', { type: Boolean, default: true });
 const aiBRoll = defineModel('aiBRoll', { type: Boolean, default: false });
 

@@ -120,13 +120,6 @@ import { invoke } from '@tauri-apps/api/core';
 import BentoCard from '../BentoCard.vue';
 import GlowButton from '../GlowButton.vue';
 
-const props = defineProps({
-  cropMode: {
-    type: String,
-    default: 'default'
-  }
-});
-
 import IconListVideo from '~icons/lucide/list-video';
 import IconWand2 from '~icons/lucide/wand-2';
 import IconLoader from '~icons/lucide/loader-2';
@@ -200,14 +193,26 @@ const handleRender = async () => {
     isRendering.value = true;
     try {
         for (const seg of segmentsToProcess) {
+            let originalIndex = -1;
+            if (videoStore.metadata.segments) {
+                originalIndex = videoStore.metadata.segments.indexOf(seg);
+            }
+            if (originalIndex === -1 && videoStore.metadata.ai_segments) {
+                originalIndex = videoStore.metadata.ai_segments.indexOf(seg);
+                if (originalIndex !== -1) {
+                    originalIndex += videoStore.metadata.segments?.length || 0;
+                }
+            }
+            
             const payload = {
                 url: videoStore.currentUrl,
                 video_id: videoStore.metadata.video_id,
                 start: seg.start,
                 end: seg.end,
-                crop_mode: props.cropMode,
+                crop_mode: settingsStore.config.crop_mode,
                 use_subtitle: true,
-                cookies_path: settingsStore.config.browser || null
+                cookies_path: settingsStore.config.browser || null,
+                segment_index: originalIndex !== -1 ? originalIndex + 1 : 1
             };
             
             console.log("Invoking clip_video for segment", payload);

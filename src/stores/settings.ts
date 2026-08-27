@@ -91,6 +91,7 @@ export interface AppConfig {
   
   job_dir: string;
   crop_mode: string;
+  face_tracking_mode: string;
   merge_clips: boolean;
   ui_locked: boolean;
   
@@ -133,6 +134,7 @@ const defaultSettings: AppConfig = {
   
   job_dir: "",
   crop_mode: "default",
+  face_tracking_mode: "cinematic",
   merge_clips: false,
   ui_locked: false,
   
