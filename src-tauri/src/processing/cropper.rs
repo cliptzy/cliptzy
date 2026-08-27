@@ -201,7 +201,7 @@ impl CropStrategy for FullFaceCrop {
     ) -> Result<FFmpegBuilder, CliptzyError> {
         let mut graph = FilterGraph::new();
 
-        let bottom_h = output_config.height / 4;
+        let bottom_h = output_config.height / 3;
         let (x_offset_bottom, y_offset_bottom) = if let Some(kfs) = keyframes {
             (
                 generate_dynamic_crop_expr(kfs, "x", output_config.width, bottom_h),

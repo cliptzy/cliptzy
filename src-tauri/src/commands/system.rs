@@ -92,3 +92,27 @@ pub async fn clean_output_folder() -> Result<(), String> {
 
     Ok(())
 }
+
+#[tauri::command]
+pub async fn cancel_processing(state: tauri::State<'_, crate::AppState>) -> Result<(), String> {
+    let mut token_guard = state.cancel_token.lock().await;
+    if let Some(token) = token_guard.take() {
+        token.cancel();
+        
+        // Force kill any ffmpeg/yt-dlp to interrupt rust_ffmpeg processes
+        #[cfg(not(target_os = "windows"))]
+        {
+            let _ = tokio::process::Command::new("killall").arg("ffmpeg").spawn();
+            let _ = tokio::process::Command::new("killall").arg("yt-dlp").spawn();
+        }
+        
+        #[cfg(target_os = "windows")]
+        {
+            let _ = tokio::process::Command::new("taskkill").args(&["/IM", "ffmpeg.exe", "/F"]).spawn();
+            let _ = tokio::process::Command::new("taskkill").args(&["/IM", "yt-dlp.exe", "/F"]).spawn();
+        }
+
+        tracing::info!("Proses dihentikan oleh user (CancellationToken trigger & aggressive kill)");
+    }
+    Ok(())
+}

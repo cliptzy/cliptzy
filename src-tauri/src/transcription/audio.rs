@@ -42,6 +42,10 @@ pub async fn extract_audio_segment(
                 .arg("wav")
                 .arg("--postprocessor-args")
                 .arg("ffmpeg:-ar 16000 -ac 1 -c:a pcm_s16le")
+                .arg("--extractor-args")
+                .arg("youtube:player-client=android,web,default")
+                .arg("--remote-components")
+                .arg("ejs:github")
                 .arg("-o")
                 .arg(cached_audio_path.to_string_lossy().to_string());
 

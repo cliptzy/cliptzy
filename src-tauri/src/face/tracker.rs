@@ -1,9 +1,10 @@
 use super::detector::FaceDetectorWrapper;
 use super::models::FaceKeyframe;
 use crate::error::CliptzyError;
+use crate::orchestrator::pipeline::{emit_progress, ProgressEvent};
 use image::GenericImageView;
 use std::path::Path;
-use std::process::Command;
+use tokio::process::Command;
 use tempfile::tempdir;
 use tracing::info;
 
@@ -13,6 +14,8 @@ const JITTER_THRESHOLD: f32 = 0.03;
 pub async fn get_face_keyframes(
     video_path: &Path,
     interval_sec: f32,
+    app_handle: Option<tauri::AppHandle>,
+    cancel_token: tokio_util::sync::CancellationToken,
 ) -> Result<Vec<FaceKeyframe>, CliptzyError> {
     info!("Starting face keyframe extraction for {:?}", video_path);
 
@@ -44,7 +47,7 @@ pub async fn get_face_keyframes(
 
     let frame_pattern = tmp_dir.path().join("frame_%04d.jpg");
 
-    let status = Command::new("ffmpeg")
+    let mut child = Command::new("ffmpeg")
         .args(&[
             "-y",
             "-hide_banner",
@@ -56,11 +59,24 @@ pub async fn get_face_keyframes(
             &format!("fps={}", fps_str),
             frame_pattern.to_str().unwrap(),
         ])
-        .status()
+        .spawn()
         .map_err(|e| CliptzyError::FFmpeg {
             code: -1,
-            message: format!("FFmpeg extract failed: {}", e),
+            message: format!("FFmpeg extract spawn failed: {}", e),
         })?;
+
+    let status = tokio::select! {
+        _ = cancel_token.cancelled() => {
+            let _ = child.kill().await;
+            return Err(CliptzyError::Cancelled);
+        }
+        res = child.wait() => {
+            res.map_err(|e| CliptzyError::FFmpeg {
+                code: -1,
+                message: format!("FFmpeg wait failed: {}", e),
+            })?
+        }
+    };
 
     if !status.success() {
         return Err(CliptzyError::FFmpeg {
@@ -81,8 +97,29 @@ pub async fn get_face_keyframes(
     let mut raw_keyframes = Vec::new();
     let mut last_cx = 0.5;
     let mut last_cy = 0.5;
+    let total_frames = paths.len();
 
     for (i, path) in paths.iter().enumerate() {
+        if cancel_token.is_cancelled() {
+            return Err(CliptzyError::Cancelled);
+        }
+
+        if let Some(app) = &app_handle {
+            if i % 10 == 0 || i == total_frames - 1 {
+                let pct = (i as f32 / total_frames as f32) * 100.0;
+                emit_progress(
+                    app,
+                    &ProgressEvent {
+                        stage: "tracking".into(),
+                        label: format!("Mendeteksi wajah: frame {}/{}", i + 1, total_frames),
+                        current: pct as u32,
+                        total: 100,
+                        detail: None,
+                    },
+                );
+            }
+        }
+
         let ts = i as f32 * interval_sec;
         let img = match image::open(path) {
             Ok(i) => i,

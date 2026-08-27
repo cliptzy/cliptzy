@@ -74,6 +74,10 @@ pub async fn download_segment(
         .arg("--newline")
         .arg("--ffmpeg-location")
         .arg(app_dir.join("bin"))
+        .arg("--extractor-args")
+        .arg("youtube:player-client=android,web,default")
+        .arg("--remote-components")
+        .arg("ejs:github")
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
 

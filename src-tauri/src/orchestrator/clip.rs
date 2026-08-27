@@ -91,7 +91,7 @@ impl ClipVideoUseCase {
                     detail: None,
                 },
             );
-            match crate::face::tracker::get_face_keyframes(&source_video, 1.0).await {
+            match crate::face::tracker::get_face_keyframes(&source_video, 1.0, Some(self.ctx.app_handle.clone()), self.ctx.cancel_token.clone()).await {
                 Ok(kfs) => keyframes = Some(kfs),
                 Err(e) => {
                     tracing::warn!("Face tracking failed: {}. Fallback to center.", e);

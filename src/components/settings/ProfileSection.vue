@@ -44,12 +44,31 @@
         <IconLink class="w-4 h-4 text-[var(--color-accent)]" /> Akun Sosial
       </h2>
       <div class="flex flex-col gap-3">
-        <BentoCard class="p-4 flex items-center justify-between group hover:border-gray-500 transition-colors">
-          <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center"><IconYoutube class="w-4 h-4 text-red-500" /></div>
-            <div class="flex flex-col"><span class="font-bold text-white text-sm">YouTube</span><span class="text-[10px] text-gray-400">@cliptzy_official</span></div>
+        <BentoCard class="p-4 flex flex-col group hover:border-gray-500 transition-colors">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center"><IconYoutube class="w-4 h-4 text-red-500" /></div>
+              <div class="flex flex-col"><span class="font-bold text-white text-sm">YouTube</span><span class="text-[10px] text-gray-400">yt-dlp cookies</span></div>
+            </div>
+            <span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span></span>
           </div>
-          <span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span></span>
+          
+          <div class="mt-4 pt-3 border-t border-[var(--color-subtle)] flex flex-col gap-2">
+            <div class="flex justify-between items-center">
+              <div class="flex flex-col">
+                <span class="text-xs text-gray-400 font-bold">Cookies File</span>
+                <span class="text-[10px] text-gray-500 truncate max-w-[150px]">{{ settings.config.youtube.session || 'Belum diatur' }}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <button @click="testCookies" :disabled="isTestingCookies" class="bg-gray-800 text-gray-300 border border-gray-600 text-[10px] font-bold px-3 py-1.5 rounded hover:bg-gray-700 transition-colors flex items-center gap-1 disabled:opacity-50">
+                  <IconYoutube class="w-3 h-3" /> {{ isTestingCookies ? 'Testing...' : 'Test yt-dlp' }}
+                </button>
+                <button @click="selectCookiesFile" class="bg-[var(--color-accent)]/10 text-[var(--color-accent)] border border-[var(--color-accent)]/30 text-[10px] font-bold px-3 py-1.5 rounded hover:bg-[var(--color-accent)] hover:text-black transition-colors flex items-center gap-1">
+                  <IconFileText class="w-3 h-3" /> Pilih File
+                </button>
+              </div>
+            </div>
+          </div>
         </BentoCard>
         <BentoCard class="p-4 flex items-center justify-between group hover:border-gray-500 transition-colors">
           <div class="flex items-center gap-3">
@@ -131,11 +150,99 @@ import IconHash from '~icons/lucide/hash';
 import IconCloud from '~icons/lucide/cloud';
 import IconUploadCloud from '~icons/lucide/upload-cloud';
 import IconDownloadCloud from '~icons/lucide/download-cloud';
+import IconFileText from '~icons/lucide/file-text';
+import { open } from '@tauri-apps/plugin-dialog';
 
 const appStore = useAppStore();
 const auth = useAuthStore();
 const settings = useSettingsStore();
 const router = useRouter();
+
+const selectCookiesFile = async () => {
+  try {
+    const selected = await open({
+      multiple: false,
+      filters: [{
+        name: 'Text Files',
+        extensions: ['txt']
+      }]
+    });
+    
+    if (selected && typeof selected === 'string') {
+      const result = await invoke<any>('validate_cookies_file', { cookiesPath: selected });
+      if (result.valid) {
+        const destPath = await invoke<string>('copy_cookies_file', { sourcePath: selected });
+        settings.config.youtube.session = destPath;
+        appStore.addToast({
+          type: 'success',
+          title: 'Cookies Disimpan',
+          message: `File cookies berhasil disalin. ${result.message}`,
+        });
+      } else {
+        appStore.addToast({
+          type: 'error',
+          title: 'Cookies Tidak Valid',
+          message: result.message,
+        });
+      }
+    }
+  } catch (err: any) {
+    appStore.addToast({
+      type: 'error',
+      title: 'Gagal',
+      message: err.toString(),
+    });
+  }
+};
+
+const isTestingCookies = ref(false);
+
+const testCookies = async () => {
+  if (!settings.config.youtube.session) {
+    appStore.addToast({
+      type: 'error',
+      title: 'Tidak Ada Cookies',
+      message: 'Silakan pilih file cookies terlebih dahulu.',
+    });
+    return;
+  }
+  
+  isTestingCookies.value = true;
+  appStore.addToast({
+    type: 'info',
+    title: 'Testing Cookies',
+    message: 'Mencoba fetching video dengan yt-dlp secara penuh. Tunggu sebentar...',
+  });
+
+  try {
+    const result = await invoke<any>('test_youtube_cookies', { cookiesPath: settings.config.youtube.session });
+    if (result.valid) {
+      appStore.addToast({
+        type: 'success',
+        title: 'Cookies Valid',
+        message: result.message,
+        duration: 5000
+      });
+    } else {
+      appStore.addToast({
+        type: 'error',
+        title: 'Test Gagal',
+        message: result.message,
+        duration: 8000
+      });
+      console.error(result.stderr);
+    }
+  } catch (err: any) {
+    appStore.addToast({
+      type: 'error',
+      title: 'Test Error',
+      message: err.toString(),
+      duration: 5000
+    });
+  } finally {
+    isTestingCookies.value = false;
+  }
+};
 
 const parsedHashtags = computed(() => {
   if (!settings.config.default_hashtags) return [];

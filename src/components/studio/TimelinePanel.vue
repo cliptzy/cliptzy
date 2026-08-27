@@ -115,6 +115,7 @@
 import { ref, computed } from 'vue';
 import { useVideoStore } from '../../stores/video';
 import { useAppStore } from '../../stores/app';
+import { useSettingsStore } from '../../stores/settings';
 import { invoke } from '@tauri-apps/api/core';
 import BentoCard from '../BentoCard.vue';
 import GlowButton from '../GlowButton.vue';
@@ -131,6 +132,7 @@ import IconWand2 from '~icons/lucide/wand-2';
 import IconLoader from '~icons/lucide/loader-2';
 
 const videoStore = useVideoStore();
+const settingsStore = useSettingsStore();
 const timelineTrack = ref<HTMLElement | null>(null);
 const isRendering = ref(false);
 
@@ -205,13 +207,13 @@ const handleRender = async () => {
                 end: seg.end,
                 crop_mode: props.cropMode,
                 use_subtitle: true,
-                cookies_path: null
+                cookies_path: settingsStore.config.youtube.session || null
             };
             
             console.log("Invoking clip_video for segment", payload);
             await invoke('clip_video', { payload });
         }
-    } catch (err) {
+    } catch (err: any) {
         console.error("Render failed", err);
         const appStore = useAppStore();
         appStore.addToast({

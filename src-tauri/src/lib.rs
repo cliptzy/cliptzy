@@ -18,6 +18,12 @@ pub mod uploaders;
 pub mod video;
 
 use std::sync::Arc;
+use tokio::sync::Mutex;
+use tokio_util::sync::CancellationToken;
+
+pub struct AppState {
+    pub cancel_token: Mutex<Option<CancellationToken>>,
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -35,6 +41,9 @@ pub fn run() {
         .manage(Arc::new(
             supabase::SupabaseClient::new().expect("Failed to initialize Supabase"),
         ))
+        .manage(AppState {
+            cancel_token: Mutex::new(None),
+        })
         .setup(|_app| {
             ctrlc::set_handler(move || {
                 tracing::info!("Ctrl+C received, shutting down...");
@@ -50,8 +59,10 @@ pub fn run() {
             commands::system::get_available_hwaccels,
             commands::system::get_output_folder_size,
             commands::system::clean_output_folder,
+            commands::system::cancel_processing,
             commands::cookies::copy_cookies_file,
             commands::cookies::validate_cookies_file,
+            commands::cookies::test_youtube_cookies,
             commands::config::copy_asset_file,
             commands::config::save_config_file,
             commands::config::read_image_base64,

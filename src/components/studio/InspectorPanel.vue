@@ -185,7 +185,7 @@ const handleGenerateSubtitle = async () => {
 
 // Auto-generate if a new segment is selected and aiWhisper is enabled
 import { watch } from 'vue';
-watch(() => videoStore.selectedSegment, (newSegment, oldSegment) => {
+watch(() => videoStore.selectedSegment, (_newSegment, _oldSegment) => {
   // Disabled auto-transcribe on segment click
   /*
   if (aiWhisper.value && newSegment && newSegment.start !== oldSegment?.start) {

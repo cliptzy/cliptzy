@@ -446,7 +446,7 @@ const initPlayer = () => {
             playsinline: 1
         },
         events: {
-            onReady: (event: any) => {
+            onReady: (_event: any) => {
                 applyVolume();
                 isPlaying.value = false;
 

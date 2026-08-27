@@ -123,3 +123,63 @@ pub async fn validate_cookies_file(cookies_path: String) -> Result<serde_json::V
         "valid_youtube_cookies": valid_youtube_cookies
     }))
 }
+
+#[tauri::command]
+pub async fn test_youtube_cookies(cookies_path: String) -> Result<serde_json::Value, String> {
+    let app_dir = crate::paths::app_data_dir();
+
+    #[cfg(target_os = "windows")]
+    let ytdlp_bin = app_dir.join("bin").join("yt-dlp.exe");
+    #[cfg(not(target_os = "windows"))]
+    let ytdlp_bin = app_dir.join("bin").join("yt-dlp");
+
+    if !ytdlp_bin.exists() {
+        return Err("Binary yt-dlp tidak ditemukan".into());
+    }
+
+    let cookie_path = if std::path::Path::new(&cookies_path).exists() {
+        std::path::PathBuf::from(cookies_path)
+    } else {
+        app_dir.join(cookies_path)
+    };
+
+    let mut cmd = tokio::process::Command::new(&ytdlp_bin);
+    cmd.arg("--cookies")
+        .arg(&cookie_path)
+        .arg("--extractor-args")
+        .arg("youtube:player-client=android,web,default")
+        .arg("--remote-components")
+        .arg("ejs:github")
+        .arg("--dump-json")
+        .arg("--no-warnings")
+        .arg("https://www.youtube.com/watch?v=gBSX9DPhRqg"); // a typical small test video
+
+    let output = cmd
+        .output()
+        .await
+        .map_err(|e| format!("Gagal menjalankan yt-dlp: {}", e))?;
+
+    if output.status.success() {
+        Ok(serde_json::json!({
+            "valid": true,
+            "message": "Cookies valid! Berhasil fetching YouTube dengan yt-dlp secara penuh."
+        }))
+    } else {
+        let err_str = String::from_utf8_lossy(&output.stderr);
+        tracing::error!("Cookies test failed: {}", err_str);
+
+        let mut reason = "Tidak dapat fetch video.";
+        if err_str.contains("Sign in to confirm you")
+            || err_str.contains("Cookies are no longer valid")
+            || err_str.contains("Missing required Visitor Data")
+        {
+            reason = "Cookies kedaluwarsa atau ditolak oleh YouTube. Silakan export cookies baru dari browser.";
+        }
+
+        Ok(serde_json::json!({
+            "valid": false,
+            "message": format!("Test yt-dlp gagal: {}", reason),
+            "stderr": err_str.to_string()
+        }))
+    }
+}

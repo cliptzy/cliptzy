@@ -19,9 +19,17 @@
           <div class="absolute inset-0 bg-white/20 w-full animate-[shimmer_2s_infinite]"></div>
         </div>
       </div>
-      <p class="text-xs text-gray-400 truncate" :title="appStore.progressLabel">
-        {{ appStore.progressLabel || 'Initializing task...' }}
-      </p>
+      <div class="flex items-center justify-between">
+        <p class="text-xs text-gray-400 truncate flex-1" :title="appStore.progressLabel">
+          {{ appStore.progressLabel || 'Initializing task...' }}
+        </p>
+        <button 
+          @click="cancelProcessing" 
+          class="ml-2 px-2 py-0.5 bg-red-500/20 text-red-500 border border-red-500/50 rounded text-[10px] font-bold hover:bg-red-500 hover:text-white transition-colors"
+        >
+          BATAL
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -29,11 +37,22 @@
 <script setup lang="ts">
 import { useAppStore } from '../stores/app';
 import { listen } from '@tauri-apps/api/event';
+import { invoke } from '@tauri-apps/api/core';
 import { onMounted, onUnmounted } from 'vue';
 import type { ProgressEvent } from '../stores/app';
 
 const appStore = useAppStore();
 let unlisten: (() => void) | null = null;
+
+const cancelProcessing = async () => {
+  try {
+    await invoke('cancel_processing');
+    appStore.isProcessing = false;
+    appStore.progressLabel = 'Dibatalkan...';
+  } catch (err) {
+    console.error("Gagal membatalkan proses", err);
+  }
+};
 
 onMounted(async () => {
   try {
