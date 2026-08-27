@@ -1,9 +1,9 @@
 <template>
   <header class="w-full flex justify-center py-4 px-6 z-40 transition-all duration-300">
-    <nav class="bg-[var(--color-surface)] shadow-sm rounded-full px-2 py-1.5 border border-[var(--color-subtle)] flex items-center gap-1">
+    <nav class="bg-white/70 dark:bg-[#18181b]/70 backdrop-blur-xl shadow-sm rounded-full px-2 py-1.5 border border-white/20 dark:border-white/10 flex items-center gap-1 transition-all">
       <!-- Logo -->
       <div class="px-4 flex items-center mr-2">
-        <span class="font-black tracking-[0.2em] text-sm text-[var(--color-text-main)]">CLIPTZY</span>
+        <span class="font-black tracking-[0.2em] text-sm text-[var(--color-text-main)] drop-shadow-sm">CLIPTZY</span>
       </div>
       
       <!-- Nav Items -->
@@ -14,15 +14,15 @@
         v-slot="{ isActive, navigate }"
         custom
       >
-        <button @click="navigate" class="relative px-4 py-2 rounded-full flex items-center gap-2 transition-all duration-300 text-sm font-medium" :class="isActive ? 'bg-gray-200 dark:bg-gray-800 text-white shadow-md' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:bg-black/5 dark:hover:bg-white/5'" >
-          <component :is="item.icon" class="w-4 h-4 shrink-0" :class="isActive ? 'text-white' : ''" />
+        <button @click="navigate" class="relative px-5 py-2 rounded-full flex items-center gap-2 transition-all duration-300 text-sm font-bold" :class="isActive ? 'bg-[var(--color-accent)] text-white shadow-[0_4px_15px_rgba(232,115,137,0.3)]' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:bg-black/5 dark:hover:bg-white/10'" >
+          <component :is="item.icon" class="w-4 h-4 shrink-0 transition-transform" :class="isActive ? 'scale-110' : ''" />
           <span>{{ item.name }}</span>
         </button>
       </router-link>
 
       <!-- Theme Toggle -->
-      <div class="w-px h-5 bg-[var(--color-subtle)] mx-2"></div>
-      <button @click="toggleDarkMode" class="p-2 rounded-full text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-300" >
+      <div class="w-px h-5 bg-gray-300 dark:bg-gray-700 mx-2"></div>
+      <button @click="toggleDarkMode" class="p-2.5 rounded-full text-[var(--color-text-muted)] hover:text-gray-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-all duration-300" >
         <IconSun v-if="isDark" class="w-4 h-4" />
         <IconMoon v-else class="w-4 h-4" />
       </button>

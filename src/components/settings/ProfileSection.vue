@@ -1,7 +1,7 @@
 <template>
-  <div class="flex flex-col gap-6">
+  <div class="flex flex-col gap-2">
     <!-- Profil Sistem -->
-  <BentoCard class="p-6 flex flex-col gap-5">
+  <BentoCard class="p-6 flex flex-col gap-5 !bg-purple-200 dark:!bg-purple-900/40">
       <h2 class="text-lg font-black text-gray-900 dark:text-gray-100 tracking-wide flex items-center gap-2">
         <IconUser class="w-5 h-5" /> Profil Sistem
       </h2>
@@ -29,7 +29,7 @@
         <IconCloud class="w-5 h-5" /> Sinkronisasi Cloud
       </h2>
       <div class="flex gap-2">
-        <button @click="backupConfig" :disabled="isSyncing" class="flex-1 py-3 px-3 rounded-2xl text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm bg-black text-white dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200">
+        <button @click="backupConfig" :disabled="isSyncing" class="flex-1 py-3 px-3 rounded-2xl text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm bg-blue-600 text-white hover:bg-blue-700">
           <IconUploadCloud class="w-4 h-4" /> {{ isSyncing ? 'Memproses...' : 'Backup Config' }}
         </button>
         <button @click="restoreConfig" :disabled="isSyncing" class="flex-1 py-3 px-3 bg-white/60 dark:bg-black/30 text-gray-900 dark:text-gray-100 hover:bg-white dark:hover:bg-black/50 rounded-2xl text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm">
@@ -53,7 +53,7 @@
             </div>
             <span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-gray-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-gray-500"></span></span>
           </div>
-          
+
           <div class="mt-4 pt-4 border-t border-gray-300 dark:border-gray-800 flex flex-col gap-3">
             <div class="flex justify-between items-center">
               <div class="flex flex-col">
@@ -69,26 +69,26 @@
                   <option value="safari" disabled>Safari</option>
                 </select>
               </div>
-              <button @click="testCookies" :disabled="isTestingCookies" class="text-[10px] font-bold px-4 py-2 rounded-xl transition-all disabled:opacity-50 flex items-center gap-1 shadow-sm bg-black text-white dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200">
+              <button @click="testCookies" :disabled="isTestingCookies" class="text-[10px] font-bold px-4 py-2 rounded-xl transition-all disabled:opacity-50 flex items-center gap-1 shadow-sm bg-red-500 text-white hover:bg-red-600">
                 <IconYoutube class="w-3 h-3" /> {{ isTestingCookies ? 'Testing...' : 'Test yt-dlp' }}
               </button>
             </div>
           </div>
         </div>
-        
+
         <!-- TikTok -->
         <div class="flex items-center justify-between p-4 bg-white/60 dark:bg-black/30 rounded-2xl transition-colors shadow-sm">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-full bg-black text-white dark:bg-white dark:text-black shadow-sm flex items-center justify-center"><IconTiktok class="w-5 h-5" /></div>
             <div class="flex flex-col"><span class="font-bold text-gray-900 dark:text-gray-100 text-sm">TikTok</span><span class="text-[10px] text-gray-700 dark:text-gray-300 font-bold">Perlu Login</span></div>
           </div>
-          <button class="text-[10px] font-bold px-3 py-1.5 rounded-xl hover:scale-105 transition-transform shadow-sm bg-black text-white dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200">Hubungkan</button>
+          <button class="text-[10px] font-bold px-3 py-1.5 rounded-xl hover:scale-105 transition-transform shadow-sm bg-black text-white hover:bg-gray-800">Hubungkan</button>
         </div>
-        
+
         <!-- Default Tags Input -->
         <div class="flex flex-col gap-2 mt-2">
           <span class="text-[10px] text-gray-900 dark:text-gray-100 uppercase font-bold">Default Hashtags</span>
-          
+
           <div class="flex flex-wrap gap-1.5" v-if="parsedHashtags.length > 0">
             <span v-for="(tag, idx) in parsedHashtags" :key="idx" class="px-2 py-0.5 text-[10px] bg-gray-700/10 text-gray-700 dark:bg-gray-400/20 dark:text-gray-300 rounded-full font-bold shadow-sm">
               {{ tag.startsWith('#') ? tag : '#' + tag }}
@@ -97,11 +97,11 @@
 
           <div class="relative group mt-1">
             <IconHash class="absolute left-3 top-2.5 w-4 h-4 text-gray-700/50 dark:text-gray-300/50" />
-            <textarea 
-              v-model="settings.config.default_hashtags" 
-              placeholder="viral fyp podcast" 
+            <textarea
+              v-model="settings.config.default_hashtags"
+              placeholder="viral fyp podcast"
               rows="2"
-              class="w-full bg-white/60 dark:bg-black/30 border-none rounded-2xl py-2 pl-9 pr-3 text-sm font-bold text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 placeholder-gray-700/50 dark:placeholder-gray-300/50 resize-y custom-scrollbar transition-all shadow-sm" 
+              class="w-full bg-white/60 dark:bg-black/30 border-none rounded-2xl py-2 pl-9 pr-3 text-sm font-bold text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 placeholder-gray-700/50 dark:placeholder-gray-300/50 resize-y custom-scrollbar transition-all shadow-sm"
             ></textarea>
           </div>
           <p class="text-[9px] font-bold text-gray-700 dark:text-gray-300">Pisahkan dengan spasi. Hashtag ini akan otomatis ditambahkan ke setiap video yang diunggah.</p>
@@ -114,7 +114,7 @@
       <h2 class="text-lg font-black text-gray-900 dark:text-gray-100 tracking-wide flex items-center gap-2">
         <IconHardDrive class="w-5 h-5" /> Penyimpanan
       </h2>
-      
+
       <div class="flex flex-col items-center relative">
         <div v-if="isCalculatingSize" class="absolute inset-0 bg-gray-100/50 dark:bg-gray-900/50 flex items-center justify-center rounded-2xl backdrop-blur-sm z-10">
           <span class="text-xs font-bold text-gray-700 dark:text-gray-300 animate-pulse">Menghitung...</span>
@@ -175,7 +175,7 @@ const testCookies = async () => {
     });
     return;
   }
-  
+
   isTestingCookies.value = true;
   appStore.addToast({
     type: 'info',
@@ -277,7 +277,7 @@ const restoreConfig = async () => {
 
 const calculateDashOffset = () => {
   // Max storage display is arbitrary, let's assume 10GB scale for the visual circle
-  const maxGB = 10.0; 
+  const maxGB = 10.0;
   const percentage = Math.min((outputSize.value / maxGB) * 100, 100);
   const circumference = 251.2; // 2 * Math.PI * 40
   return circumference - (percentage / 100) * circumference;

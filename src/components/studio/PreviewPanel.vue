@@ -1,7 +1,6 @@
 <template>
     <BentoCard
-        disable-random-bg
-        class="flex-1 flex flex-col items-center justify-center bg-black relative overflow-hidden group p-4 h-full min-h-[400px]"
+        class="flex-1 flex flex-col items-center justify-center !bg-black relative overflow-hidden group p-4 h-full min-h-[400px]"
     >
         <h3
             class="absolute top-4 left-4 text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider z-10 flex items-center gap-2"

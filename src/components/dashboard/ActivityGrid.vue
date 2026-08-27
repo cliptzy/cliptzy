@@ -1,5 +1,5 @@
 <template>
- <BentoCard class="flex-1 min-h-0 mt-2 flex flex-col p-6">
+ <BentoCard class="flex-1 min-h-0 mt-2 flex flex-col p-6 !bg-indigo-200 dark:!bg-indigo-900/40">
     <div class="flex items-center justify-between mb-6">
       <h3 class="text-lg font-black text-gray-900 dark:text-gray-100 tracking-wide">Aktivitas Terakhir & Antrean</h3>
       <button class="text-xs font-bold text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors flex items-center gap-1 bg-white/60 hover:bg-white dark:bg-black/30 dark:hover:bg-black/50 px-4 py-2 rounded-full shadow-sm">

@@ -3,10 +3,10 @@
 
 @theme {
   /* Default Light Theme (Pastel) */
-  --color-base: #F9FAFB;
+  --color-base: #FAF4F4; /* gray-100 to contrast with white bentos */
   --color-surface: #FFFFFF;
   --color-subtle: #F3F4F6;
-  --color-accent: #E87389; 
+  --color-accent: #E87389;
   --color-text-main: #1f2937;
   --color-text-muted: #6b7280;
 
@@ -21,9 +21,9 @@
 
 @layer base {
   body {
-    @apply bg-[var(--color-base)] text-[var(--color-text-main)] transition-colors duration-300;
+    @apply bg-[var(--color-base)] text-[var(--color-text-main)] transition-colors duration-300 antialiased;
   }
-  
+
   .dark body {
     --color-base: #0F172A;
     --color-surface: #1E293B;

@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col xl:flex-row gap-4 h-[240px] shrink-0">
     <!-- Timeline Sequence -->
-  <BentoCard class="flex-1 p-6 flex flex-col justify-between">
+  <BentoCard class="flex-1 p-6 flex flex-col justify-between !bg-cyan-200 dark:!bg-cyan-900/40">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-lg font-black text-gray-900 dark:text-gray-100 tracking-wide flex items-center gap-2">
           <IconListVideo class="w-5 h-5" /> Sequence Editor
@@ -93,14 +93,14 @@
     </BentoCard>
 
     <!-- Action / Generate -->
-  <BentoCard class="w-full xl:w-[380px] p-8 flex flex-col justify-center items-center text-center gap-4 relative overflow-hidden group shrink-0">
+  <BentoCard class="w-full xl:w-[380px] p-8 flex flex-col justify-center items-center text-center gap-4 relative overflow-hidden group shrink-0 !bg-rose-200 dark:!bg-rose-900/40">
       <IconWand2 class="w-12 h-12 text-gray-600 dark:text-gray-400 group-hover:scale-110 transition-transform duration-500" />
       <div class="flex flex-col gap-1 z-10">
         <h3 class="text-2xl font-black text-gray-900 dark:text-gray-100">Generate {{ selectedSegmentsCount }} Shorts</h3>
         <p class="text-sm font-bold text-gray-700 dark:text-gray-300">Total estimasi: ~{{ selectedSegmentsCount * 3 }} menit</p>
       </div>
       
-      <button class="w-full py-4 text-base font-black mt-2 rounded-full transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg z-10 bg-black text-white dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200" :disabled="selectedSegmentsCount === 0 || isRendering" @click="handleRender">
+      <button class="w-full py-4 text-base font-black mt-2 rounded-full transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg z-10 bg-[var(--color-accent)] text-white hover:bg-rose-500" :disabled="selectedSegmentsCount === 0 || isRendering" @click="handleRender">
         <span v-if="isRendering" class="flex items-center justify-center gap-2">
           <IconLoader class="w-5 h-5 animate-spin" /> Rendering...
         </span>

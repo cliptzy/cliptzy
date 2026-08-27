@@ -1,7 +1,7 @@
 <template>
   <div class="w-full xl:w-[280px] flex flex-col gap-4 overflow-y-auto pr-1 custom-scrollbar shrink-0">
     <!-- Visual Crop & Tracking Controller -->
-  <BentoCard class="p-6 shrink-0">
+  <BentoCard class="p-6 shrink-0 !bg-sky-100 dark:!bg-sky-900/40">
       <h3 class="text-lg font-black text-gray-900 dark:text-gray-100 tracking-wide mb-4 flex items-center gap-2">
         <IconCrop class="w-5 h-5" /> Mode Crop & Rasio
       </h3>
@@ -60,7 +60,7 @@
     </BentoCard>
 
     <!-- AI & Subtitle Command Center -->
-  <BentoCard class="p-6 shrink-0">
+  <BentoCard class="p-6 shrink-0 !bg-fuchsia-100 dark:!bg-fuchsia-900/40">
       <h3 class="text-lg font-black text-gray-900 dark:text-gray-100 tracking-wide mb-4 flex items-center gap-2">
         <IconSparkles class="w-5 h-5" /> AI Processing
       </h3>
@@ -83,7 +83,7 @@
     </BentoCard>
 
     <!-- Subtitle Styling & Customization -->
-  <BentoCard class="p-6 flex flex-col gap-4 shrink-0">
+  <BentoCard class="p-6 flex flex-col gap-4 shrink-0 !bg-lime-100 dark:!bg-lime-900/40">
       <h3 class="text-lg font-black text-gray-900 dark:text-gray-100 tracking-wide mb-2 flex items-center gap-2">
         <IconType class="w-5 h-5" /> Kustomisasi Subtitle
       </h3>
@@ -103,7 +103,7 @@
 
       <!-- Action Generate Subtitle -->
       <div v-if="aiWhisper" class="mt-2">
-        <button @click="handleGenerateSubtitle" :disabled="videoStore.isAnalyzing || !videoStore.metadata?.stream_url" class="w-full py-3 rounded-full text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm bg-black text-white dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200">
+        <button @click="handleGenerateSubtitle" :disabled="videoStore.isAnalyzing || !videoStore.metadata?.stream_url" class="w-full py-3 rounded-full text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm bg-indigo-600 text-white hover:bg-indigo-700">
           <span v-if="videoStore.isAnalyzing" class="flex items-center justify-center gap-2">
             <IconLoader class="w-4 h-4 animate-spin" /> Sedang Generate...
           </span>
@@ -140,18 +140,18 @@
           </div>
           <div class="flex flex-col gap-1">
             <span class="text-[9px] text-gray-700 dark:text-gray-300 uppercase font-bold">Maks Kata ({{ settings.config.subtitle.max_words }})</span>
-            <input type="range" min="1" max="10" v-model.number="settings.config.subtitle.max_words" class="w-full h-2 bg-gray-300 dark:bg-gray-800 rounded-lg appearance-none cursor-pointer mt-1.5" />
+            <input type="range" min="1" max="10" v-model.number="settings.config.subtitle.max_words" class="w-full h-2 bg-gray-300 dark:bg-gray-800 rounded-lg appearance-none cursor-pointer mt-1.5 accent-[var(--color-accent)]" />
           </div>
         </div>
         <div class="flex flex-col gap-1">
           <span class="text-[9px] text-gray-700 dark:text-gray-300 uppercase font-bold">Ukuran Font ({{ settings.config.subtitle.font_size }})</span>
-          <input type="range" min="20" max="150" v-model.number="settings.config.subtitle.font_size" class="w-full h-2 bg-gray-300 dark:bg-gray-800 rounded-lg appearance-none cursor-pointer mt-1" />
+          <input type="range" min="20" max="150" v-model.number="settings.config.subtitle.font_size" class="w-full h-2 bg-gray-300 dark:bg-gray-800 rounded-lg appearance-none cursor-pointer mt-1 accent-[var(--color-accent)]" />
         </div>
       </div>
     </BentoCard>
 
     <!-- Branding / Watermark -->
-  <BentoCard class="p-6 shrink-0">
+  <BentoCard class="p-6 shrink-0 !bg-teal-100 dark:!bg-teal-900/40">
       <h3 class="text-lg font-black text-gray-900 dark:text-gray-100 tracking-wide mb-3 flex items-center gap-2">
         <IconImage class="w-5 h-5" /> Branding
       </h3>

@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col gap-6">
+  <div class="flex flex-col gap-2">
     <!-- Dependensi Sistem -->
   <BentoCard class="p-6 flex flex-col gap-5">
       <h2 class="text-lg font-black text-gray-900 dark:text-gray-100 tracking-wide flex items-center gap-2">
@@ -36,7 +36,7 @@
         </div>
       </div>
 
-      <button @click="runInstallDeps" :disabled="isInstallingDeps" class="w-full py-3 rounded-full text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm bg-black text-white dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200">
+      <button @click="runInstallDeps" :disabled="isInstallingDeps" class="w-full py-3 rounded-full text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm bg-indigo-600 text-white hover:bg-indigo-700">
         <span v-if="isInstallingDeps" class="flex items-center justify-center gap-2">
           <IconLoader class="w-4 h-4 animate-spin" /> Menginstal...
         </span>
@@ -45,7 +45,7 @@
     </BentoCard>
 
     <!-- Engine & API -->
-  <BentoCard class="p-6 flex flex-col gap-5">
+  <BentoCard class="p-6 flex flex-col gap-5 !bg-rose-100 dark:!bg-rose-900/40">
       <h2 class="text-lg font-black text-gray-900 dark:text-gray-100 tracking-wide flex items-center gap-2">
         <IconCpu class="w-5 h-5" /> Engine & Hardware
       </h2>
@@ -54,16 +54,16 @@
       <div class="flex flex-col gap-3">
         <span class="text-xs font-bold text-gray-900 dark:text-gray-100">Akselerasi Rendering (FFmpeg)</span>
         <div class="grid grid-cols-2 gap-2">
-          <button class="py-3 px-2 rounded-2xl transition-all text-xs font-bold text-center disabled:opacity-50 disabled:cursor-not-allowed bg-black text-white dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200" :disabled="!availableAccels.includes('cpu')" :class="settings.config.hw_accel === 'cpu' ? ' shadow-sm' : 'bg-white/50 hover:bg-white/80 dark:bg-black/30 dark:' bg-black text-white dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200" @click="settings.config.hw_accel = 'cpu'">
+          <button class="py-3 px-2 rounded-2xl transition-all text-xs font-bold text-center disabled:opacity-50 disabled:cursor-not-allowed" :disabled="!availableAccels.includes('cpu')" :class="settings.config.hw_accel === 'cpu' ? 'bg-[var(--color-accent)] text-white shadow-[0_4px_15px_rgba(232,115,137,0.3)]' : 'bg-white/60 dark:bg-black/30 text-gray-900 dark:text-gray-100 hover:bg-white dark:hover:bg-black/50'" @click="settings.config.hw_accel = 'cpu'">
             CPU
           </button>
-          <button class="py-3 px-2 rounded-2xl transition-all text-xs font-bold text-center disabled:opacity-50 disabled:cursor-not-allowed bg-black text-white dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200" :disabled="!availableAccels.includes('mac')" :class="settings.config.hw_accel === 'mac' ? ' shadow-sm' : 'bg-white/50 hover:bg-white/80 dark:bg-black/30 dark:' bg-black text-white dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200" @click="settings.config.hw_accel = 'mac'">
+          <button class="py-3 px-2 rounded-2xl transition-all text-xs font-bold text-center disabled:opacity-50 disabled:cursor-not-allowed" :disabled="!availableAccels.includes('mac')" :class="settings.config.hw_accel === 'mac' ? 'bg-[var(--color-accent)] text-white shadow-[0_4px_15px_rgba(232,115,137,0.3)]' : 'bg-white/60 dark:bg-black/30 text-gray-900 dark:text-gray-100 hover:bg-white dark:hover:bg-black/50'" @click="settings.config.hw_accel = 'mac'">
             Mac (VideoToolbox)
           </button>
-          <button class="py-3 px-2 rounded-2xl transition-all text-xs font-bold text-center disabled:opacity-50 disabled:cursor-not-allowed bg-black text-white dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200" :disabled="!availableAccels.includes('nvidia')" :class="settings.config.hw_accel === 'nvidia' ? ' shadow-sm' : 'bg-white/50 hover:bg-white/80 dark:bg-black/30 dark:' bg-black text-white dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200" @click="settings.config.hw_accel = 'nvidia'">
+          <button class="py-3 px-2 rounded-2xl transition-all text-xs font-bold text-center disabled:opacity-50 disabled:cursor-not-allowed" :disabled="!availableAccels.includes('nvidia')" :class="settings.config.hw_accel === 'nvidia' ? 'bg-[var(--color-accent)] text-white shadow-[0_4px_15px_rgba(232,115,137,0.3)]' : 'bg-white/60 dark:bg-black/30 text-gray-900 dark:text-gray-100 hover:bg-white dark:hover:bg-black/50'" @click="settings.config.hw_accel = 'nvidia'">
             NVIDIA NVENC
           </button>
-          <button class="py-3 px-2 rounded-2xl transition-all text-xs font-bold text-center disabled:opacity-50 disabled:cursor-not-allowed bg-black text-white dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200" :disabled="!availableAccels.includes('amd')" :class="settings.config.hw_accel === 'amd' ? ' shadow-sm' : 'bg-white/50 hover:bg-white/80 dark:bg-black/30 dark:' bg-black text-white dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200" @click="settings.config.hw_accel = 'amd'">
+          <button class="py-3 px-2 rounded-2xl transition-all text-xs font-bold text-center disabled:opacity-50 disabled:cursor-not-allowed" :disabled="!availableAccels.includes('amd')" :class="settings.config.hw_accel === 'amd' ? 'bg-[var(--color-accent)] text-white shadow-[0_4px_15px_rgba(232,115,137,0.3)]' : 'bg-white/60 dark:bg-black/30 text-gray-900 dark:text-gray-100 hover:bg-white dark:hover:bg-black/50'" @click="settings.config.hw_accel = 'amd'">
             AMD AMF
           </button>
         </div>
@@ -74,9 +74,9 @@
       <div class="flex flex-col gap-2 mt-2">
         <div class="flex justify-between items-center">
           <span class="text-xs font-bold text-gray-900 dark:text-gray-100">Maksimum Worker/Thread</span>
-          <span class="text-xs font-black bg-white/60 dark:bg-black/30 px-3 py-1 rounded-full text-gray-900 dark:text-gray-100">{{ settings.config.max_workers }}</span>
+          <span class="text-xs font-black bg-[var(--color-accent)] text-white px-3 py-1 rounded-full shadow-sm">{{ settings.config.max_workers }}</span>
         </div>
-        <input type="range" min="1" max="16" v-model.number="settings.config.max_workers" class="w-full h-2 bg-gray-300 dark:bg-gray-800 rounded-lg appearance-none cursor-pointer mt-2" />
+        <input type="range" min="1" max="16" v-model.number="settings.config.max_workers" class="w-full h-2 bg-gray-300 dark:bg-gray-800 rounded-lg appearance-none cursor-pointer mt-2 accent-[var(--color-accent)]" />
       </div>
 
       <!-- API Keys -->
@@ -84,17 +84,17 @@
         <span class="text-xs font-bold text-gray-900 dark:text-gray-100">API Keys (AI Analytics)</span>
         <div class="relative group">
           <IconKey class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-700/60 dark:text-gray-300/60" />
-          <input type="password" v-model="settings.config.ai.openai_key" placeholder="OpenAI Key (sk-...)" class="w-full bg-white/60 dark:bg-black/30 border-none rounded-2xl py-3 pl-11 pr-4 text-sm font-bold text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 placeholder-gray-700/60 dark:placeholder-gray-300/60 transition-all" />
+          <input type="password" v-model="settings.config.ai.openai_key" placeholder="OpenAI Key (sk-...)" class="w-full bg-white/60 dark:bg-black/30 border-none rounded-2xl py-3 pl-11 pr-4 text-sm font-bold text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] placeholder-gray-700/60 dark:placeholder-gray-300/60 transition-all shadow-sm" />
         </div>
         <div class="relative group">
           <IconSparkles class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-700/60 dark:text-gray-300/60" />
-          <input type="password" v-model="settings.config.ai.gemini_key" placeholder="Gemini API Key" class="w-full bg-white/60 dark:bg-black/30 border-none rounded-2xl py-3 pl-11 pr-4 text-sm font-bold text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 placeholder-gray-700/60 dark:placeholder-gray-300/60 transition-all" />
+          <input type="password" v-model="settings.config.ai.gemini_key" placeholder="Gemini API Key" class="w-full bg-white/60 dark:bg-black/30 border-none rounded-2xl py-3 pl-11 pr-4 text-sm font-bold text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] placeholder-gray-700/60 dark:placeholder-gray-300/60 transition-all shadow-sm" />
         </div>
       </div>
     </BentoCard>
 
     <!-- Model Whisper -->
-  <BentoCard class="p-6 flex flex-col gap-4">
+  <BentoCard class="p-6 flex flex-col gap-4 !bg-orange-100 dark:!bg-orange-900/40">
       <h2 class="text-lg font-black text-gray-900 dark:text-gray-100 tracking-wide flex items-center gap-2">
         <IconType class="w-5 h-5" /> Engine Transkripsi
       </h2>

@@ -8,17 +8,17 @@
       >
         <!-- Border highlight based on type -->
         <div class="absolute left-0 top-0 bottom-0 w-1" :class="{
-          'bg-gray-500': toast.type === 'success',
+          'bg-emerald-500': toast.type === 'success',
           'bg-red-500': toast.type === 'error',
-          'bg-gray-500': toast.type === 'warning',
-          'bg-gray-500': toast.type === 'info'
+          'bg-amber-500': toast.type === 'warning',
+          'bg-blue-500': toast.type === 'info'
         }"></div>
         
         <div class="mt-0.5 shrink-0" :class="{
-          'text-gray-500': toast.type === 'success',
+          'text-emerald-500': toast.type === 'success',
           'text-red-500': toast.type === 'error',
-          'text-gray-500': toast.type === 'warning',
-          'text-gray-500': toast.type === 'info'
+          'text-amber-500': toast.type === 'warning',
+          'text-blue-500': toast.type === 'info'
         }">
           <IconCheckCircle v-if="toast.type === 'success'" class="w-4 h-4" />
           <IconXCircle v-else-if="toast.type === 'error'" class="w-4 h-4" />

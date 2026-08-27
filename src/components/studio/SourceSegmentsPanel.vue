@@ -16,7 +16,7 @@
             class="w-full bg-transparent border-none text-gray-900 dark:text-gray-100 font-bold text-sm focus:ring-0 focus:outline-none placeholder-gray-700/60 dark:placeholder-emerald-400/50"
           />
         </div>
-        <button @click="handleLoadVideo" :disabled="videoStore.isLoading || !videoUrl" class="w-full py-3 rounded-full text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm bg-black text-white dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200">
+        <button @click="handleLoadVideo" :disabled="videoStore.isLoading || !videoUrl" class="w-full py-3 rounded-full text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm bg-indigo-600 text-white hover:bg-indigo-700">
           <span v-if="videoStore.isLoading" class="flex items-center justify-center gap-2">
             <IconLoader class="w-4 h-4 animate-spin" /> Memuat Video...
           </span>
@@ -31,7 +31,7 @@
       enter-from-class="opacity-0 -translate-y-4"
       enter-to-class="opacity-100 translate-y-0"
     >
-   <BentoCard v-if="videoStore.metadata" class="p-4 shrink-0">
+   <BentoCard v-if="videoStore.metadata" class="p-4 shrink-0 !bg-slate-200 dark:!bg-slate-900/40">
         <div class="flex items-start gap-4">
           <div class="w-32 aspect-video bg-slate-300 dark:bg-slate-800 rounded-xl overflow-hidden shrink-0 relative group">
             <img :src="videoStore.metadata.thumbnail_url" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -52,7 +52,7 @@
     </Transition>
 
     <!-- Segment List & Scan Controls -->
-  <BentoCard class="p-6 flex-1 flex flex-col min-h-[300px]">
+  <BentoCard class="p-6 flex-1 flex flex-col min-h-[300px] !bg-amber-200 dark:!bg-amber-900/40">
       <div class="flex items-center justify-between mb-4 gap-2">
         <h3 class="text-lg font-black text-gray-900 dark:text-gray-100 tracking-wide flex items-center gap-2 whitespace-nowrap">
           <IconList class="w-5 h-5" /> Segmen

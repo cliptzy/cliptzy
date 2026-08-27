@@ -1,7 +1,7 @@
 <template>
   <div class="h-full flex flex-col max-w-7xl mx-auto w-full gap-6 pb-8 overflow-y-auto pr-2">
     <!-- Layout Grid Utama -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-4">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-2 pt-4">
       <!-- KOLOM 1: Profil, Akun Sosial & Penyimpanan -->
       <ProfileSection />
 

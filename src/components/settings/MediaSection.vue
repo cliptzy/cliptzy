@@ -1,7 +1,7 @@
 <template>
-  <div class="flex flex-col gap-6">
+  <div class="flex flex-col gap-2">
     <!-- Pengaturan Editing -->
-  <BentoCard class="p-6 flex flex-col gap-5">
+  <BentoCard class="p-6 flex flex-col gap-5 !bg-cyan-100 dark:!bg-cyan-900/40">
       <h2 class="text-lg font-black text-gray-900 dark:text-gray-100 tracking-wide flex items-center gap-2">
         <IconScissors class="w-5 h-5" /> Standar Pemotongan
       </h2>
@@ -9,29 +9,29 @@
         <div class="flex flex-col gap-2">
            <div class="flex justify-between items-center">
              <span class="text-xs font-bold text-gray-900 dark:text-gray-100">Durasi Minimal Klip</span>
-             <span class="text-xs font-black bg-white/60 dark:bg-black/30 px-3 py-1 rounded-full text-gray-900 dark:text-gray-100">{{ settings.config.min_duration }} Detik</span>
+             <span class="text-xs font-black bg-[var(--color-accent)] text-white px-3 py-1 rounded-full shadow-sm">{{ settings.config.min_duration }} Detik</span>
            </div>
-           <input type="range" min="10" max="600" step="10" v-model.number="settings.config.min_duration" class="w-full h-2 bg-gray-300 dark:bg-gray-800 rounded-lg appearance-none cursor-pointer mt-1" />
+           <input type="range" min="10" max="600" step="10" v-model.number="settings.config.min_duration" class="w-full h-2 bg-gray-300 dark:bg-gray-800 rounded-lg appearance-none cursor-pointer mt-1 accent-[var(--color-accent)]" />
         </div>
         <div class="flex flex-col gap-2 pt-2 border-t border-gray-300 dark:border-gray-800">
            <div class="flex justify-between items-center">
              <span class="text-xs font-bold text-gray-900 dark:text-gray-100">Padding Waktu Klip</span>
-             <span class="text-xs font-black bg-white/60 dark:bg-black/30 px-3 py-1 rounded-full text-gray-900 dark:text-gray-100">{{ settings.config.padding }} Detik</span>
+             <span class="text-xs font-black bg-[var(--color-accent)] text-white px-3 py-1 rounded-full shadow-sm">{{ settings.config.padding }} Detik</span>
            </div>
-           <input type="range" min="-10" max="30" step="1" v-model.number="settings.config.padding" class="w-full h-2 bg-gray-300 dark:bg-gray-800 rounded-lg appearance-none cursor-pointer mt-1" />
+           <input type="range" min="-10" max="30" step="1" v-model.number="settings.config.padding" class="w-full h-2 bg-gray-300 dark:bg-gray-800 rounded-lg appearance-none cursor-pointer mt-1 accent-[var(--color-accent)]" />
         </div>
       </div>
     </BentoCard>
 
     <!-- TTS Voice -->
-  <BentoCard class="p-6 flex flex-col gap-5">
+  <BentoCard class="p-6 flex flex-col gap-5 !bg-violet-100 dark:!bg-violet-900/40">
       <h2 class="text-lg font-black text-gray-900 dark:text-gray-100 tracking-wide flex items-center gap-2">
         <IconMic class="w-5 h-5" /> Text-to-Speech (AI Voice)
       </h2>
       <div class="grid grid-cols-2 gap-4">
         <div class="flex flex-col gap-2">
           <span class="text-[10px] text-gray-900 dark:text-gray-100 uppercase font-bold">Bahasa Utama</span>
-          <select v-model="settings.config.tts_language" class="w-full bg-white/60 dark:bg-black/30 border-none rounded-2xl p-3 text-sm font-bold text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors cursor-pointer">
+          <select v-model="settings.config.tts_language" class="w-full bg-white/60 dark:bg-black/30 border-none rounded-2xl p-3 text-sm font-bold text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] transition-colors cursor-pointer shadow-sm">
             <option value="default">Deteksi Otomatis</option>
             <option value="id">Indonesia</option>
             <option value="en">English</option>
@@ -39,7 +39,7 @@
         </div>
         <div class="flex flex-col gap-2">
           <span class="text-[10px] text-gray-900 dark:text-gray-100 uppercase font-bold">Karakter Suara</span>
-          <select v-model="settings.config.tts_voice" class="w-full bg-white/60 dark:bg-black/30 border-none rounded-2xl p-3 text-sm font-bold text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors cursor-pointer">
+          <select v-model="settings.config.tts_voice" class="w-full bg-white/60 dark:bg-black/30 border-none rounded-2xl p-3 text-sm font-bold text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] transition-colors cursor-pointer shadow-sm">
             <option value="female">Wanita</option>
             <option value="male">Pria</option>
           </select>
@@ -48,7 +48,7 @@
     </BentoCard>
 
     <!-- Aset Media (Intro/Outro/Watermark) -->
-  <BentoCard class="p-6 flex flex-col gap-5">
+  <BentoCard class="p-6 flex flex-col gap-5 !bg-emerald-100 dark:!bg-emerald-900/40">
       <h2 class="text-lg font-black text-gray-900 dark:text-gray-100 tracking-wide flex items-center gap-2">
         <IconImage class="w-5 h-5" /> Branding & Aset Dasar
       </h2>
@@ -66,7 +66,7 @@
             <IconTrash class="w-5 h-5 text-red-500 group-hover:text-white" />
           </button>
         </div>
-        
+
         <div class="flex items-center gap-2">
           <div @click="selectAsset('outro_video')" class="flex-1 flex items-center justify-between p-3 bg-white/50 dark:bg-black/30 rounded-2xl hover:bg-white dark:hover:bg-black/50 transition-colors cursor-pointer group shadow-sm">
             <div class="flex flex-col">
@@ -136,7 +136,7 @@ function clearAsset(type: 'intro_video' | 'outro_video' | 'watermark_image' | 'v
 async function selectAsset(type: 'intro_video' | 'outro_video' | 'watermark_image' | 'video_frame') {
   let title = '';
   let filters = [];
-  
+
   if (type === 'intro_video' || type === 'outro_video') {
     title = 'Pilih Video';
     filters = [{ name: 'Video', extensions: ['mp4', 'mov', 'mkv', 'avi', 'webm'] }];
@@ -155,7 +155,7 @@ async function selectAsset(type: 'intro_video' | 'outro_video' | 'watermark_imag
     if (selected && typeof selected === 'string') {
       const filename = selected.split(/[/\\]/).pop() || 'asset';
       const safeFilename = `${type}_${Date.now()}_${filename}`;
-      
+
       // Salin file ke app_data_dir/assets menggunakan Rust invoke
       const relPath = await invoke<string>('copy_asset_file', {
         sourcePath: selected,
@@ -164,7 +164,7 @@ async function selectAsset(type: 'intro_video' | 'outro_video' | 'watermark_imag
 
       if (relPath) {
         settings.config[type] = relPath;
-        
+
         // Simpan konfigurasi (jika sudah didukung via store/watcher, jika belum ini bisa berguna)
         appStore.addToast({
           type: 'success',
