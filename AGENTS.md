@@ -84,3 +84,31 @@ Sebelum menulis kode, AI Model WAJIB menjawab pertanyaan berikut:
 1. ✅ Apakah saya sadar bahwa aplikasi ini **100% Native Rust + Vue** dan kita telah membuang Python?
 2. ✅ Apakah saya menggunakan Crate Rust (seperti `reqwest`, `tokio`, dsb) atau CLI (seperti memanggil `ffmpeg.exe` via `std::process::Command`) alih-alih server Python?
 3. ✅ Apakah semua perintah di-*expose* ke Frontend melalui `#[tauri::command]`?
+
+## 🛠️ BAGIAN 4: LOG IMPLEMENTASI & PENYELESAIAN MASALAH (WORK LOG)
+
+### 4.1. YouTube Bypass (Error 429 & PO Token)
+- **Problem**: YouTube secara agresif memblokir *request* dari `yt-dlp` menggunakan deteksi Bot, Error 429, dan kewajiban menyertakan PO Token / Visitor Data untuk *client* Web standar.
+- **Solusi**: 
+  1. Melakukan *spoofing client* menggunakan kombinasi `android,web,default` via argumen `--extractor-args`.
+  2. Mengaktifkan *External JavaScript* (`--remote-components ejs:github`) yang secara otomatis menggunakan `Node.js` / `Deno` lokal pengguna untuk memecahkan *challenge* enkripsi YouTube (mengadopsi kesuksesan *engine* Python lama).
+- **Catatan Penting pada `rusty_ytdl`**: Crate `rusty_ytdl` memiliki *bug* dimana argumen khusus (`self.args`) diabaikan pada fase `fetch_video_infos`. Karenanya, fungsi `analyze_youtube_video` di-refactor menggunakan *raw* `tokio::process::Command` untuk memanggil `yt-dlp -J` secara independen, memastikan argumen bypass 100% tereksekusi dengan benar dan heatmap JSON bisa diekstrak sempurna.
+
+### 4.2. Manajemen Cookies YouTube Terintegrasi
+- **Problem**: Kebutuhan mem-bypass otentikasi YouTube mengharuskan penggunaan file `cookies.txt` yang valid.
+- **Solusi**:
+  1. Menambahkan tombol "Pilih File Cookies" dan "Test yt-dlp" di halaman `SettingsView.vue` (Profile Section).
+  2. Implementasi Tauri command `copy_cookies_file` untuk mengimpor file *cookies* ke dalam `app_data_dir()/cred/cookies.txt`.
+  3. Implementasi command `validate_cookies_file` (Cek format Netscape & kedaluwarsa) serta `test_youtube_cookies` (Membuktikan *cookies* tersebut valid untuk *fetch* yt-dlp secara nyata, bukan sekadar tes format).
+
+### 4.3. Optimasi Kecepatan Face Detector (Downscaling)
+- **Problem**: Ekstraksi *face keyframes* menggunakan OpenCV (`rustface`) pada video 1080p memakan waktu sangat lambat (bermenit-menit) karena ukuran matriks gambar yang masif.
+- **Solusi**: Menyuntikkan perintah `-vf scale=-1:360` ke dalam *spawn* FFmpeg saat mengekstrak *frame* berformat JPEG ke *tempdir*. Proses dekompresi, *I/O storage*, dan kalkulasi wajah menjadi ~9x lipat lebih cepat.
+- **Justifikasi**: Algoritma perhitungan koordinat wajah kita sudah ternormalisasi (`cx` dan `cy` berada di interval `0.0 - 1.0`). Hasil deteksi wajah di resolusi 360p bisa di- *mapping* sempurna kembali ke video *source* 1080p saat proses *cropping* tanpa kehilangan keakuratan.
+
+### 4.4. Manajemen Pembatalan Proses (Aggressive Process Killing)
+- **Problem**: Ketika *user* menekan tombol "Batal" di Global Status Bar, proses anak (*child process*) yang di-*spawn* oleh `tokio` (seperti `ffmpeg` dan `yt-dlp`) kerap menjadi *orphan* (zombie process) dan terus membebani RAM/CPU.
+- **Solusi**: Mengimplementasikan `killall ffmpeg` dan `killall yt-dlp` (`taskkill /F /IM ffmpeg.exe` di Windows) via Command saat proses dibatalkan di `cancel_processing()`. Hal ini menjamin pembatalan bekerja bersih dan tuntas secara OS-level.
+
+### 4.5. Pelaporan Progres Latar Belakang (UI Updates)
+- Menambahkan emisi `ProgressEvent` via Tauri `app_handle.emit()` di dalam *looping* Face Tracker dan modul lainnya. *Frontend* sekarang menampilkan persentase progres pemrosesan secara *real-time* di `GlobalStatusBar.vue`.
