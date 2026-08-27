@@ -56,7 +56,7 @@ pub async fn get_face_keyframes(
             "-i",
             video_path.to_str().unwrap(),
             "-vf",
-            &format!("fps={}", fps_str),
+            &format!("fps={},scale=-1:360", fps_str),
             frame_pattern.to_str().unwrap(),
         ])
         .spawn()
