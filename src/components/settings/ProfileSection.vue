@@ -1,11 +1,10 @@
 <template>
-  <div class="flex flex-col gap-2">
     <!-- Profil Sistem -->
-  <BentoCard class="p-6 flex flex-col gap-5 !bg-purple-200 dark:!bg-purple-900/40">
+  <BentoCard class="col-span-1 md:col-span-1 xl:col-span-1 row-span-1 h-full overflow-y-auto custom-scrollbar p-6 flex flex-col justify-between gap-2 !bg-purple-200 dark:!bg-purple-900/40">
       <h2 class="text-lg font-black text-gray-900 dark:text-gray-100 tracking-wide flex items-center gap-2">
         <IconUser class="w-5 h-5" /> Profil Sistem
       </h2>
-      <div class="flex items-center justify-between group">
+      <div class="flex items-center justify-between group mt-auto">
         <div class="flex items-center gap-4">
           <img v-if="auth.avatarUrl" :src="auth.avatarUrl" class="w-12 h-12 rounded-full border-2 border-white/50" />
           <div v-else class="w-12 h-12 rounded-full bg-gray-500/20 flex items-center justify-center text-gray-700 dark:text-gray-300 font-bold text-xl border-2 border-gray-200 dark:border-gray-800">
@@ -24,28 +23,28 @@
     </BentoCard>
 
     <!-- Sinkronisasi Cloud -->
-  <BentoCard class="p-6 flex flex-col gap-5">
+  <BentoCard class="col-span-1 md:col-span-1 xl:col-span-1 row-span-1 h-full overflow-y-auto custom-scrollbar p-6 flex flex-col justify-between gap-2">
       <h2 class="text-lg font-black text-gray-900 dark:text-gray-100 tracking-wide flex items-center gap-2">
         <IconCloud class="w-5 h-5" /> Sinkronisasi Cloud
       </h2>
-      <div class="flex gap-2">
+      <div class="flex gap-2 mt-auto">
         <button @click="backupConfig" :disabled="isSyncing" class="flex-1 py-3 px-3 rounded-2xl text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm bg-blue-600 text-white hover:bg-blue-700">
-          <IconUploadCloud class="w-4 h-4" /> {{ isSyncing ? 'Memproses...' : 'Backup Config' }}
+          <IconUploadCloud class="w-4 h-4" /> {{ isSyncing ? 'Memproses...' : 'Backup' }}
         </button>
         <button @click="restoreConfig" :disabled="isSyncing" class="flex-1 py-3 px-3 bg-white/60 dark:bg-black/30 text-gray-900 dark:text-gray-100 hover:bg-white dark:hover:bg-black/50 rounded-2xl text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm">
-          <IconDownloadCloud class="w-4 h-4" /> Restore Config
+          <IconDownloadCloud class="w-4 h-4" /> Restore
         </button>
       </div>
     </BentoCard>
 
     <!-- Akun Sosial -->
-  <BentoCard class="p-6 flex flex-col gap-5">
-      <h2 class="text-lg font-black text-gray-900 dark:text-gray-100 tracking-wide flex items-center gap-2">
+  <BentoCard class="col-span-1 md:col-span-2 xl:col-span-2 row-span-2 h-full overflow-y-auto custom-scrollbar p-6 flex flex-col gap-5">
+      <h2 class="text-lg font-black text-gray-900 dark:text-gray-100 tracking-wide flex items-center gap-2 shrink-0">
         <IconLink class="w-5 h-5" /> Akun Sosial
       </h2>
       <div class="flex flex-col gap-3">
         <!-- YouTube -->
-        <div class="flex flex-col p-4 bg-white/60 dark:bg-black/30 rounded-2xl transition-colors shadow-sm">
+        <div class="flex flex-col p-4 bg-white/60 dark:bg-black/30 rounded-2xl transition-colors shadow-sm shrink-0">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
               <div class="w-10 h-10 rounded-full bg-red-100 dark:bg-red-500/20 flex items-center justify-center"><IconYoutube class="w-5 h-5 text-red-500" /></div>
@@ -77,7 +76,7 @@
         </div>
 
         <!-- TikTok -->
-        <div class="flex items-center justify-between p-4 bg-white/60 dark:bg-black/30 rounded-2xl transition-colors shadow-sm">
+        <div class="flex items-center justify-between p-4 bg-white/60 dark:bg-black/30 rounded-2xl transition-colors shadow-sm shrink-0">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-full bg-black text-white dark:bg-white dark:text-black shadow-sm flex items-center justify-center"><IconTiktok class="w-5 h-5" /></div>
             <div class="flex flex-col"><span class="font-bold text-gray-900 dark:text-gray-100 text-sm">TikTok</span><span class="text-[10px] text-gray-700 dark:text-gray-300 font-bold">Perlu Login</span></div>
@@ -86,7 +85,7 @@
         </div>
 
         <!-- Default Tags Input -->
-        <div class="flex flex-col gap-2 mt-2">
+        <div class="flex flex-col gap-2 mt-2 shrink-0">
           <span class="text-[10px] text-gray-900 dark:text-gray-100 uppercase font-bold">Default Hashtags</span>
 
           <div class="flex flex-wrap gap-1.5" v-if="parsedHashtags.length > 0">
@@ -110,31 +109,30 @@
     </BentoCard>
 
     <!-- Penyimpanan -->
-  <BentoCard class="p-6 flex flex-col gap-5 relative">
-      <h2 class="text-lg font-black text-gray-900 dark:text-gray-100 tracking-wide flex items-center gap-2">
+  <BentoCard class="col-span-1 md:col-span-1 xl:col-span-1 row-span-1 h-full overflow-y-auto custom-scrollbar p-6 flex flex-col justify-between gap-5 relative">
+      <h2 class="text-lg font-black text-gray-900 dark:text-gray-100 tracking-wide flex items-center gap-2 shrink-0">
         <IconHardDrive class="w-5 h-5" /> Penyimpanan
       </h2>
 
-      <div class="flex flex-col items-center relative">
+      <div class="flex flex-col items-center justify-center relative mt-auto mb-auto">
         <div v-if="isCalculatingSize" class="absolute inset-0 bg-gray-100/50 dark:bg-gray-900/50 flex items-center justify-center rounded-2xl backdrop-blur-sm z-10">
           <span class="text-xs font-bold text-gray-700 dark:text-gray-300 animate-pulse">Menghitung...</span>
         </div>
-        <div class="relative w-32 h-32 flex items-center justify-center">
+        <div class="relative w-24 h-24 flex items-center justify-center mb-4">
           <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
             <circle cx="50" cy="50" r="40" stroke="rgba(0,0,0,0.05)" stroke-width="8" fill="none" />
             <circle cx="50" cy="50" r="40" stroke="#ca8a04" stroke-width="8" fill="none" stroke-linecap="round" stroke-dasharray="251.2" :stroke-dashoffset="calculateDashOffset()" class="transition-all duration-1000 ease-out" />
           </svg>
           <div class="absolute inset-0 flex flex-col items-center justify-center">
             <span class="text-xl font-black text-gray-900 dark:text-gray-100">{{ outputSize.toFixed(2) }}</span>
-            <span class="text-[10px] text-gray-700 dark:text-gray-300 font-bold">GB Terpakai</span>
+            <span class="text-[10px] text-gray-700 dark:text-gray-300 font-bold">GB</span>
           </div>
         </div>
-        <button @click="clearCache" :disabled="isClearing" class="mt-6 w-full py-3 rounded-full text-red-600 bg-red-100 dark:bg-red-900/30 dark:text-red-400 text-xs font-bold hover:bg-red-500 hover:text-white dark:hover:bg-red-500 dark:hover:text-white transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
-          <IconTrash2 class="w-4 h-4" /> {{ isClearing ? 'Membersihkan...' : 'Bersihkan Folder Output' }}
+        <button @click="clearCache" :disabled="isClearing" class="w-full py-3 rounded-full text-red-600 bg-red-100 dark:bg-red-900/30 dark:text-red-400 text-xs font-bold hover:bg-red-500 hover:text-white dark:hover:bg-red-500 dark:hover:text-white transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shrink-0">
+          <IconTrash2 class="w-4 h-4" /> {{ isClearing ? 'Membersihkan...' : 'Bersihkan Cache' }}
         </button>
       </div>
     </BentoCard>
-  </div>
 </template>
 
 <script setup lang="ts">
