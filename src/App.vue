@@ -22,9 +22,11 @@ const specs = ref<SystemSpecs | null>(null);
 
 onMounted(async () => {
     try {
+        const settingsStore = (await import('./stores/settings')).useSettingsStore();
+        await settingsStore.loadFromBackend();
         specs.value = await invoke<SystemSpecs>("check_system_specs");
     } catch (error) {
-        console.error("Failed to get system specs:", error);
+        console.error("Failed to get system specs or settings:", error);
     }
 });
 

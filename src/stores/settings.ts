@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia';
-import { useStorage } from '@vueuse/core';
-import { watch } from 'vue';
+import { ref, watch } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
 
 export interface SubtitleConfig {
@@ -214,9 +213,22 @@ const defaultSettings: AppConfig = {
 import { useAppStore } from './app';
 
 export const useSettingsStore = defineStore('settings', () => {
-  const config = useStorage<AppConfig>('cliptzy-settings', defaultSettings);
+  const config = ref<AppConfig>(defaultSettings);
+  const isLoaded = ref(false);
   const appStore = useAppStore();
   
+  const loadFromBackend = async () => {
+    try {
+      const json = await invoke<string>('load_config_file');
+      config.value = JSON.parse(json) as AppConfig;
+    } catch (e) {
+      console.error("Failed to load config from backend, using defaults:", e);
+      config.value = defaultSettings;
+    } finally {
+      isLoaded.value = true;
+    }
+  };
+
   const toDict = () => {
     return JSON.parse(JSON.stringify(config.value));
   };
@@ -239,8 +251,10 @@ export const useSettingsStore = defineStore('settings', () => {
   };
 
   let debounceTimer: any = null;
-  // Watch for changes and sync to Rust backend
+  // Watch for changes and sync to Rust backend ONLY if initial load is done
   watch(() => config.value, (newConfig) => {
+    if (!isLoaded.value) return; // Jangan save config default saat aplikasi baru start
+
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(async () => {
       try {
@@ -265,6 +279,8 @@ export const useSettingsStore = defineStore('settings', () => {
 
   return { 
     config, 
+    isLoaded,
+    loadFromBackend,
     toDict,
     setRatioPreset 
   };

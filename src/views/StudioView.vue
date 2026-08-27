@@ -60,16 +60,32 @@ const handleScanHeatmap = async () => {
 
 const handleScanAI = async () => {
   if (!videoStore.metadata) return;
-  // This would call the AI endpoint in backend
   videoStore.isScanningAI = true;
-  // Simulate AI scan delay
-  setTimeout(() => {
-    videoStore.metadata!.ai_segments = [
-      { start: 10.5, end: 45.2, reason: 'Pengenalan topik utama dengan nada emosional tinggi', selectedForRender: true },
-      { start: 120.0, end: 180.5, reason: 'Klimaks perdebatan atau poin paling kontroversial', selectedForRender: true },
-      { start: 300.0, end: 345.0, reason: 'Kesimpulan dan CTA yang kuat', selectedForRender: true }
-    ];
+  
+  try {
+    const settingsStore = (await import('../stores/settings')).useSettingsStore();
+    const browserName = settingsStore.config?.browser || null;
+    
+    // Panggil real AI backend endpoint
+    const result: any = await invoke('scan_video', { 
+      url: videoUrl.value, 
+      cookiesPath: browserName,
+      // parameter mode 'ai' diperlukan oleh Rust jika itu opsi scan yang berbeda
+      // namun fungsi ini diasumsikan tetap memanggil logic scanning (ditambahkan di backend nanti)
+    });
+    
+    if (result && result.segments) {
+      videoStore.metadata.ai_segments = result.segments.map((s: any) => ({ ...s, selectedForRender: true }));
+    }
+  } catch (err: any) {
+    const appStore = (await import('../stores/app')).useAppStore();
+    appStore.addToast({
+      title: 'AI Scan Gagal',
+      message: String(err),
+      type: 'error'
+    });
+  } finally {
     videoStore.isScanningAI = false;
-  }, 3000);
+  }
 };
 </script>

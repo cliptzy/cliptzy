@@ -17,7 +17,9 @@ fn main() {
 
     if loaded {
         for (key, value) in std::env::vars() {
-            println!("cargo:rustc-env={}={}", key, value);
+            if key.starts_with("SUPABASE_") {
+                println!("cargo:rustc-env={}={}", key, value);
+            }
         }
     }
 
