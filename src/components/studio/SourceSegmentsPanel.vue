@@ -258,7 +258,12 @@
                                     class="w-4 h-4 border-2 border-gray-500 rounded peer-checked:bg-gray-200 dark:bg-gray-800 peer-checked:border-[var(--color-accent)] transition-all flex items-center justify-center"
                                 >
                                     <IconCheck
-                                        class="w-3 h-3 text-[var(--color-text-main)] opacity-0 peer-checked:opacity-100"
+                                        :class="
+                                            segment.selectedForRender
+                                                ? 'opacity-100'
+                                                : 'opacity-0'
+                                        "
+                                        class="w-3 h-3 text-black"
                                     />
                                 </div>
                             </label>
@@ -337,64 +342,18 @@
                             Toggle Select All
                         </button>
                     </div>
-                    <div
+                    <ScanResultCard
                         v-for="(segment, idx) in videoStore.metadata.segments"
                         :key="idx"
-                        @click="
+                        :segment="segment"
+                        :index="idx"
+                        type="heatmap"
+                        :active="videoStore.selectedSegment === segment"
+                        @select="
                             videoStore.currentTime = segment.start;
                             videoStore.selectedSegment = segment;
                         "
-                        class="flex items-start gap-3 p-3 rounded-lg border border-[var(--color-subtle)] bg-black/20 hover:bg-black/40 cursor-pointer group transition-colors"
-                    >
-                        <div class="pt-0.5">
-                            <label
-                                class="relative w-4 h-4 block cursor-pointer"
-                                @click.stop
-                            >
-                                <input
-                                    type="checkbox"
-                                    v-model="segment.selectedForRender"
-                                    class="peer sr-only"
-                                />
-                                <div
-                                    class="w-4 h-4 border-2 border-gray-500 rounded peer-checked:bg-gray-200 dark:bg-gray-800 peer-checked:border-[var(--color-accent)] transition-all flex items-center justify-center"
-                                >
-                                    <IconCheck
-                                        class="w-3 h-3 text-[var(--color-text-main)] opacity-0 peer-checked:opacity-100"
-                                    />
-                                </div>
-                            </label>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <div class="flex justify-between items-center mb-1">
-                                <span
-                                    class="text-xs font-bold text-[var(--color-text-main)] group-hover:text-[var(--color-text-main)] transition-colors"
-                                    >Klip #{{ idx + 1 }}</span
-                                >
-                                <span
-                                    class="text-[10px] font-mono text-[var(--color-text-muted)] bg-white/5 px-1.5 rounded border border-white/10"
-                                >
-                                    {{ formatDuration(segment.start) }} -
-                                    {{ formatDuration(segment.end) }}
-                                </span>
-                            </div>
-                            <div class="flex justify-between items-center">
-                                <span
-                                    class="text-[10px] text-[var(--color-text-muted)]"
-                                    >Durasi:
-                                    {{
-                                        Math.round(segment.end - segment.start)
-                                    }}s</span
-                                >
-                                <div class="flex items-center gap-1">
-                                    <ProgressBar
-                                        class="w-16"
-                                        :progress="(segment.score || 0.5) * 100"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    />
                 </div>
             </div>
         </BentoCard>
@@ -407,6 +366,7 @@ import { useVideoStore } from "../../stores/video";
 import BentoCard from "../BentoCard.vue";
 import GlowButton from "../GlowButton.vue";
 import ProgressBar from "../ProgressBar.vue";
+import ScanResultCard from "./ScanResultCard.vue";
 
 // Icons
 import IconYoutube from "~icons/lucide/youtube";
