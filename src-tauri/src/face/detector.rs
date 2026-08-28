@@ -2,7 +2,7 @@ use rustface::{Detector, FaceInfo};
 use std::path::Path;
 
 pub struct FaceDetectorWrapper {
-    detector: Box<dyn Detector>,
+    detector: Box<dyn rustface::Detector>,
 }
 
 unsafe impl Send for FaceDetectorWrapper {}
@@ -18,15 +18,16 @@ impl FaceDetectorWrapper {
             .map_err(|e| format!("Failed to create face detector: {:?}", e))?;
 
         detector.set_min_face_size(40);
-        detector.set_score_thresh(2.0);
+        detector.set_score_thresh(3.5);
         detector.set_pyramid_scale_factor(0.8);
         detector.set_slide_window_step(4, 4);
 
         Ok(Self { detector })
     }
 
-    pub fn detect_faces(&mut self, image_data: &[u8], width: u32, height: u32) -> Vec<FaceInfo> {
+    pub fn detect_faces(&mut self, image_data: &[u8], width: u32, height: u32) -> Vec<rustface::FaceInfo> {
         let mut img = rustface::ImageData::new(image_data, width, height);
         self.detector.detect(&mut img)
     }
 }
+

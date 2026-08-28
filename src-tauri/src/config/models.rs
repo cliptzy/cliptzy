@@ -86,7 +86,7 @@ pub struct AppConfig {
     pub min_duration: u32,
     pub min_score: f64,
     pub max_clips: u32,
-    pub padding: u32,
+    pub padding: i32,
     pub top_height: u32,
     pub bottom_height: u32,
 

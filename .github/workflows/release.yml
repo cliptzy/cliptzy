@@ -15,13 +15,13 @@ jobs:
       matrix:
         include:
           - platform: 'macos-latest'
-            args: '--target aarch64-apple-darwin'
+            args: '--target aarch64-apple-darwin --no-default-features --features gpu-metal'
           - platform: 'macos-latest'
-            args: '--target x86_64-apple-darwin'
+            args: '--target x86_64-apple-darwin --no-default-features --features gpu-metal'
           - platform: 'ubuntu-22.04'
-            args: ''
+            args: '--no-default-features --features gpu-vulkan'
           - platform: 'windows-latest'
-            args: ''
+            args: '--no-default-features --features gpu-vulkan'
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -38,6 +38,13 @@ jobs:
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+
+      - name: Install Vulkan SDK
+        if: matrix.platform == 'ubuntu-22.04' || matrix.platform == 'windows-latest'
+        uses: humbletim/install-vulkan-sdk@v1.1.1
+        with:
+          version: latest
+          cache: true
 
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable

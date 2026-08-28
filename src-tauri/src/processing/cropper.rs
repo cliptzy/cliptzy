@@ -318,11 +318,98 @@ impl CropStrategy for FullFaceCrop {
     }
 }
 
+pub struct CenterFaceCrop;
+
+impl CropStrategy for CenterFaceCrop {
+    fn name(&self) -> &str {
+        "center_face"
+    }
+
+    fn build_command(
+        &self,
+        input: &Path,
+        output: &Path,
+        output_config: &OutputConfig,
+        keyframes: Option<&[FaceKeyframe]>,
+    ) -> Result<FFmpegBuilder, CliptzyError> {
+        let mut graph = FilterGraph::new();
+
+        let scale = FilterNode::new("scale")
+            .param(
+                "w",
+                &format!(
+                    "'max(iw*{}/ih,{})'",
+                    output_config.height, output_config.width
+                ),
+            )
+            .param(
+                "h",
+                &format!(
+                    "'max(ih*{}/iw,{})'",
+                    output_config.width, output_config.height
+                ),
+            )
+            .inputs(&["0:v"])
+            .outputs(&["scaled"]);
+
+        let x_offset = if let Some(kfs) = keyframes {
+            generate_dynamic_crop_expr(kfs, "x", output_config.width, output_config.height)
+        } else {
+            format!(
+                "max(0\\,min(iw*0.5-({}/2)\\,iw-{}))",
+                output_config.width, output_config.width
+            )
+        };
+
+        // Y offset can just be center, or we can use the tracking if we want.
+        // For shorts, the video is scaled to match height, so `ih` will be equal to `output_config.height`,
+        // meaning Y offset will practically be 0 anyway.
+        let y_offset = format!(
+            "max(0\\,min(ih*0.5-({}/2)\\,ih-{}))",
+            output_config.height, output_config.height
+        );
+
+        let crop = FilterNode::new("crop")
+            .param("w", &output_config.width.to_string())
+            .param("h", &output_config.height.to_string())
+            .param("x", &x_offset)
+            .param("y", &y_offset)
+            .inputs(&["scaled"])
+            .outputs(&["outv"]);
+
+        graph.add_node(scale);
+        graph.add_node(crop);
+
+        let hw_accel = &output_config.hw_accel;
+
+        let mut builder = FFmpegBuilder::new().map_err(|e| CliptzyError::FFmpeg {
+            code: -1,
+            message: format!("FFmpeg builder error: {}", e),
+        })?;
+
+        builder = builder
+            .input_path(input.to_path_buf())
+            .filter_complex(graph.to_string())
+            .raw_args(vec![
+                "-map".to_string(),
+                "[outv]".to_string(),
+                "-map".to_string(),
+                "0:a?".to_string(),
+            ])
+            .raw_args(hw_accel.encode_args())
+            .raw_args(vec!["-c:a".to_string(), "aac".to_string()])
+            .output_path(output.to_path_buf());
+
+        Ok(builder)
+    }
+}
+
 pub fn create_crop_strategy(mode: &str) -> Box<dyn CropStrategy> {
     match mode {
         "default" => Box::new(DefaultCrop),
         "full" => Box::new(FullCrop),
         "full_face" => Box::new(FullFaceCrop),
+        "center_face" => Box::new(CenterFaceCrop),
         _ => Box::new(DefaultCrop),
     }
 }

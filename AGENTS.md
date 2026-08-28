@@ -143,3 +143,30 @@ Sebelum menulis kode, AI Model WAJIB menjawab pertanyaan berikut:
 - **Solusi**: Menyuntikkan limitasi ukuran secara proaktif di `HwAccel::encode_args()` pada `hwaccel.rs`.
   - Untuk *CPU Encoder* (`libx264`): Menggunakan `-crf 26` dipadukan dengan limitasi maksimum `-maxrate 4000k` dan `-bufsize 8000k`.
   - Untuk *Hardware Encoder* (NVENC, QSV, AMF): Secara paksa menggunakan target `-b:v 3000k` dengan `-maxrate 4000k`. Ini akan menekan ukuran file tetap kecil (cocok untuk distribusi Shorts/Reels) tanpa kompromi kualitas yang tampak.
+
+### 4.12. Penyatuan Sistem Warna Teks (Dual Theme)
+- **Problem**: Warna teks sering menyatu dengan *background* (tidak kontras) karena penggunaan kelas Tailwind yang di-*hardcode* secara statis (seperti `text-gray-900` dan `dark:text-white`) di puluhan komponen Vue.
+- **Solusi**: Mengganti seluruh kelas *hardcoded* dengan CSS variable semantik (`text-[var(--color-text-main)]` dan `text-[var(--color-text-muted)]`) menggunakan *script* Node otomatis. Ini menjamin kontras warna yang nyaman untuk dilihat (*Spatial Bento Box*) baik di mode Light Pastel maupun Slate Dark secara dinamis.
+
+### 4.13. Standarisasi Komponen Primitif UI (Menolak Nuxt UI)
+- **Problem**: Ketidakkonsistenan elemen antarmuka mentah (seperti *hover scale* pada tombol yang berbeda-beda) memicu wacana untuk bermigrasi secara masif ke *framework* eksternal seperti Nuxt UI yang akan mencederai *ground rules* (tanpa *library* tambahan).
+- **Solusi**: 
+  1. Membuat komponen **`BaseButton.vue`** yang kokoh dengan dukungan *loading state*, *variants* (primary, secondary, danger, ghost), dan transisi *scale hover* yang seragam.
+  2. Mendaftarkan `BaseButton`, `SpatialInput`, dan `RangeSlider` secara global di `main.ts` agar bisa dipakai tanpa instruksi impor berulang.
+  3. Memperbaiki *hardcoded background* pada `SpatialInput.vue` dan `RangeSlider.vue` agar mematuhi aturan *Dual Theme*.
+
+### 4.14. Ekstraksi Komponen ScanResultCard & Perbaikan peer-checked
+- **Problem**: 
+  1. Kode iterasi daftar hasil *scan* (AI & Heatmap) berulang (*duplicate*) secara panjang lebar di `SourceSegmentsPanel.vue`.
+  2. Implementasi gaya Tailwind `peer-checked:opacity-100` gagal menargetkan elemen `<IconCheck>` karena spesifikasi hierarki penyeleksi turunan saudara (*descendant of a sibling*) di Tailwind yang kaku.
+- **Solusi**: Mengabstraksi keseluruhan baris menjadi komponen `ScanResultCard.vue` dan menggunakan reaktivitas *state* Vue (`:class`) ketimbang CSS *pseudo-selectors*, membuat panel sumber segmen jauh lebih pendek dan elegan.
+
+### 4.15. Perbaikan Dinamis Padding & Minimal Durasi Klip
+- **Problem**: Pengaturan padding dan durasi minimum di UI tidak mengubah hasil akhir klip karena segmen dipotong secara statis mengikuti data analisis awal (heatmap). Terjadi bug pada padding bernilai negatif akibat definisi variabel Rust bertipe `u32`.
+- **Solusi**: Mengubah tipe `padding` menjadi `i32` di `models.rs`, dan mengimplementasikan injeksi ulang perhitungan `start`/`end` langsung pada `ClipVideoUseCase::execute`. Sistem sekarang secara otomatis memekarkan klip (*deficit allocation*) beserta penjagaan batas (*underflow shifting*) ke ujung lawannya jika titik potong awal melampaui detik `0.0`.
+
+### 4.16. Penyelamatan Kompilasi GitHub Actions & Pemendekan Path Windows
+- **Problem**: Path kompilasi `whisper-rs-sys` pada OS Windows melampaui limit *MAX_PATH* (260 karakter), dan setelan *default feature* Vulkan menyebabkan kegagalan build otomatis pada *runner* Mac/Ubuntu yang tidak menginstal Vulkan SDK.
+- **Solusi**: 
+  1. Menerapkan pengalihan `target-dir = "../t"` pada *local cache* khusus lingkungan Windows.
+  2. Modifikasi `release.yml` GitHub Actions untuk menghilangkan *default features* secara global, lalu mem-*passing* argumen spesifik `--features gpu-metal` khusus macOS dan menginjeksi dependensi GitHub Action `humbletim/install-vulkan-sdk` agar *runner* Windows/Ubuntu dapat meng- *compile* *shader* Vulkan secara mulus demi 100% stabilitas rilis distribusi.

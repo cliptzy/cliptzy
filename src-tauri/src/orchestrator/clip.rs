@@ -34,7 +34,27 @@ impl ClipVideoUseCase {
         Self { ctx }
     }
 
-    pub async fn execute(&mut self, payload: ClipPayload) -> Result<ClipResult, CliptzyError> {
+    pub async fn execute(&mut self, mut payload: ClipPayload) -> Result<ClipResult, CliptzyError> {
+        // Apply global min_duration & padding dynamically
+        let min_dur = self.ctx.config.min_duration as f64;
+        let padding = self.ctx.config.padding as f64;
+
+        let duration = payload.end - payload.start;
+        if duration > 0.0 && duration < min_dur {
+            let deficit = min_dur - duration;
+            payload.start -= deficit / 2.0;
+            payload.end += deficit / 2.0;
+        }
+
+        payload.start -= padding;
+        payload.end += padding;
+
+        if payload.start < 0.0 {
+            let underflow = 0.0 - payload.start;
+            payload.start = 0.0;
+            payload.end += underflow;
+        }
+
         let job_dir = &self.ctx.job_dir;
         std::fs::create_dir_all(job_dir)?;
 
@@ -97,7 +117,7 @@ impl ClipVideoUseCase {
         );
 
         let mut keyframes = None;
-        if payload.crop_mode == "full_face" {
+        if payload.crop_mode == "full_face" || payload.crop_mode == "center_face" {
             emit_progress(
                 &self.ctx.app_handle,
                 &ProgressEvent {
@@ -109,7 +129,15 @@ impl ClipVideoUseCase {
                 },
             );
             let tracking_mode = self.ctx.config.face_tracking_mode.clone();
-            match crate::face::tracker::get_face_keyframes(&source_video, 1.0, tracking_mode, Some(self.ctx.app_handle.clone()), self.ctx.cancel_token.clone()).await {
+            match crate::face::tracker::get_face_keyframes(
+                &source_video,
+                1.0,
+                tracking_mode,
+                Some(self.ctx.app_handle.clone()),
+                self.ctx.cancel_token.clone(),
+            )
+            .await
+            {
                 Ok(kfs) => keyframes = Some(kfs),
                 Err(e) => {
                     tracing::warn!("Face tracking failed: {}. Fallback to center.", e);
@@ -118,38 +146,46 @@ impl ClipVideoUseCase {
         }
 
         let cropper = create_crop_strategy(&payload.crop_mode);
-        let hw_accel = crate::processing::ffmpeg::hwaccel::HwAccel::detect(Some(&self.ctx.config.hw_accel));
+        let hw_accel =
+            crate::processing::ffmpeg::hwaccel::HwAccel::detect(Some(&self.ctx.config.hw_accel));
         let out_config = OutputConfig {
             hw_accel: hw_accel.clone(),
             ..OutputConfig::default()
         };
         let total_duration = payload.end - payload.start;
         let handle_clone = self.ctx.app_handle.clone();
-        
-        let crop_cmd = cropper.build_command(
-            &source_video,
-            &cropped_video,
-            &out_config,
-            keyframes.as_deref(),
-        )?.on_progress(move |prog| {
-            if let Some(time) = prog.time {
-                let current_sec = time.as_secs_f64();
-                if total_duration > 0.0 {
-                    let mut pct = (current_sec / total_duration) * 100.0;
-                    if pct > 99.9 { pct = 99.9; }
-                    emit_progress(
-                        &handle_clone,
-                        &ProgressEvent {
-                            stage: "crop".into(),
-                            label: format!("Memotong & menyesuaikan rasio video... ({:.1}%)", pct),
-                            current: pct as u32,
-                            total: 100,
-                            detail: None,
+
+        let crop_cmd = cropper
+            .build_command(
+                &source_video,
+                &cropped_video,
+                &out_config,
+                keyframes.as_deref(),
+            )?
+            .on_progress(move |prog| {
+                if let Some(time) = prog.time {
+                    let current_sec = time.as_secs_f64();
+                    if total_duration > 0.0 {
+                        let mut pct = (current_sec / total_duration) * 100.0;
+                        if pct > 99.9 {
+                            pct = 99.9;
                         }
-                    );
+                        emit_progress(
+                            &handle_clone,
+                            &ProgressEvent {
+                                stage: "crop".into(),
+                                label: format!(
+                                    "Memotong & menyesuaikan rasio video... ({:.1}%)",
+                                    pct
+                                ),
+                                current: pct as u32,
+                                total: 100,
+                                detail: None,
+                            },
+                        );
+                    }
                 }
-            }
-        });
+            });
 
         let crop_process = crop_cmd.spawn().await.map_err(|e| CliptzyError::FFmpeg {
             code: -1,
@@ -200,7 +236,7 @@ impl ClipVideoUseCase {
                         detail: None,
                     },
                 );
-                
+
                 let audio_wav = job_dir.join(format!("audio_16k_{}.wav", idx));
                 let duration = payload.end - payload.start;
                 crate::transcription::audio::extract_audio_segment(
@@ -233,7 +269,7 @@ impl ClipVideoUseCase {
                     crate::transcription::whisper::ensure_model_exists(&whisper_model).await?;
                 let transcriber =
                     crate::transcription::whisper::WhisperTranscriber::new(&model_path)?;
-                    
+
                 emit_progress(
                     &self.ctx.app_handle,
                     &ProgressEvent {
@@ -322,7 +358,7 @@ impl ClipVideoUseCase {
                     detail: None,
                 },
             );
-            
+
             let subbed_video = job_dir.join(format!("subbed_{}.mp4", idx));
             let burn_config = crate::processing::burner::VideoBurnerConfig {
                 ass_path: ass_path_opt,

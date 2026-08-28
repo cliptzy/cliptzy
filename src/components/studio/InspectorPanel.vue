@@ -29,6 +29,13 @@
             <span class="text-sm font-bold transition-colors" :class="settings.config.crop_mode === 'default' ? 'text-[var(--color-text-main)] ' : 'text-[var(--color-text-muted)] '">Center Crop (Default)</span>
           </label>
           <label class="flex items-center gap-3 cursor-pointer group">
+            <input type="radio" name="cropMode" value="center_face" v-model="settings.config.crop_mode" class="hidden" />
+            <div class="w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors" :class="settings.config.crop_mode === 'center_face' ? 'border-gray-700 dark:border-gray-400' : 'border-gray-400 dark:border-gray-700'">
+              <div v-show="settings.config.crop_mode === 'center_face'" class="w-2 h-2 rounded-full bg-gray-700 dark:bg-gray-400"></div>
+            </div>
+            <span class="text-sm font-bold transition-colors" :class="settings.config.crop_mode === 'center_face' ? 'text-[var(--color-text-main)] ' : 'text-[var(--color-text-muted)] '">Center Face (Track)</span>
+          </label>
+          <label class="flex items-center gap-3 cursor-pointer group">
             <input type="radio" name="cropMode" value="full" v-model="settings.config.crop_mode" class="hidden" />
             <div class="w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors" :class="settings.config.crop_mode === 'full' ? 'border-gray-700 dark:border-gray-400' : 'border-gray-400 dark:border-gray-700'">
               <div v-show="settings.config.crop_mode === 'full'" class="w-2 h-2 rounded-full bg-gray-700 dark:bg-gray-400"></div>
