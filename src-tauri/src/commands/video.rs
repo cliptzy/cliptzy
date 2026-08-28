@@ -21,6 +21,7 @@ pub async fn clip_video(
     app: tauri::AppHandle,
     payload: ClipPayload,
 ) -> Result<ClipResult, CliptzyError> {
+    tracing::info!("Menerima permintaan clip_video untuk Video ID: {}", payload.video_id);
     let cancel_token = CancellationToken::new();
     let (progress_tx, _) = tokio::sync::broadcast::channel(100);
 

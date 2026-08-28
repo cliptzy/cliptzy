@@ -36,6 +36,7 @@ pub fn setup_env() {
 
 #[tauri::command]
 pub async fn check_dependencies() -> Result<DependencyStatus, CliptzyError> {
+    tracing::debug!("Memeriksa dependensi sistem (FFmpeg & Deno)");
     let app_dir = crate::paths::app_data_dir();
     let bin_dir = app_dir.join("bin");
 
@@ -56,6 +57,7 @@ pub async fn check_dependencies() -> Result<DependencyStatus, CliptzyError> {
     let mut deno_version = "Tidak terpasang".to_string();
 
     if ffmpeg_bin.exists() {
+        tracing::debug!("Ditemukan binary FFmpeg di {:?}", ffmpeg_bin);
         if let Ok(output) = tokio::process::Command::new(&ffmpeg_bin)
             .arg("-version")
             .output()
@@ -75,11 +77,15 @@ pub async fn check_dependencies() -> Result<DependencyStatus, CliptzyError> {
                 } else {
                     ffmpeg_version = "Terpasang (Versi tidak diketahui)".to_string();
                 }
+                tracing::info!("FFmpeg terdeteksi: {}", ffmpeg_version);
             }
         }
+    } else {
+        tracing::warn!("Binary FFmpeg tidak ditemukan.");
     }
 
     if deno_bin.exists() {
+        tracing::debug!("Ditemukan binary Deno di {:?}", deno_bin);
         if let Ok(output) = tokio::process::Command::new(&deno_bin)
             .arg("--version")
             .output()
@@ -93,8 +99,11 @@ pub async fn check_dependencies() -> Result<DependencyStatus, CliptzyError> {
                 } else {
                     deno_version = "Terpasang".to_string();
                 }
+                tracing::info!("Deno terdeteksi: {}", deno_version);
             }
         }
+    } else {
+        tracing::warn!("Binary Deno tidak ditemukan.");
     }
 
     Ok(DependencyStatus {
@@ -107,11 +116,14 @@ pub async fn check_dependencies() -> Result<DependencyStatus, CliptzyError> {
 
 #[tauri::command]
 pub async fn install_dependencies(app: AppHandle) -> Result<(), CliptzyError> {
+    tracing::info!("Memulai proses instalasi dependensi...");
     let app_dir = crate::paths::app_data_dir();
     let bin_dir = app_dir.join("bin");
     std::fs::create_dir_all(&bin_dir)?;
+    tracing::debug!("Direktori bin diatur ke {:?}", bin_dir);
 
     let emit_progress = |step: &str, progress: f32| {
+        tracing::info!("Progres Instalasi: {} ({}%)", step, progress);
         let _ = app.emit(
             "deps-progress",
             DependencyProgress {

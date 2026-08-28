@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(default)]
 pub struct SubtitleConfig {
+    pub enabled: bool,
     pub whisper_model: String,
     pub font: String,
     pub fonts_dir: Option<String>,
@@ -30,14 +31,41 @@ pub struct AIConfig {
     pub openai_base_url: String,
     pub use_highlight: bool,
     pub use_generate_intro: bool,
+    pub use_emotion_detection: bool,
+    pub use_voice_analysis: bool,
+    pub use_audio_analysis: bool,
+    pub use_text_analysis: bool,
+    pub use_add_meme: bool,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(default)]
-pub struct PlatformConfig {
+pub struct YoutubeConfig {
+    pub upload: bool,
+    pub session: Option<String>,
+    pub client_id: String,
+    pub client_secret: String,
+    pub visibility: String,
+    pub auto_upload: bool,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(default)]
+pub struct TikTokConfig {
+    pub upload: bool,
+    pub session: Option<String>,
+    pub privacy: String,
+    pub auto_upload: bool,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(default)]
+pub struct InstagramConfig {
+    pub upload: bool,
+    pub business_id: String,
+    pub access_token: String,
     pub session: Option<String>,
     pub auto_upload: bool,
-    pub visibility: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -90,9 +118,9 @@ pub struct AppConfig {
 
     pub subtitle: SubtitleConfig,
     pub ai: AIConfig,
-    pub youtube: PlatformConfig,
-    pub tiktok: PlatformConfig,
-    pub instagram: PlatformConfig,
+    pub youtube: YoutubeConfig,
+    pub tiktok: TikTokConfig,
+    pub instagram: InstagramConfig,
     pub compilation: CompilationConfig,
 }
 
@@ -102,20 +130,37 @@ impl AppConfig {
         let config_path = app_dir.join("config.json");
 
         if !config_path.exists() {
+            tracing::info!("config.json tidak ditemukan di {:?}, menggunakan nilai default.", config_path);
             return Ok(Self::default());
         }
 
+        tracing::info!("Membaca konfigurasi dari {:?}", config_path);
         let content = std::fs::read_to_string(&config_path)?;
-        let config = serde_json::from_str(&content)?;
-        Ok(config)
+        match serde_json::from_str(&content) {
+            Ok(config) => {
+                tracing::info!("Berhasil memuat konfigurasi.");
+                Ok(config)
+            }
+            Err(e) => {
+                tracing::warn!("Gagal parsing config.json: {}. Menggunakan fallback default.", e);
+                // Return default on parse failure to prevent UI breaking completely
+                Ok(Self::default())
+            }
+        }
     }
 
     pub fn save(&self) -> Result<(), crate::error::CliptzyError> {
         let app_dir = crate::paths::app_data_dir();
+        if let Err(e) = std::fs::create_dir_all(&app_dir) {
+            tracing::error!("Gagal membuat direktori data aplikasi {:?}: {}", app_dir, e);
+        }
+        
         let config_path = app_dir.join("config.json");
+        tracing::info!("Menyimpan konfigurasi ke {:?}", config_path);
 
         let content = serde_json::to_string_pretty(self)?;
         std::fs::write(&config_path, content)?;
+        tracing::info!("Konfigurasi berhasil disimpan.");
         Ok(())
     }
 }

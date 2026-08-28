@@ -30,9 +30,11 @@
           <span>{{ installProgressText }}</span>
           <span>{{ Math.round(installProgressPercent) }}%</span>
         </div>
-        <div class="w-full h-2 bg-gray-300 dark:bg-gray-800 rounded-full overflow-hidden">
-          <div class="h-full bg-gray-600 dark:bg-gray-400 transition-all duration-300" :style="`width: ${installProgressPercent}%`"></div>
-        </div>
+        <ProgressBar
+          class="w-full"
+          heightClass="h-2"
+          :progress="installProgressPercent"
+        />
       </div>
 
       <button @click="runInstallDeps" :disabled="isInstallingDeps" class="w-full py-3 mt-auto rounded-full text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm bg-indigo-600 text-white hover:bg-indigo-700 shrink-0">
@@ -118,6 +120,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { useSettingsStore } from '../../stores/settings';
 import BentoCard from '../BentoCard.vue';
+import ProgressBar from '../ProgressBar.vue';
 
 // Icons
 import IconCpu from '~icons/lucide/cpu';

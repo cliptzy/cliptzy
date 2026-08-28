@@ -11,14 +11,11 @@
         </span>
         <span class="text-xs text-[var(--color-text-main)] font-mono font-medium">{{ Math.round(appStore.globalProgress) }}%</span>
       </div>
-      <div class="w-full h-1.5 bg-gray-200 dark:bg-[#27272A] rounded-full overflow-hidden mb-3 shadow-inner">
-        <div 
-          class="h-full bg-gray-200 dark:bg-gray-800 transition-all duration-300 ease-out shadow-[0_0_8px_var(--color-accent)] relative"
-          :style="{ width: `${appStore.globalProgress}%` }"
-        >
-          <div class="absolute inset-0 bg-white/20 w-full animate-[shimmer_2s_infinite]"></div>
-        </div>
-      </div>
+      <ProgressBar
+        class="w-full mb-3"
+        :progress="appStore.globalProgress"
+        animated
+      />
       <div class="flex items-center justify-between">
         <p class="text-xs text-[var(--color-text-muted)] truncate flex-1" :title="appStore.progressLabel">
           {{ appStore.progressLabel || 'Initializing task...' }}
@@ -40,6 +37,7 @@ import { listen } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/core';
 import { onMounted, onUnmounted } from 'vue';
 import type { ProgressEvent } from '../stores/app';
+import ProgressBar from './ProgressBar.vue';
 
 const appStore = useAppStore();
 let unlisten: (() => void) | null = null;
@@ -68,10 +66,3 @@ onUnmounted(() => {
   if (unlisten) unlisten();
 });
 </script>
-
-<style scoped>
-@keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-</style>

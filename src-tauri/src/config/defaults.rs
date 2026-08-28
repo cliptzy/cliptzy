@@ -3,6 +3,7 @@ use super::models::*;
 impl Default for SubtitleConfig {
     fn default() -> Self {
         Self {
+            enabled: true,
             whisper_model: "small".to_string(),
             font: "Bangers".to_string(),
             fonts_dir: Some("assets/fonts".to_string()),
@@ -32,16 +33,47 @@ impl Default for AIConfig {
             openai_base_url: "https://api.openai.com/v1".to_string(),
             use_highlight: false,
             use_generate_intro: false,
+            use_emotion_detection: true,
+            use_voice_analysis: true,
+            use_audio_analysis: true,
+            use_text_analysis: true,
+            use_add_meme: true,
         }
     }
 }
 
-impl Default for PlatformConfig {
+impl Default for YoutubeConfig {
     fn default() -> Self {
         Self {
-            session: Some("".to_string()),
+            upload: false,
+            session: Some("cred/yt_cookies.txt".to_string()),
+            client_id: "".to_string(),
+            client_secret: "".to_string(),
+            visibility: "Public".to_string(),
             auto_upload: false,
-            visibility: "private".to_string(),
+        }
+    }
+}
+
+impl Default for TikTokConfig {
+    fn default() -> Self {
+        Self {
+            upload: false,
+            session: Some("cred/tiktok_cookies.txt".to_string()),
+            privacy: "Public (Semua Orang)".to_string(),
+            auto_upload: false,
+        }
+    }
+}
+
+impl Default for InstagramConfig {
+    fn default() -> Self {
+        Self {
+            upload: false,
+            business_id: "".to_string(),
+            access_token: "".to_string(),
+            session: Some("cred/instagram_cookies.txt".to_string()),
+            auto_upload: false,
         }
     }
 }
@@ -98,9 +130,9 @@ impl Default for AppConfig {
 
             subtitle: SubtitleConfig::default(),
             ai: AIConfig::default(),
-            youtube: PlatformConfig::default(),
-            tiktok: PlatformConfig::default(),
-            instagram: PlatformConfig::default(),
+            youtube: YoutubeConfig::default(),
+            tiktok: TikTokConfig::default(),
+            instagram: InstagramConfig::default(),
             compilation: CompilationConfig::default(),
         }
     }
