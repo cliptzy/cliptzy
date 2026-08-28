@@ -5,7 +5,7 @@
   >
     <div class="bg-[var(--color-surface)]/90 border border-[var(--color-subtle)] rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-4 w-80 backdrop-blur-md">
       <div class="flex justify-between items-center mb-2">
-        <span class="text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-widest flex items-center gap-2">
+        <span class="text-xs font-bold text-[var(--color-text-main)] uppercase tracking-widest flex items-center gap-2">
           <div class="w-2 h-2 rounded-full bg-gray-200 dark:bg-gray-800 animate-pulse shadow-[0_0_8px_var(--color-accent)]"></div>
           {{ appStore.currentProgressEvent?.stage || 'PROCESSING' }}
         </span>

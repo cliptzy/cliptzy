@@ -6,7 +6,7 @@
         <BentoCard class="p-6 shrink-0">
             <div class="flex flex-col gap-4">
                 <h3
-                    class="text-lg font-black text-gray-900 dark:text-gray-100 tracking-wide mb-1 flex items-center gap-2"
+                    class="text-lg font-black text-[var(--color-text-main)] tracking-wide mb-1 flex items-center gap-2"
                 >
                     <IconYoutube class="w-5 h-5 text-red-500" /> Sumber Video
                 </h3>
@@ -18,7 +18,7 @@
                         @keydown.enter="handleLoadVideo"
                         type="text"
                         placeholder="URL YouTube / Path Lokal"
-                        class="w-full bg-transparent border-none text-gray-900 dark:text-gray-100 font-bold text-sm focus:ring-0 focus:outline-none placeholder-gray-700/60 dark:placeholder-emerald-400/50"
+                        class="w-full bg-transparent border-none text-[var(--color-text-main)] font-bold text-sm focus:ring-0 focus:outline-none placeholder-gray-700/60 dark:placeholder-emerald-400/50"
                     />
                 </div>
                 <button
@@ -64,13 +64,13 @@
                     </div>
                     <div class="flex flex-col flex-1 min-w-0">
                         <h3
-                            class="font-bold text-sm text-gray-900 dark:text-gray-100 line-clamp-2 leading-tight mb-1"
+                            class="font-bold text-sm text-[var(--color-text-main)] line-clamp-2 leading-tight mb-1"
                             :title="videoStore.metadata.title"
                         >
                             {{ videoStore.metadata.title }}
                         </h3>
                         <span
-                            class="text-xs font-bold text-gray-700 dark:text-slate-400 mb-2"
+                            class="text-xs font-bold text-[var(--color-text-muted)] dark:text-slate-400 mb-2"
                             >{{
                                 videoStore.metadata.uploader || "YouTube Video"
                             }}</span
@@ -78,7 +78,7 @@
 
                         <div class="flex flex-wrap gap-2 mt-auto">
                             <span
-                                class="text-[10px] font-bold bg-white/60 dark:bg-black/30 text-gray-900 dark:text-gray-300 px-2 py-0.5 rounded-full shadow-sm"
+                                class="text-[10px] font-bold bg-white/60 dark:bg-black/30 text-[var(--color-text-main)] px-2 py-0.5 rounded-full shadow-sm"
                                 >{{
                                     (
                                         videoStore.metadata.view_count || 0
@@ -98,7 +98,7 @@
         >
             <div class="flex items-center justify-between mb-4 gap-2">
                 <h3
-                    class="text-lg font-black text-gray-900 dark:text-gray-100 tracking-wide flex items-center gap-2 whitespace-nowrap"
+                    class="text-lg font-black text-[var(--color-text-main)] tracking-wide flex items-center gap-2 whitespace-nowrap"
                 >
                     <IconList class="w-5 h-5" /> Segmen
                 </h3>
@@ -190,7 +190,7 @@
                     class="absolute inset-0 z-10 bg-[var(--color-surface)]/80 backdrop-blur-sm flex flex-col items-center justify-center"
                 >
                     <IconLoader
-                        class="w-6 h-6 animate-spin text-gray-900 dark:text-gray-100 mb-2"
+                        class="w-6 h-6 animate-spin text-[var(--color-text-main)] mb-2"
                     />
                     <span class="text-xs text-[var(--color-text-muted)]"
                         >Menganalisis AI...</span
@@ -202,10 +202,10 @@
                         !videoStore.metadata?.ai_segments ||
                         videoStore.metadata.ai_segments.length === 0
                     "
-                    class="flex-1 flex flex-col items-center justify-center text-center gap-3 opacity-80 py-6"
+                    class="flex-1 flex flex-col items-center justify-center text-center gap-3 opacity-80 py-6 text-[var(--color-text-muted)]"
                 >
-                    <IconSparkles class="w-8 h-8 text-gray-400" />
-                    <p class="text-xs text-gray-300 px-4">
+                    <IconSparkles class="w-8 h-8" />
+                    <p class="text-xs px-4">
                         Klik <b>Scan AI</b> untuk membiarkan LLM mencari momen
                         viral (butuh waktu lebih lama).
                     </p>
@@ -229,7 +229,7 @@
                         >
                         <button
                             @click="toggleSelectAll('ai')"
-                            class="text-[10px] text-gray-900 dark:text-gray-100 hover:text-[var(--color-text-main)] transition-colors"
+                            class="text-[10px] text-[var(--color-text-main)] hover:text-[var(--color-text-main)] transition-colors"
                         >
                             Toggle Select All
                         </button>
@@ -258,7 +258,7 @@
                                     class="w-4 h-4 border-2 border-gray-500 rounded peer-checked:bg-gray-200 dark:bg-gray-800 peer-checked:border-[var(--color-accent)] transition-all flex items-center justify-center"
                                 >
                                     <IconCheck
-                                        class="w-3 h-3 text-black opacity-0 peer-checked:opacity-100"
+                                        class="w-3 h-3 text-[var(--color-text-main)] opacity-0 peer-checked:opacity-100"
                                     />
                                 </div>
                             </label>
@@ -266,7 +266,7 @@
                         <div class="flex-1 min-w-0">
                             <div class="flex justify-between items-center mb-1">
                                 <span
-                                    class="text-xs font-bold text-[var(--color-text-main)] group-hover:text-gray-400 transition-colors"
+                                    class="text-xs font-bold text-[var(--color-text-main)] group-hover:text-[var(--color-text-muted)] transition-colors"
                                     >AI Klip #{{ idx + 1 }}</span
                                 >
                                 <span
@@ -293,7 +293,7 @@
                     class="absolute inset-0 z-10 bg-[var(--color-surface)]/80 backdrop-blur-sm flex flex-col items-center justify-center"
                 >
                     <IconLoader
-                        class="w-6 h-6 animate-spin text-gray-900 dark:text-gray-100 mb-2"
+                        class="w-6 h-6 animate-spin text-[var(--color-text-main)] mb-2"
                     />
                     <span class="text-xs text-[var(--color-text-muted)]"
                         >Mencari momen...</span
@@ -305,12 +305,10 @@
                         !videoStore.metadata?.segments ||
                         videoStore.metadata.segments.length === 0
                     "
-                    class="flex-1 flex flex-col items-center justify-center text-center gap-3 opacity-80 py-6"
+                    class="flex-1 flex flex-col items-center justify-center text-center gap-3 opacity-80 py-6 text-[var(--color-text-muted)]"
                 >
-                    <IconTrending
-                        class="w-8 h-8 text-gray-900 dark:text-gray-100"
-                    />
-                    <p class="text-xs text-gray-300 px-4">
+                    <IconTrending class="w-8 h-8" />
+                    <p class="text-xs">
                         Klik <b>Scan Heatmap</b> untuk menganalisis retensi
                         penonton dan mendapatkan klip terbaik.
                     </p>
@@ -334,7 +332,7 @@
                         >
                         <button
                             @click="toggleSelectAll('heatmap')"
-                            class="text-[10px] text-gray-900 dark:text-gray-100 hover:text-[var(--color-text-main)] transition-colors"
+                            class="text-[10px] text-[var(--color-text-main)] hover:text-[var(--color-text-main)] transition-colors"
                         >
                             Toggle Select All
                         </button>
@@ -362,7 +360,7 @@
                                     class="w-4 h-4 border-2 border-gray-500 rounded peer-checked:bg-gray-200 dark:bg-gray-800 peer-checked:border-[var(--color-accent)] transition-all flex items-center justify-center"
                                 >
                                     <IconCheck
-                                        class="w-3 h-3 text-black opacity-0 peer-checked:opacity-100"
+                                        class="w-3 h-3 text-[var(--color-text-main)] opacity-0 peer-checked:opacity-100"
                                     />
                                 </div>
                             </label>
@@ -370,7 +368,7 @@
                         <div class="flex-1 min-w-0">
                             <div class="flex justify-between items-center mb-1">
                                 <span
-                                    class="text-xs font-bold text-[var(--color-text-main)] group-hover:text-gray-900 dark:text-gray-100 transition-colors"
+                                    class="text-xs font-bold text-[var(--color-text-main)] group-hover:text-[var(--color-text-main)] transition-colors"
                                     >Klip #{{ idx + 1 }}</span
                                 >
                                 <span

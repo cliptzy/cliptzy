@@ -32,7 +32,7 @@ onMounted(async () => {
   <div class="h-full flex flex-col p-6 space-y-6 overflow-y-auto">
     <div class="flex items-center gap-4">
       <div class="w-12 h-12 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-subtle)] flex items-center justify-center">
-        <IconInfo class="w-6 h-6 text-gray-900 dark:text-gray-100" />
+        <IconInfo class="w-6 h-6 text-[var(--color-text-main)]" />
       </div>
       <div>
         <h1 class="text-2xl font-bold tracking-tight text-[var(--color-text-main)]">About</h1>
@@ -58,7 +58,7 @@ onMounted(async () => {
 
       <BentoCard class="p-6 flex flex-col space-y-4">
         <h2 class="text-lg font-semibold text-[var(--color-text-main)] flex items-center gap-2">
-          <component :is="specs?.meets_requirements ? IconMonitorCheck : IconMonitorX" class="w-5 h-5" :class="specs?.meets_requirements ? 'text-gray-900 dark:text-gray-100' : 'text-red-500'" />
+          <component :is="specs?.meets_requirements ? IconMonitorCheck : IconMonitorX" class="w-5 h-5" :class="specs?.meets_requirements ? 'text-[var(--color-text-main)] ' : 'text-red-500'" />
           System Requirements
         </h2>
         

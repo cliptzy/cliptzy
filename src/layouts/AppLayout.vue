@@ -40,25 +40,21 @@ const navItems = [
 </script>
 
 <template>
-  <div class="h-screen w-full bg-[#F8F9FA] dark:bg-[#121212] flex font-sans text-black dark:text-[var(--color-text-main)] transition-colors overflow-hidden">
+  <div class="h-screen w-full bg-[#F8F9FA] dark:bg-[#121212] flex font-sans text-[var(--color-text-main)] dark:text-[var(--color-text-main)] transition-colors overflow-hidden">
     
     <!-- Mobile Header (Visible only on small screens) -->
     <div class="md:hidden fixed top-0 left-0 right-0 h-16 bg-white dark:bg-[#1E1E1E] border-b-[3px] border-black dark:border-[#3C4043] z-50 flex items-center justify-between px-4 transition-colors">
       <div class="flex items-center gap-3">
         <span class="text-xl font-black tracking-tighter bg-black dark:bg-[#E8EAED] text-[var(--color-text-main)] dark:text-black px-3 py-1 rounded-full border-[2px] border-black dark:border-transparent">C.</span>
       </div>
-      <button @click="isMobileMenuOpen = !isMobileMenuOpen" class="p-2 border-[2px] border-black dark:border-[#5F6368] rounded-full dark:hover:bg-[#3C4043] bg-white/60 text-gray-900 dark:bg-black/30 dark:text-gray-100 hover:bg-white dark:hover:bg-black/50">
+      <button @click="isMobileMenuOpen = !isMobileMenuOpen" class="p-2 border-[2px] border-black dark:border-[#5F6368] rounded-full dark:hover:bg-[#3C4043] bg-white/60 text-[var(--color-text-main)] dark:bg-black/30 hover:bg-white dark:hover:bg-black/50">
         <IconMenu class="w-5 h-5" />
       </button>
     </div>
 
     <!-- Sidebar -->
     <aside 
-      :class="[
-        'fixed md:static top-0 left-0 h-full bg-white dark:bg-[#1E1E1E] border-r-[3px] border-black dark:border-[#3C4043] transition-all duration-300 z-40 flex flex-col',
-        isSidebarExpanded ? 'w-64' : 'w-20',
-        isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-      ]"
+      :class="[ 'fixed md:static top-0 left-0 h-full bg-white dark:bg-[#1E1E1E] border-r-[3px] border-black dark:border-[#3C4043] transition-all duration-300 z-40 flex flex-col', isSidebarExpanded ? 'w-64' : 'w-20', isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0' ]"
     >
       <!-- Logo Area -->
       <div class="h-20 flex items-center justify-center border-b-[3px] border-black dark:border-[#3C4043] relative transition-colors">
@@ -76,7 +72,7 @@ const navItems = [
         </span>
 
         <!-- Expand Toggle Button (Hidden on Mobile) -->
-        <button @click="toggleSidebar" class="hidden md:flex absolute -right-4 top-1/2 -translate-y-1/2 bg-white dark:bg-[#28292C] border-[3px] border-black dark:border-[#3C4043] rounded-full p-1 dark:hover:bg-[#3C4043] transition-colors z-50 text-black dark:text-[var(--color-text-main)] bg-white/60 text-gray-900 dark:bg-black/30 dark:text-gray-100 hover:bg-white dark:hover:bg-black/50" >
+        <button @click="toggleSidebar" class="hidden md:flex absolute -right-4 top-1/2 -translate-y-1/2 bg-white dark:bg-[#28292C] border-[3px] border-black dark:border-[#3C4043] rounded-full p-1 dark:hover:bg-[#3C4043] transition-colors z-50 text-[var(--color-text-main)] dark:text-[var(--color-text-main)] bg-white/60 text-[var(--color-text-main)] dark:bg-black/30 hover:bg-white dark:hover:bg-black/50" >
           <IconChevronLeft v-if="isSidebarExpanded" class="w-4 h-4" />
           <IconChevronRight v-else class="w-4 h-4" />
         </button>
@@ -92,13 +88,7 @@ const navItems = [
           custom
         >
           <button @click="() => { navigate(); isMobileMenuOpen = false; }"
-            :class="[
-              'flex items-center rounded-full border-[2px] transition-all duration-200 group relative shrink-0',
-              isSidebarExpanded ? 'px-4 py-3 justify-start gap-4' : 'p-3 justify-center w-12 h-12 mx-auto',
-              isActive 
-                ? `${item.color} text-[var(--color-text-main)] border-black dark:border-transparent dark:text-black` 
-                : 'border-transparent hover:bg-gray-100 dark:hover:bg-[#3C4043] text-gray-700 dark:text-gray-300'
-            ]"
+            :class="[ 'flex items-center rounded-full border-[2px] transition-all duration-200 group relative shrink-0', isSidebarExpanded ? 'px-4 py-3 justify-start gap-4' : 'p-3 justify-center w-12 h-12 mx-auto', isActive ? `${item.color} text-[var(--color-text-main)] border-black dark:border-transparent dark:text-black` : 'border-transparent hover:bg-gray-100 dark:hover:bg-[#3C4043] text-[var(--color-text-muted)] ' ]"
             :title="!isSidebarExpanded ? item.name : ''"
           >
             <!-- Settings dark mode logic for text contrast -->
@@ -116,20 +106,17 @@ const navItems = [
       <!-- User Profile & Logout -->
       <div class="p-4 border-t-[3px] border-black dark:border-[#3C4043] flex flex-col gap-4 bg-white dark:bg-[#1E1E1E] transition-colors">
         <div 
-          :class="[
-            'flex items-center gap-3 border-[2px] border-black dark:border-[#5F6368] rounded-full bg-gray-50 dark:bg-[#28292C] transition-all overflow-hidden',
-            isSidebarExpanded ? 'px-3 py-2' : 'p-2 justify-center mx-auto w-12 h-12 shrink-0'
-          ]"
+          :class="[ 'flex items-center gap-3 border-[2px] border-black dark:border-[#5F6368] rounded-full bg-gray-50 dark:bg-[#28292C] transition-all overflow-hidden', isSidebarExpanded ? 'px-3 py-2' : 'p-2 justify-center mx-auto w-12 h-12 shrink-0' ]"
         >
           <img v-if="auth.avatarUrl" :src="auth.avatarUrl" class="w-7 h-7 rounded-full border border-gray-300 dark:border-gray-600 shrink-0" alt="Avatar">
           <div v-else class="w-7 h-7 rounded-full bg-gray-300 dark:bg-gray-600 shrink-0"></div>
           
           <div v-if="isSidebarExpanded" class="flex flex-col min-w-0">
-            <span class="text-xs font-bold text-gray-800 dark:text-gray-200 truncate">{{ auth.displayName || 'User' }}</span>
+            <span class="text-xs font-bold text-[var(--color-text-main)] truncate">{{ auth.displayName || 'User' }}</span>
           </div>
         </div>
 
-        <button @click="handleLogout" :class="[ 'flex items-center justify-center gap-2 border-[2px] border-black dark:border-transparent rounded-full bg-white dark:bg-[#EA4335] text-black dark:text-[var(--color-text-main)] hover:bg-[#EA4335] hover:text-[var(--color-text-main)] dark:hover:brightness-110 transition-colors shrink-0', isSidebarExpanded ? 'px-4 py-2' : 'p-2 mx-auto w-12 h-12' ]" :title="!isSidebarExpanded ? 'Logout' : ''" >
+        <button @click="handleLogout" :class="[ 'flex items-center justify-center gap-2 border-[2px] border-black dark:border-transparent rounded-full bg-white dark:bg-[#EA4335] text-[var(--color-text-main)] dark:text-[var(--color-text-main)] hover:bg-[#EA4335] hover:text-[var(--color-text-main)] dark:hover:brightness-110 transition-colors shrink-0', isSidebarExpanded ? 'px-4 py-2' : 'p-2 mx-auto w-12 h-12' ]" :title="!isSidebarExpanded ? 'Logout' : ''" >
           <IconLogOut class="w-5 h-5 shrink-0" />
           <span v-if="isSidebarExpanded" class="text-xs font-bold">LOGOUT</span>
         </button>

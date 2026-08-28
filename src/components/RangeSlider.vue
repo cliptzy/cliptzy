@@ -7,8 +7,8 @@
       :step="step"
       :value="modelValue"
       @input="$emit('update:modelValue', Number(($event.target as HTMLInputElement).value))"
-      class="w-full h-2 bg-[#3f3f46] rounded-lg appearance-none cursor-pointer outline-none focus:ring-1 focus:ring-[var(--color-accent)] shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] transition-all"
-      :style="`background: linear-gradient(to right, var(--color-accent) ${progress}%, #3f3f46 ${progress}%)`"
+      class="w-full h-2 bg-[var(--color-subtle)] rounded-lg appearance-none cursor-pointer outline-none focus:ring-1 focus:ring-[var(--color-accent)] shadow-[inset_0_1px_2px_rgba(0,0,0,0.2)] transition-all"
+      :style="`background: linear-gradient(to right, var(--color-accent) ${progress}%, var(--color-subtle) ${progress}%)`"
     />
   </div>
 </template>

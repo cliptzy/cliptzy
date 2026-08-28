@@ -80,12 +80,12 @@ const appStore = useAppStore();
 const stageColorClass = computed(() => {
   const stage = appStore.currentProgressEvent?.stage?.toLowerCase();
   switch (stage) {
-    case 'download': return 'text-gray-400';
-    case 'crop': return 'text-gray-400';
-    case 'transcribe': return 'text-gray-400';
-    case 'subtitle': return 'text-gray-400';
-    case 'finalize': return 'text-gray-400';
-    default: return 'text-gray-900 dark:text-gray-100';
+    case 'download': return 'text-[var(--color-text-muted)]';
+    case 'crop': return 'text-[var(--color-text-muted)]';
+    case 'transcribe': return 'text-[var(--color-text-muted)]';
+    case 'subtitle': return 'text-[var(--color-text-muted)]';
+    case 'finalize': return 'text-[var(--color-text-muted)]';
+    default: return 'text-[var(--color-text-main)] ';
   }
 });
 

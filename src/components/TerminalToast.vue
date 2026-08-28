@@ -7,19 +7,9 @@
         class="bg-white/95 dark:bg-[#09090b]/95 border border-[var(--color-subtle)] rounded-lg p-3 shadow-[0_8px_30px_rgba(0,0,0,0.5)] backdrop-blur-md pointer-events-auto flex items-start gap-3 overflow-hidden group"
       >
         <!-- Border highlight based on type -->
-        <div class="absolute left-0 top-0 bottom-0 w-1" :class="{
-          'bg-emerald-500': toast.type === 'success',
-          'bg-red-500': toast.type === 'error',
-          'bg-amber-500': toast.type === 'warning',
-          'bg-blue-500': toast.type === 'info'
-        }"></div>
+        <div class="absolute left-0 top-0 bottom-0 w-1" :class="{ 'bg-emerald-500': toast.type === 'success', 'bg-red-500': toast.type === 'error', 'bg-amber-500': toast.type === 'warning', 'bg-blue-500': toast.type === 'info' }"></div>
         
-        <div class="mt-0.5 shrink-0" :class="{
-          'text-emerald-500': toast.type === 'success',
-          'text-red-500': toast.type === 'error',
-          'text-amber-500': toast.type === 'warning',
-          'text-blue-500': toast.type === 'info'
-        }">
+        <div class="mt-0.5 shrink-0" :class="{ 'text-emerald-500': toast.type === 'success', 'text-red-500': toast.type === 'error', 'text-amber-500': toast.type === 'warning', 'text-blue-500': toast.type === 'info' }">
           <IconCheckCircle v-if="toast.type === 'success'" class="w-4 h-4" />
           <IconXCircle v-else-if="toast.type === 'error'" class="w-4 h-4" />
           <IconAlertTriangle v-else-if="toast.type === 'warning'" class="w-4 h-4" />

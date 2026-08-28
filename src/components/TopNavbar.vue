@@ -22,7 +22,7 @@
 
       <!-- Theme Toggle -->
       <div class="w-px h-5 bg-gray-300 dark:bg-gray-700 mx-2"></div>
-      <button @click="toggleDarkMode" class="p-2.5 rounded-full text-[var(--color-text-muted)] hover:text-gray-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-all duration-300" >
+      <button @click="toggleDarkMode" class="p-2.5 rounded-full text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:bg-black/5 dark:hover:bg-white/10 transition-all duration-300" >
         <IconSun v-if="isDark" class="w-4 h-4" />
         <IconMoon v-else class="w-4 h-4" />
       </button>

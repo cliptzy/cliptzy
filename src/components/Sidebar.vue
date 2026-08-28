@@ -1,17 +1,14 @@
 <template>
   <aside 
     class="flex-shrink-0 bg-[var(--color-surface)] border-t md:border-t-0 md:border-r border-[var(--color-subtle)] transition-all duration-300 z-40 flex md:flex-col"
-    :class="[
-      appStore.isSidebarCollapsed ? 'md:w-20' : 'md:w-64',
-      'w-full md:w-auto md:h-full h-16 order-last md:order-first shadow-[4px_0_24px_rgba(0,0,0,0.5)]'
-    ]"
+    :class="[ appStore.isSidebarCollapsed ? 'md:w-20' : 'md:w-64', 'w-full md:w-auto md:h-full h-16 order-last md:order-first shadow-[4px_0_24px_rgba(0,0,0,0.5)]' ]"
   >
     <!-- Logo Area (Hidden on mobile) -->
     <div class="hidden md:flex h-[72px] items-center relative px-4" :class="[appStore.isSidebarCollapsed ? 'justify-center' : 'justify-between']">
       <span class="font-black tracking-[0.2em] text-sm text-[var(--color-text-main)] truncate transition-all duration-300">
         {{ appStore.isSidebarCollapsed ? 'C.' : 'CLIPTZY' }}
       </span>
-      <button @click="appStore.toggleSidebar()" class="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-[var(--color-surface)] border border-[var(--color-subtle)] rounded-full flex items-center justify-center text-[var(--color-text-muted)] hover:text-gray-900 dark:text-gray-100 hover:border-[var(--color-accent)] transition-all shadow-lg z-50 focus:outline-none" >
+      <button @click="appStore.toggleSidebar()" class="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-[var(--color-surface)] border border-[var(--color-subtle)] rounded-full flex items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:border-[var(--color-accent)] transition-all shadow-lg z-50 focus:outline-none" >
         <div class="w-1.5 h-1.5 rounded-full bg-current transition-colors"></div>
       </button>
     </div>
@@ -40,7 +37,7 @@
           <component 
             :is="item.icon" 
             class="w-5 h-5 shrink-0 transition-all duration-300 z-10" 
-            :class="isActive ? 'text-gray-900 dark:text-gray-100 drop-shadow-[0_0_8px_rgba(217,249,157,0.5)]' : 'text-[var(--color-text-muted)] group-hover:text-[var(--color-text-main)]'" 
+            :class="isActive ? 'text-[var(--color-text-main)] drop-shadow-[0_0_8px_rgba(217,249,157,0.5)]' : 'text-[var(--color-text-muted)] group-hover:text-[var(--color-text-main)]'" 
           />
           <span 
             v-if="!appStore.isSidebarCollapsed" 

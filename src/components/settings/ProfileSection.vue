@@ -4,7 +4,7 @@
         class="col-span-1 md:col-span-1 xl:col-span-1 row-span-1 h-full overflow-y-auto custom-scrollbar p-6 flex flex-col justify-between gap-2 !bg-purple-200 dark:!bg-purple-900/40"
     >
         <h2
-            class="text-lg font-black text-gray-900 dark:text-gray-100 tracking-wide flex items-center gap-2"
+            class="text-lg font-black text-[var(--color-text-main)] tracking-wide flex items-center gap-2"
         >
             <IconUser class="w-5 h-5" /> Profil Sistem
         </h2>
@@ -17,7 +17,7 @@
                 />
                 <div
                     v-else
-                    class="w-12 h-12 rounded-full bg-gray-500/20 flex items-center justify-center text-gray-700 dark:text-gray-300 font-bold text-xl border-2 border-gray-200 dark:border-gray-800"
+                    class="w-12 h-12 rounded-full bg-gray-500/20 flex items-center justify-center text-[var(--color-text-muted)] font-bold text-xl border-2 border-gray-200 dark:border-gray-800"
                 >
                     {{
                         auth.displayName
@@ -27,18 +27,18 @@
                 </div>
                 <div class="flex flex-col min-w-0">
                     <span
-                        class="font-bold text-gray-900 dark:text-gray-100 text-base truncate"
+                        class="font-bold text-[var(--color-text-main)] text-base truncate"
                         >{{ auth.displayName || "Google User" }}</span
                     >
                     <span
-                        class="text-xs text-gray-700 dark:text-gray-300 truncate"
+                        class="text-xs text-[var(--color-text-muted)] truncate"
                         >{{ auth.email || "Email tidak tersedia" }}</span
                     >
                 </div>
             </div>
             <div class="flex flex-col items-end gap-2">
                 <span
-                    class="text-[10px] font-medium text-gray-600 bg-gray-100 dark:text-gray-400 dark:bg-gray-400/10 px-2 py-0.5 rounded-full border border-gray-200 dark:border-gray-400/20"
+                    class="text-[10px] font-medium text-[var(--color-text-muted)] bg-gray-100 dark:bg-gray-400/10 px-2 py-0.5 rounded-full border border-gray-200 dark:border-gray-400/20"
                     >Tersinkronisasi</span
                 >
                 <button
@@ -56,26 +56,28 @@
         class="col-span-1 md:col-span-1 xl:col-span-1 row-span-1 h-full overflow-y-auto custom-scrollbar p-6 flex flex-col justify-between gap-2"
     >
         <h2
-            class="text-lg font-black text-gray-900 dark:text-gray-100 tracking-wide flex items-center gap-2"
+            class="text-lg font-black text-[var(--color-text-main)] tracking-wide flex items-center gap-2"
         >
             <IconCloud class="w-5 h-5" /> Sinkronisasi Cloud
         </h2>
         <div class="flex gap-2 mt-auto">
-            <button
+            <BaseButton
                 @click="backupConfig"
                 :disabled="isSyncing"
-                class="flex-1 py-3 px-3 rounded-2xl text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm bg-blue-600 text-white hover:bg-blue-700"
+                variant="primary"
+                class="flex-1"
             >
                 <IconUploadCloud class="w-4 h-4" />
                 {{ isSyncing ? "Memproses..." : "Backup" }}
-            </button>
-            <button
+            </BaseButton>
+            <BaseButton
                 @click="restoreConfig"
                 :disabled="isSyncing"
-                class="flex-1 py-3 px-3 bg-white/60 dark:bg-black/30 text-gray-900 dark:text-gray-100 hover:bg-white dark:hover:bg-black/50 rounded-2xl text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm"
+                variant="secondary"
+                class="flex-1"
             >
                 <IconDownloadCloud class="w-4 h-4" /> Restore
-            </button>
+            </BaseButton>
         </div>
     </BentoCard>
 
@@ -84,7 +86,7 @@
         class="col-span-1 md:col-span-2 xl:col-span-2 row-span-2 h-full overflow-y-auto custom-scrollbar p-6 flex flex-col gap-5"
     >
         <h2
-            class="text-lg font-black text-gray-900 dark:text-gray-100 tracking-wide flex items-center gap-2 shrink-0"
+            class="text-lg font-black text-[var(--color-text-main)] tracking-wide flex items-center gap-2 shrink-0"
         >
             <IconLink class="w-5 h-5" /> Akun Sosial
         </h2>
@@ -102,10 +104,10 @@
                         </div>
                         <div class="flex flex-col">
                             <span
-                                class="font-bold text-gray-900 dark:text-gray-100 text-sm"
+                                class="font-bold text-[var(--color-text-main)] text-sm"
                                 >YouTube</span
                             ><span
-                                class="text-[10px] font-bold text-gray-700 dark:text-gray-300"
+                                class="text-[10px] font-bold text-[var(--color-text-muted)]"
                                 >yt-dlp cookies</span
                             >
                         </div>
@@ -126,12 +128,12 @@
                     <div class="flex justify-between items-center">
                         <div class="flex flex-col">
                             <span
-                                class="text-xs text-gray-900 dark:text-gray-100 font-bold"
+                                class="text-xs text-[var(--color-text-main)] font-bold"
                                 >Browser Cookies</span
                             >
                             <select
                                 v-model="settings.config.browser"
-                                class="mt-1 bg-white/80 dark:bg-black/50 border-none rounded-xl py-1.5 px-2 text-[11px] font-bold text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 cursor-pointer shadow-sm"
+                                class="mt-1 bg-white/80 dark:bg-black/50 border-none rounded-xl py-1.5 px-2 text-[11px] font-bold text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-gray-500 cursor-pointer shadow-sm"
                             >
                                 <option value="">Pilih Browser</option>
                                 <option
@@ -192,7 +194,7 @@
                                 </option>
                             </select>
                         </div>
-                        <button
+                        <BaseButton
                             @click="testCookies"
                             :disabled="isTestingCookies"
                             class="text-[10px] font-bold px-4 py-2 rounded-xl transition-all disabled:opacity-50 flex items-center gap-1 shadow-sm bg-red-500 text-white hover:bg-red-600"
@@ -201,7 +203,7 @@
                             {{
                                 isTestingCookies ? "Testing..." : "Test yt-dlp"
                             }}
-                        </button>
+                        </BaseButton>
                     </div>
                 </div>
             </div>
@@ -218,25 +220,25 @@
                     </div>
                     <div class="flex flex-col">
                         <span
-                            class="font-bold text-gray-900 dark:text-gray-100 text-sm"
+                            class="font-bold text-[var(--color-text-main)] text-sm"
                             >TikTok</span
                         ><span
-                            class="text-[10px] text-gray-700 dark:text-gray-300 font-bold"
+                            class="text-[10px] text-[var(--color-text-muted)] font-bold"
                             >Perlu Login</span
                         >
                     </div>
                 </div>
-                <button
+                <BaseButton
                     class="text-[10px] font-bold px-3 py-1.5 rounded-xl hover:scale-105 transition-transform shadow-sm bg-black text-white hover:bg-gray-800"
                 >
                     Hubungkan
-                </button>
+                </BaseButton>
             </div>
 
             <!-- Default Tags Input -->
             <div class="flex flex-col gap-2 mt-2 shrink-0">
                 <span
-                    class="text-[10px] text-gray-900 dark:text-gray-100 uppercase font-bold"
+                    class="text-[10px] text-[var(--color-text-main)] uppercase font-bold"
                     >Default Hashtags</span
                 >
 
@@ -247,7 +249,7 @@
                     <span
                         v-for="(tag, idx) in parsedHashtags"
                         :key="idx"
-                        class="px-2 py-0.5 text-[10px] bg-gray-700/10 text-gray-700 dark:bg-gray-400/20 dark:text-gray-300 rounded-full font-bold shadow-sm"
+                        class="px-2 py-0.5 text-[10px] bg-gray-700/10 text-[var(--color-text-muted)] dark:bg-gray-400/20 rounded-full font-bold shadow-sm"
                     >
                         {{ tag.startsWith("#") ? tag : "#" + tag }}
                     </span>
@@ -261,12 +263,10 @@
                         v-model="settings.config.default_hashtags"
                         placeholder="viral fyp podcast"
                         rows="2"
-                        class="w-full bg-white/60 dark:bg-black/30 border-none rounded-2xl py-2 pl-9 pr-3 text-sm font-bold text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 placeholder-gray-700/50 dark:placeholder-gray-300/50 resize-y custom-scrollbar transition-all shadow-sm"
+                        class="w-full bg-white/60 dark:bg-black/30 border-none rounded-2xl py-2 pl-9 pr-3 text-sm font-bold text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-gray-500 placeholder-gray-700/50 dark:placeholder-gray-300/50 resize-y custom-scrollbar transition-all shadow-sm"
                     ></textarea>
                 </div>
-                <p
-                    class="text-[9px] font-bold text-gray-700 dark:text-gray-300"
-                >
+                <p class="text-[9px] font-bold text-[var(--color-text-muted)]">
                     Pisahkan dengan spasi. Hashtag ini akan otomatis ditambahkan
                     ke setiap video yang diunggah.
                 </p>
@@ -279,7 +279,7 @@
         class="col-span-1 md:col-span-1 xl:col-span-1 row-span-1 h-full overflow-y-auto custom-scrollbar p-6 flex flex-col justify-between gap-5 relative"
     >
         <h2
-            class="text-lg font-black text-gray-900 dark:text-gray-100 tracking-wide flex items-center gap-2 shrink-0"
+            class="text-lg font-black text-[var(--color-text-main)] tracking-wide flex items-center gap-2 shrink-0"
         >
             <IconHardDrive class="w-5 h-5" /> Penyimpanan
         </h2>
@@ -292,7 +292,7 @@
                 class="absolute inset-0 bg-gray-100/50 dark:bg-gray-900/50 flex items-center justify-center rounded-2xl backdrop-blur-sm z-10"
             >
                 <span
-                    class="text-xs font-bold text-gray-700 dark:text-gray-300 animate-pulse"
+                    class="text-xs font-bold text-[var(--color-text-muted)] animate-pulse"
                     >Menghitung...</span
                 >
             </div>
@@ -328,11 +328,11 @@
                     class="absolute inset-0 flex flex-col items-center justify-center"
                 >
                     <span
-                        class="text-xl font-black text-gray-900 dark:text-gray-100"
+                        class="text-xl font-black text-[var(--color-text-main)]"
                         >{{ outputSize.toFixed(2) }}</span
                     >
                     <span
-                        class="text-[10px] text-gray-700 dark:text-gray-300 font-bold"
+                        class="text-[10px] text-[var(--color-text-muted)] font-bold"
                         >GB</span
                     >
                 </div>
@@ -340,7 +340,7 @@
             <button
                 @click="clearCache"
                 :disabled="isClearing"
-                class="w-full py-3 rounded-full text-red-600 bg-red-100 dark:bg-red-900/30 dark:text-red-400 text-xs font-bold hover:bg-red-500 hover:text-white dark:hover:bg-red-500 dark:hover:text-white transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shrink-0"
+                class="w-full py-3 rounded-full text-red-600 bg-red-100 dark:bg-red-900/30 dark:text-red-400 text-xs font-bold hover:bg-red-500 hover:text-white dark:hover:bg-red-500 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shrink-0"
             >
                 <IconTrash2 class="w-4 h-4" />
                 {{ isClearing ? "Membersihkan..." : "Bersihkan Cache" }}

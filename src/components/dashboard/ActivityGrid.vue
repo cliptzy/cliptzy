@@ -1,8 +1,8 @@
 <template>
  <BentoCard class="flex-1 min-h-0 mt-2 flex flex-col p-6 !bg-indigo-200 dark:!bg-indigo-900/40">
     <div class="flex items-center justify-between mb-6">
-      <h3 class="text-lg font-black text-gray-900 dark:text-gray-100 tracking-wide">Aktivitas Terakhir & Antrean</h3>
-      <button class="text-xs font-bold text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors flex items-center gap-1 bg-white/60 hover:bg-white dark:bg-black/30 dark:hover:bg-black/50 px-4 py-2 rounded-full shadow-sm">
+      <h3 class="text-lg font-black text-[var(--color-text-main)] tracking-wide">Aktivitas Terakhir & Antrean</h3>
+      <button class="text-xs font-bold text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] transition-colors flex items-center gap-1 bg-white/60 hover:bg-white dark:bg-black/30 dark:hover:bg-black/50 px-4 py-2 rounded-full shadow-sm">
         Lihat Semua <IconArrowRight class="w-4 h-4" />
       </button>
     </div>
@@ -10,8 +10,8 @@
     <TransitionGroup name="list" tag="div" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 overflow-y-auto pb-4 pr-2 relative custom-scrollbar">
       <!-- Empty State -->
       <div v-if="!recentActivities.length" key="empty" class="col-span-full py-12 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-800 rounded-3xl">
-        <IconInbox class="w-12 h-12 text-gray-400 dark:text-gray-600 mb-3" />
-        <p class="text-gray-700 dark:text-gray-300 font-bold text-sm">Belum ada aktivitas. Mulai buat klip di Studio!</p>
+        <IconInbox class="w-12 h-12 text-[var(--color-text-muted)] mb-3" />
+        <p class="text-[var(--color-text-muted)] font-bold text-sm">Belum ada aktivitas. Mulai buat klip di Studio!</p>
       </div>
 
       <!-- Activity Cards -->
@@ -21,11 +21,11 @@
           <div class="absolute bottom-1 right-1 bg-black/70 text-white px-1.5 py-0.5 rounded text-[10px] font-mono font-bold">{{ activity.duration }}</div>
         </div>
         <div class="flex flex-col py-1 h-full">
-          <span class="text-[10px] uppercase font-black tracking-widest mb-1" :class="activity.status === 'Selesai' ? 'text-gray-700 dark:text-gray-400' : 'text-gray-700 dark:text-gray-400'">
+          <span class="text-[10px] uppercase font-black tracking-widest mb-1" :class="activity.status === 'Selesai' ? 'text-[var(--color-text-muted)] ' : 'text-[var(--color-text-muted)] '">
             {{ activity.status }}
           </span>
-          <h4 class="font-bold text-sm line-clamp-2 mb-2 text-gray-900 dark:text-gray-100 transition-colors">{{ activity.title }}</h4>
-          <div class="mt-auto flex items-center gap-2 text-xs font-bold text-gray-700 dark:text-gray-300">
+          <h4 class="font-bold text-sm line-clamp-2 mb-2 text-[var(--color-text-main)] transition-colors">{{ activity.title }}</h4>
+          <div class="mt-auto flex items-center gap-2 text-xs font-bold text-[var(--color-text-muted)]">
             <IconCalendar class="w-3 h-3" /> {{ activity.time }}
           </div>
         </div>
