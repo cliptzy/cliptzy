@@ -30,7 +30,20 @@ jobs:
         if: matrix.platform == 'ubuntu-22.04'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev libvulkan-dev
+          sudo apt-get install -y \
+            patchelf \
+            libappindicator3-dev \
+            libvulkan-dev \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libglib2.0-dev
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
