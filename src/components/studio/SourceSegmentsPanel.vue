@@ -365,7 +365,6 @@ import { onMounted } from "vue";
 import { useVideoStore } from "../../stores/video";
 import BentoCard from "../BentoCard.vue";
 import GlowButton from "../GlowButton.vue";
-import ProgressBar from "../ProgressBar.vue";
 import ScanResultCard from "./ScanResultCard.vue";
 
 // Icons
