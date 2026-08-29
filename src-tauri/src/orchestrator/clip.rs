@@ -282,15 +282,6 @@ impl ClipVideoUseCase {
                 );
                 let transcript = transcriber.transcribe(&audio_wav).await?;
 
-                // Analyze Text Emotion & Save to JSON
-                let _emotion_data = crate::ai::emotion::EmotionAnalyzer::analyze_text_emotion(
-                    job_dir,
-                    idx,
-                    &transcript,
-                    &self.ctx.config.ai,
-                    Some(&self.ctx.progress_tx),
-                ).await?;
-
                 // Generate ASS
                 emit_progress(
                     &self.ctx.app_handle,

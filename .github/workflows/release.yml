@@ -27,7 +27,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install dependencies (ubuntu only)
-        if: matrix.platform == 'ubuntu-22.04'
+        if: matrix.platform == 'ubuntu-24.04'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -51,7 +51,7 @@ jobs:
           bun-version: latest
 
       - name: Install Vulkan SDK (Ubuntu)
-        if: matrix.platform == 'ubuntu-22.04'
+        if: matrix.platform == 'ubuntu-24.04'
         uses: humbletim/install-vulkan-sdk@v1.2
         with:
           version: latest

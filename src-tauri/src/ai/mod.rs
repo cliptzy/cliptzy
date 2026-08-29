@@ -1,5 +1,4 @@
 pub mod detector;
-pub mod emotion;
 pub mod gemini;
 pub mod metadata;
 pub mod ollama;
