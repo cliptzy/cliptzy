@@ -41,10 +41,10 @@ jobs:
 
       - name: Install Vulkan SDK
         if: matrix.platform == 'ubuntu-22.04' || matrix.platform == 'windows-latest'
-        uses: humbletim/install-vulkan-sdk@v1.1.1
+        uses: humbletim/install-vulkan-sdk@v1.2
         with:
           version: latest
-          cache: false
+          cache: true
 
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
