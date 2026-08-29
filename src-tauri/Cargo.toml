@@ -56,6 +56,13 @@ which = "8.0.6"
 optical-flow-lk = "0.3.1"
 tauri-plugin-log = "2.9.0"
 log = "0.4.34"
+ndarray = "0.17.2"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+ort = { version = "2.0.0-rc.13", features = ["directml"] }
+
+[target.'cfg(not(target_os = "windows"))'.dependencies]
+ort = { version = "2.0.0-rc.13" }
 
 [features]
 default = []

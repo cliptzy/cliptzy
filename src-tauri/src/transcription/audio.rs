@@ -99,6 +99,8 @@ pub async fn extract_audio_segment(
         .raw_args(vec!["-c:a".to_string(), "pcm_s16le".to_string()])
         .output_path(output_path.to_path_buf());
 
+    log::info!("FFmpeg Audio Command: {:?}", builder);
+
     let process = builder.spawn().await.map_err(|e| CliptzyError::FFmpeg {
         code: -1,
         message: format!("Spawn failed: {}", e),

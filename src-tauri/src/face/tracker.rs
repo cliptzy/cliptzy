@@ -14,28 +14,14 @@ pub async fn get_face_keyframes(
     tracking_mode: String,
     app_handle: Option<tauri::AppHandle>,
     cancel_token: tokio_util::sync::CancellationToken,
-) -> Result<Vec<FaceKeyframe>, CliptzyError> {
+    visual_analyzer: Option<&crate::analysis::visual::VisualEmotionAnalyzer>,
+) -> Result<(Vec<FaceKeyframe>, Option<Vec<crate::analysis::AnalysisSegment>>), CliptzyError> {
     info!("Starting face keyframe extraction for {:?} with mode: {}", video_path, tracking_mode);
 
-    let model_dir = Path::new("models");
-    std::fs::create_dir_all(model_dir).ok();
-    let model_path = model_dir.join("seeta_fd_frontal_v1.0.bin");
-
-    if !model_path.exists() {
-        info!("Model not found. Downloading to {:?}...", model_path);
-        let url =
-            "https://github.com/atomashpolskiy/rustface/raw/master/model/seeta_fd_frontal_v1.0.bin";
-        let response = reqwest::get(url)
-            .await
-            .map_err(|e| CliptzyError::Internal(format!("Download failed: {}", e)))?;
-        let bytes = response
-            .bytes()
-            .await
-            .map_err(|e| CliptzyError::Internal(format!("Bytes failed: {}", e)))?;
-        std::fs::write(&model_path, bytes)
-            .map_err(|e| CliptzyError::Internal(format!("Write failed: {}", e)))?;
-        info!("Model downloaded successfully.");
-    }
+    let model_path = crate::utils::ensure_model_downloaded(
+        "seeta_fd_frontal_v1.0.bin", 
+        "https://github.com/atomashpolskiy/rustface/raw/master/model/seeta_fd_frontal_v1.0.bin"
+    ).await.map_err(|e| CliptzyError::Internal(e))?;
 
     let mut detector =
         FaceDetectorWrapper::new(&model_path).map_err(|e| CliptzyError::Internal(e))?;
@@ -124,6 +110,8 @@ pub async fn get_face_keyframes(
     let mut prev_point: Option<(f32, f32)> = None;
     let mut last_detection_frame = -100;
     let force_detect_interval = (fps * 2.0) as isize;
+    
+    let mut analysis_segments = Vec::new();
 
     for (i, path) in paths.iter().enumerate() {
         if cancel_token.is_cancelled() {
@@ -218,6 +206,31 @@ pub async fn get_face_keyframes(
                 last_cx = px / w as f32;
                 last_cy = py / h as f32;
                 raw_keyframes.push((ts, last_cx, last_cy));
+
+                // Eksekusi visual analyzer inline jika disediakan
+                if let Some(analyzer) = visual_analyzer {
+                    let cropped = img.crop_imm(
+                        bbox.x().max(0) as u32,
+                        bbox.y().max(0) as u32,
+                        bbox.width().max(0) as u32,
+                        bbox.height().max(0) as u32,
+                    );
+                    
+                    if let Ok((emotion, score)) = analyzer.run_inference(&cropped) {
+                        analysis_segments.push(crate::analysis::AnalysisSegment {
+                            start_time: ts as f64,
+                            end_time: (ts as f64) + (1.0 / fps as f64),
+                            emotion,
+                            score,
+                            bounding_box: Some(crate::analysis::BoundingBox {
+                                x: bbox.x() as f32 / w as f32,
+                                y: bbox.y() as f32 / h as f32,
+                                w: bbox.width() as f32 / w as f32,
+                                h: bbox.height() as f32 / h as f32,
+                            }),
+                        });
+                    }
+                }
             } else {
                 prev_point = None; 
                 raw_keyframes.push((ts, last_cx, last_cy));
@@ -295,5 +308,6 @@ pub async fn get_face_keyframes(
     }
 
     info!("Extracted {} face keyframes", keyframes.len());
-    Ok(keyframes)
+    let opt_analysis = if visual_analyzer.is_some() { Some(analysis_segments) } else { None };
+    Ok((keyframes, opt_analysis))
 }

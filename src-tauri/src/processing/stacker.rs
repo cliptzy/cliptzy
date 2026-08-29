@@ -51,6 +51,8 @@ pub async fn stack_video(
         .arg("-c")
         .arg("copy")
         .arg(output_path);
+        
+    log::info!("FFmpeg Stacker Command: {:?}", cmd);
 
     let output = cmd.output().await.map_err(|e| CliptzyError::FFmpeg {
         code: -1,

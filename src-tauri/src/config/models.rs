@@ -154,7 +154,7 @@ impl AppConfig {
         if let Err(e) = std::fs::create_dir_all(&app_dir) {
             log::error!("Gagal membuat direktori data aplikasi {:?}: {}", app_dir, e);
         }
-        
+
         let config_path = app_dir.join("config.json");
         log::info!("Menyimpan konfigurasi ke {:?}", config_path);
 

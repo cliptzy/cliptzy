@@ -16,6 +16,7 @@ pub struct VideoBurnerConfig {
     pub watermark_path: Option<String>,
     pub watermark_position: String,
     pub hw_accel: crate::processing::ffmpeg::hwaccel::HwAccel,
+    pub debug_ass_path: Option<String>,
 }
 
 pub async fn burn_video_effects(
@@ -30,6 +31,10 @@ pub async fn burn_video_effects(
 
     if let Some(ass_path) = &config.ass_path {
         final_v = subtitle::apply_subtitle(&mut graph, &final_v, ass_path, &config.config);
+    }
+
+    if let Some(debug_ass) = &config.debug_ass_path {
+        final_v = subtitle::apply_subtitle(&mut graph, &final_v, debug_ass, &None);
     }
 
     if let Some(vfx) = &config.vfx_overlay_path {
@@ -93,6 +98,8 @@ pub async fn burn_video_effects(
         .raw_args(hw_accel.encode_args())
         .raw_args(vec!["-c:a".to_string(), "aac".to_string()])
         .output_path(output_path.to_path_buf());
+
+    log::info!("FFmpeg Burn Command: {:?}", builder);
 
     if let Some((app_handle, total_duration)) = progress_info {
         let handle_clone = app_handle.clone();

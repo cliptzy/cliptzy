@@ -82,9 +82,44 @@
         <div class="flex items-center justify-between">
           <div class="flex flex-col">
             <span class="text-sm font-bold text-[var(--color-text-main)]">Auto B-Roll</span>
-            <span class="text-[10px] text-[var(--color-text-muted)] font-medium">Sisipkan overlay</span>
+            <span class="text-[10px] text-[var(--color-text-muted)] font-medium">Sisipkan overlay meme/b-roll</span>
           </div>
-          <ToggleSwitch v-model="aiBRoll" />
+          <ToggleSwitch v-model="settings.config.ai.use_add_meme" />
+        </div>
+
+        <!-- Pemisah -->
+        <div class="w-full h-px bg-fuchsia-200 dark:bg-fuchsia-800/50 my-1"></div>
+
+        <div class="flex items-center justify-between">
+          <div class="flex flex-col">
+            <span class="text-sm font-bold text-[var(--color-text-main)]">Visual Emotion</span>
+            <span class="text-[10px] text-[var(--color-text-muted)] font-medium">Deteksi emosi wajah (ONNX)</span>
+          </div>
+          <ToggleSwitch v-model="settings.config.ai.use_emotion_detection" />
+        </div>
+        
+        <div class="flex items-center justify-between">
+          <div class="flex flex-col">
+            <span class="text-sm font-bold text-[var(--color-text-main)]">Audio Event</span>
+            <span class="text-[10px] text-[var(--color-text-muted)] font-medium">Deteksi tawa, teriak, dll (AST)</span>
+          </div>
+          <ToggleSwitch v-model="settings.config.ai.use_audio_analysis" />
+        </div>
+
+        <div class="flex items-center justify-between">
+          <div class="flex flex-col">
+            <span class="text-sm font-bold text-[var(--color-text-main)]">Voice Tone</span>
+            <span class="text-[10px] text-[var(--color-text-muted)] font-medium">Deteksi intonasi vokal (SER)</span>
+          </div>
+          <ToggleSwitch v-model="settings.config.ai.use_voice_analysis" />
+        </div>
+
+        <div class="flex items-center justify-between">
+          <div class="flex flex-col">
+            <span class="text-sm font-bold text-[var(--color-text-main)]">Text Sentiment</span>
+            <span class="text-[10px] text-[var(--color-text-muted)] font-medium">Klasifikasi NLP transkrip</span>
+          </div>
+          <ToggleSwitch v-model="settings.config.ai.use_text_analysis" />
         </div>
       </div>
     </BentoCard>
@@ -191,7 +226,6 @@ const settings = useSettingsStore();
 const videoStore = useVideoStore();
 
 const aiWhisper = defineModel('aiWhisper', { type: Boolean, default: true });
-const aiBRoll = defineModel('aiBRoll', { type: Boolean, default: false });
 
 const handleGenerateSubtitle = async () => {
   if (!videoStore.currentUrl) return;

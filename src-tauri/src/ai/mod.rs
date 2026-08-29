@@ -33,3 +33,4 @@ pub fn create_provider(config: &AIConfig) -> Box<dyn AIProvider> {
         )),
     }
 }
+pub mod onnx;

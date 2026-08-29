@@ -135,3 +135,58 @@ fn format_timestamp(seconds: f64) -> String {
 
     format!("{:01}:{:02}:{:02}.{:02}", hours, minutes, secs, centisecs)
 }
+
+pub fn generate_debug_ass(
+    segments: &[crate::analysis::AnalysisSegment],
+    output_path: &std::path::Path,
+    video_width: u32,
+    video_height: u32,
+) -> Result<(), CliptzyError> {
+    use std::io::Write;
+
+    let mut file = std::fs::File::create(output_path).map_err(|e| CliptzyError::Io(e))?;
+
+    // Header ASS
+    writeln!(file, "[Script Info]")?;
+    writeln!(file, "ScriptType: v4.00+")?;
+    writeln!(file, "PlayResX: {}", video_width)?;
+    writeln!(file, "PlayResY: {}", video_height)?;
+    writeln!(file, "WrapStyle: 0")?;
+    writeln!(file, "")?;
+    writeln!(file, "[V4+ Styles]")?;
+    writeln!(file, "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding")?;
+    writeln!(file, "Style: DebugBox,Arial,48,&HFF0000FF,&H000000FF,&H000000FF,&H00000000,0,0,0,0,100,100,0,0,1,3,0,7,0,0,0,1")?;
+    writeln!(file, "Style: DebugText,Arial,36,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,1,0,0,0,100,100,0,0,1,2,2,7,0,0,0,1")?;
+    writeln!(file, "")?;
+    writeln!(file, "[Events]")?;
+    writeln!(file, "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text")?;
+
+    for seg in segments {
+        if let Some(bbox) = &seg.bounding_box {
+            let start = format_timestamp(seg.start_time);
+            let end = format_timestamp(seg.end_time);
+
+            // Konversi dari normalisasi (0.0 - 1.0) ke resolusi video sumber
+            let x1 = (bbox.x * video_width as f32) as i32;
+            let y1 = (bbox.y * video_height as f32) as i32;
+            let w = (bbox.w * video_width as f32) as i32;
+            let h = (bbox.h * video_height as f32) as i32;
+
+            let x2 = x1 + w;
+            let y2 = y1 + h;
+
+            // Draw vector box: m x1 y1 l x2 y1 l x2 y2 l x1 y2
+            let draw_cmd = format!(
+                "{{\\p1\\pos(0,0)}}m {} {} l {} {} l {} {} l {} {}",
+                x1, y1, x2, y1, x2, y2, x1, y2
+            );
+
+            writeln!(file, "Dialogue: 0,{},{},DebugBox,,0,0,0,,{}", start, end, draw_cmd)?;
+
+            let text = format!("{:?} ({:.1}%)", seg.emotion, seg.score * 100.0);
+            writeln!(file, "Dialogue: 0,{},{},DebugText,,0,0,0,,{{\\pos({},{})}}{}", start, end, x1, y1 - 40, text)?;
+        }
+    }
+
+    Ok(())
+}

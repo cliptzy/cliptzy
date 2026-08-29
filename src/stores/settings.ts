@@ -1,6 +1,6 @@
-import { defineStore } from 'pinia';
-import { ref, watch } from 'vue';
-import { invoke } from '@tauri-apps/api/core';
+import { defineStore } from "pinia";
+import { ref, watch } from "vue";
+import { invoke } from "@tauri-apps/api/core";
 
 export interface SubtitleConfig {
   enabled: boolean;
@@ -34,6 +34,7 @@ export interface AIConfig {
   use_audio_analysis: boolean;
   use_text_analysis: boolean;
   use_add_meme: boolean;
+  debug_face_tracking: boolean;
 }
 
 export interface YoutubeConfig {
@@ -77,33 +78,33 @@ export interface AppConfig {
   padding: number;
   top_height: number;
   bottom_height: number;
-  
+
   intro_video: string | null;
   outro_video: string | null;
   watermark_image: string | null;
   video_frame: string | null;
   watermark_position: string;
-  
+
   output_ratio: string;
   out_width: number | null;
   out_height: number | null;
-  
+
   job_dir: string;
   crop_mode: string;
   face_tracking_mode: string;
   merge_clips: boolean;
   ui_locked: boolean;
-  
+
   upload_interval: number;
   hw_accel: string;
   debug_mode: boolean;
   max_workers: number;
-  
+
   tts_language: string;
   tts_voice: string;
   default_hashtags: string;
   browser: string | null;
-  
+
   subtitle: SubtitleConfig;
   ai: AIConfig;
   youtube: YoutubeConfig;
@@ -113,40 +114,40 @@ export interface AppConfig {
 }
 
 const defaultSettings: AppConfig = {
-  output_dir: 'clips',
+  output_dir: "clips",
   min_duration: 60,
-  min_score: 0.40,
+  min_score: 0.4,
   max_clips: 10,
   padding: 10,
   top_height: 960,
   bottom_height: 320,
-  
+
   intro_video: null,
   outro_video: null,
   watermark_image: null,
   video_frame: null,
   watermark_position: "center",
-  
+
   output_ratio: "9:16",
   out_width: 720,
   out_height: 1280,
-  
+
   job_dir: "",
   crop_mode: "default",
   face_tracking_mode: "cinematic",
   merge_clips: false,
   ui_locked: false,
-  
+
   upload_interval: 0.0,
   hw_accel: "cpu",
   debug_mode: false,
   max_workers: 2,
-  
+
   tts_language: "default",
   tts_voice: "female",
   default_hashtags: "#Shorts #Viral #Cliptzy #fyp",
   browser: null,
-  
+
   subtitle: {
     enabled: true,
     style: "plain",
@@ -160,7 +161,7 @@ const defaultSettings: AppConfig = {
     bg_color: "&H80000000",
     border_style: 3,
     animation: "none",
-    max_words: 3
+    max_words: 3,
   },
   ai: {
     provider: "ollama",
@@ -177,7 +178,7 @@ const defaultSettings: AppConfig = {
     use_voice_analysis: true,
     use_audio_analysis: true,
     use_text_analysis: true,
-    use_add_meme: true
+    use_add_meme: true,
   },
   youtube: {
     upload: false,
@@ -185,20 +186,20 @@ const defaultSettings: AppConfig = {
     client_id: "",
     client_secret: "",
     visibility: "Public",
-    auto_upload: false
+    auto_upload: false,
   },
   tiktok: {
     upload: false,
     session: "cred/tiktok_cookies.txt",
     privacy: "Public (Semua Orang)",
-    auto_upload: false
+    auto_upload: false,
   },
   instagram: {
     upload: false,
     business_id: "",
     access_token: "",
     session: "cred/instagram_cookies.txt",
-    auto_upload: false
+    auto_upload: false,
   },
   compilation: {
     ordering: "countdown",
@@ -206,20 +207,20 @@ const defaultSettings: AppConfig = {
     use_tts: true,
     tts_template: "Nomor {n}! {name}!",
     use_subtitle: true,
-    crop_mode: "default"
-  }
+    crop_mode: "default",
+  },
 };
 
-import { useAppStore } from './app';
+import { useAppStore } from "./app";
 
-export const useSettingsStore = defineStore('settings', () => {
+export const useSettingsStore = defineStore("settings", () => {
   const config = ref<AppConfig>(defaultSettings);
   const isLoaded = ref(false);
   const appStore = useAppStore();
-  
+
   const loadFromBackend = async () => {
     try {
-      const json = await invoke<string>('load_config_file');
+      const json = await invoke<string>("load_config_file");
       config.value = JSON.parse(json) as AppConfig;
     } catch (e) {
       console.error("Failed to load config from backend, using defaults:", e);
@@ -232,19 +233,19 @@ export const useSettingsStore = defineStore('settings', () => {
   const toDict = () => {
     return JSON.parse(JSON.stringify(config.value));
   };
-  
+
   const setRatioPreset = (preset: string) => {
     config.value.output_ratio = preset;
-    if (preset === '9:16') {
+    if (preset === "9:16") {
       config.value.out_width = 720;
       config.value.out_height = 1280;
-    } else if (preset === '1:1') {
+    } else if (preset === "1:1") {
       config.value.out_width = 720;
       config.value.out_height = 720;
-    } else if (preset === '16:9') {
+    } else if (preset === "16:9") {
       config.value.out_width = 1280;
       config.value.out_height = 720;
-    } else if (preset === 'original') {
+    } else if (preset === "original") {
       config.value.out_width = null;
       config.value.out_height = null;
     }
@@ -252,36 +253,42 @@ export const useSettingsStore = defineStore('settings', () => {
 
   let debounceTimer: any = null;
   // Watch for changes and sync to Rust backend ONLY if initial load is done
-  watch(() => config.value, (newConfig) => {
-    if (!isLoaded.value) return; // Jangan save config default saat aplikasi baru start
+  watch(
+    () => config.value,
+    (newConfig) => {
+      if (!isLoaded.value) return; // Jangan save config default saat aplikasi baru start
 
-    if (debounceTimer) clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(async () => {
-      try {
-        await invoke('save_config_file', { configJson: JSON.stringify(newConfig) });
-        appStore.addToast({
-          title: 'Pengaturan Tersimpan',
-          message: 'Konfigurasi berhasil disinkronisasi ke engine Rust.',
-          type: 'success',
-          duration: 3000
-        });
-      } catch (e: any) {
-        appStore.addToast({
-          title: 'Gagal Menyimpan',
-          message: String(e),
-          type: 'error',
-          duration: 5000
-        });
-        console.error("Failed to save config to backend:", e);
-      }
-    }, 1500);
-  }, { deep: true });
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(async () => {
+        try {
+          await invoke("save_config_file", {
+            configJson: JSON.stringify(newConfig),
+          });
+          appStore.addToast({
+            title: "Pengaturan Tersimpan",
+            message: "Konfigurasi berhasil disinkronisasi ke engine Rust.",
+            type: "success",
+            duration: 3000,
+          });
+        } catch (e: any) {
+          appStore.addToast({
+            title: "Gagal Menyimpan",
+            message: String(e),
+            type: "error",
+            duration: 5000,
+          });
+          console.error("Failed to save config to backend:", e);
+        }
+      }, 1500);
+    },
+    { deep: true },
+  );
 
-  return { 
-    config, 
+  return {
+    config,
     isLoaded,
     loadFromBackend,
     toDict,
-    setRatioPreset 
+    setRatioPreset,
   };
 });

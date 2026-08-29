@@ -5,6 +5,7 @@ use crate::processing::stacker::{stack_video, StackerConfig};
 use crate::processing::thumbnail::generate_thumbnail;
 use crate::video::downloader::download_segment;
 use serde::{Deserialize, Serialize};
+use crate::analysis::AnalysisSegment;
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct ClipPayload {
@@ -102,7 +103,35 @@ impl ClipVideoUseCase {
             .await?;
         }
 
-        // 2. Removed Probe Video due to rust_ffprobe parsing bugs
+        // 2. AI Analyzers
+        if self.ctx.config.ai.use_emotion_detection {
+            emit_progress(
+                &self.ctx.app_handle,
+                &ProgressEvent {
+                    stage: "analyze".into(),
+                    label: "Menganalisa emosi visual wajah (ONNX)...".into(),
+                    current: 30,
+                    total: 100,
+                    detail: None,
+                },
+            );
+
+            use crate::analysis::EmotionAnalyzer;
+            let analyzer = crate::analysis::visual::VisualEmotionAnalyzer::new();
+
+            match analyzer.analyze(&source_video, &self.ctx.cancel_token, &self.ctx.progress_tx).await {
+                Ok(segments) => {
+                    let json_path = job_dir.join(format!("emotions_{}.json", idx));
+                    if let Ok(json_str) = serde_json::to_string_pretty(&segments) {
+                        let _ = std::fs::write(&json_path, json_str);
+                        log::info!("Emotion analysis selesai, tersimpan di {:?}", json_path);
+                    }
+                }
+                Err(e) => {
+                    log::warn!("Visual Emotion Analyzer gagal (dilewati): {}", e);
+                }
+            }
+        }
 
         // 3. Crop Video
         emit_progress(
@@ -135,10 +164,11 @@ impl ClipVideoUseCase {
                 tracking_mode,
                 Some(self.ctx.app_handle.clone()),
                 self.ctx.cancel_token.clone(),
+                None,
             )
             .await
             {
-                Ok(kfs) => keyframes = Some(kfs),
+                Ok((kfs, _)) => keyframes = Some(kfs),
                 Err(e) => {
                     log::warn!("Face tracking failed: {}. Fallback to center.", e);
                 }
@@ -148,8 +178,47 @@ impl ClipVideoUseCase {
         let cropper = create_crop_strategy(&payload.crop_mode);
         let hw_accel =
             crate::processing::ffmpeg::hwaccel::HwAccel::detect(Some(&self.ctx.config.hw_accel));
+        let mut debug_ass_path = None;
+        if self.ctx.config.debug_mode {
+            let json_path = job_dir.join(format!("emotions_{}.json", idx));
+            match std::fs::read_to_string(&json_path) {
+                Ok(json_str) => {
+                    match serde_json::from_str::<Vec<AnalysisSegment>>(&json_str) {
+                        Ok(segments) => {
+                            match crate::video::local::probe_local_video(&source_video).await {
+                                Ok(probe) => {
+                                    let mut v_w = 1920;
+                                    let mut v_h = 1080;
+                                    for stream in probe.streams {
+                                        if stream.codec_type == Some("video".to_string()) {
+                                            if let Some(w) = stream.width { v_w = w as u32; }
+                                            if let Some(h) = stream.height { v_h = h as u32; }
+                                            break;
+                                        }
+                                    }
+
+                                    let ass_out = job_dir.join(format!("debug_boxes_{}.ass", idx));
+                                    match crate::transcription::ass_writer::generate_debug_ass(&segments, &ass_out, v_w, v_h) {
+                                        Ok(_) => {
+                                            debug_ass_path = Some(ass_out.to_string_lossy().to_string());
+                                            log::info!("Debug ASS generated at {:?}", ass_out);
+                                        }
+                                        Err(e) => log::warn!("Gagal generate debug ASS: {}", e),
+                                    }
+                                }
+                                Err(e) => log::warn!("Gagal probe_local_video: {}", e),
+                            }
+                        }
+                        Err(e) => log::warn!("Gagal parsing JSON: {}", e),
+                    }
+                }
+                Err(e) => log::warn!("Gagal membaca emotions JSON: {}", e),
+            }
+        }
+
         let out_config = OutputConfig {
             hw_accel: hw_accel.clone(),
+            debug_ass_path,
             ..OutputConfig::default()
         };
         let total_duration = payload.end - payload.start;
@@ -368,6 +437,7 @@ impl ClipVideoUseCase {
                 watermark_path: self.ctx.config.watermark_image.clone(),
                 watermark_position: self.ctx.config.watermark_position.clone(),
                 hw_accel: hw_accel.clone(),
+                debug_ass_path: None,
             };
             crate::processing::burner::burn_video_effects(
                 &current_video,

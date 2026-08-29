@@ -7,6 +7,7 @@ pub struct OutputConfig {
     pub width: u32,
     pub height: u32,
     pub hw_accel: crate::processing::ffmpeg::hwaccel::HwAccel,
+    pub debug_ass_path: Option<String>,
 }
 
 impl Default for OutputConfig {
@@ -15,11 +16,29 @@ impl Default for OutputConfig {
             width: 1080,
             height: 1920,
             hw_accel: crate::processing::ffmpeg::hwaccel::HwAccel::Cpu,
+            debug_ass_path: None,
         }
     }
 }
 
 use crate::face::models::FaceKeyframe;
+
+fn apply_debug_ass(graph: &mut FilterGraph, input: &str, output_config: &OutputConfig) -> String {
+    if let Some(ass) = &output_config.debug_ass_path {
+        let safe_path = ass.replace("\\", "/");
+        let escaped_ass = safe_path.replace(":", "\\:");
+        let final_ass = format!("'{}'", escaped_ass);
+
+        let sub_node = FilterNode::new("subtitles")
+            .param("", &final_ass)
+            .inputs(&[input])
+            .outputs(&["debug_v"]);
+        graph.add_node(sub_node);
+        "debug_v".to_string()
+    } else {
+        input.to_string()
+    }
+}
 
 pub trait CropStrategy: Send + Sync {
     fn name(&self) -> &str;
@@ -48,6 +67,7 @@ impl CropStrategy for DefaultCrop {
         _keyframes: Option<&[FaceKeyframe]>,
     ) -> Result<FFmpegBuilder, CliptzyError> {
         let mut graph = FilterGraph::new();
+        let input_v = apply_debug_ass(&mut graph, "0:v", output_config);
 
         let scale = FilterNode::new("scale")
             .param(
@@ -64,7 +84,7 @@ impl CropStrategy for DefaultCrop {
                     output_config.width, output_config.height
                 ),
             )
-            .inputs(&["0:v"])
+            .inputs(&[&input_v])
             .outputs(&["scaled"]);
 
         let crop = FilterNode::new("crop")
@@ -115,6 +135,12 @@ impl CropStrategy for FullCrop {
         _keyframes: Option<&[FaceKeyframe]>,
     ) -> Result<FFmpegBuilder, CliptzyError> {
         let mut graph = FilterGraph::new();
+        let input_v = apply_debug_ass(&mut graph, "0:v", output_config);
+
+        let split = FilterNode::new("split")
+            .param("", "2")
+            .inputs(&[&input_v])
+            .outputs(&["orig_bg", "orig_fg"]);
 
         let bg_scale = FilterNode::new("scale")
             .param(
@@ -131,7 +157,7 @@ impl CropStrategy for FullCrop {
                     output_config.width, output_config.height
                 ),
             )
-            .inputs(&["0:v"])
+            .inputs(&["orig_bg"])
             .outputs(&["bg_scaled"]);
 
         let bg_crop = FilterNode::new("crop")
@@ -148,7 +174,7 @@ impl CropStrategy for FullCrop {
         let fg_scale = FilterNode::new("scale")
             .param("w", &output_config.width.to_string())
             .param("h", "-2")
-            .inputs(&["0:v"])
+            .inputs(&["orig_fg"])
             .outputs(&["fg"]);
 
         let overlay = FilterNode::new("overlay")
@@ -157,6 +183,7 @@ impl CropStrategy for FullCrop {
             .inputs(&["bg", "fg"])
             .outputs(&["outv"]);
 
+        graph.add_node(split);
         graph.add_node(bg_scale);
         graph.add_node(bg_crop);
         graph.add_node(bg_blur);
@@ -182,6 +209,8 @@ impl CropStrategy for FullCrop {
             .raw_args(hw_accel.encode_args())
             .raw_args(vec!["-c:a".to_string(), "aac".to_string()])
             .output_path(output.to_path_buf());
+            
+        log::info!("FFmpeg Crop Command: {:?}", builder);
 
         Ok(builder)
     }
@@ -219,9 +248,11 @@ impl CropStrategy for FullFaceCrop {
             )
         };
 
+        let input_v = apply_debug_ass(&mut graph, "0:v", output_config);
+
         let split = FilterNode::new("split")
             .param("", "3")
-            .inputs(&["0:v"])
+            .inputs(&[&input_v])
             .outputs(&["orig1", "orig2", "orig_bg"]);
 
         let bg_scale = FilterNode::new("scale")
@@ -314,6 +345,8 @@ impl CropStrategy for FullFaceCrop {
             .raw_args(vec!["-c:a".to_string(), "aac".to_string()])
             .output_path(output.to_path_buf());
 
+        log::info!("FFmpeg Crop Command: {:?}", builder);
+
         Ok(builder)
     }
 }
@@ -333,6 +366,7 @@ impl CropStrategy for CenterFaceCrop {
         keyframes: Option<&[FaceKeyframe]>,
     ) -> Result<FFmpegBuilder, CliptzyError> {
         let mut graph = FilterGraph::new();
+        let input_v = apply_debug_ass(&mut graph, "0:v", output_config);
 
         let scale = FilterNode::new("scale")
             .param(
@@ -349,7 +383,7 @@ impl CropStrategy for CenterFaceCrop {
                     output_config.width, output_config.height
                 ),
             )
-            .inputs(&["0:v"])
+            .inputs(&[&input_v])
             .outputs(&["scaled"]);
 
         let x_offset = if let Some(kfs) = keyframes {
@@ -399,6 +433,8 @@ impl CropStrategy for CenterFaceCrop {
             .raw_args(hw_accel.encode_args())
             .raw_args(vec!["-c:a".to_string(), "aac".to_string()])
             .output_path(output.to_path_buf());
+
+        log::info!("FFmpeg Crop Command: {:?}", builder);
 
         Ok(builder)
     }

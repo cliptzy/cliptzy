@@ -14,6 +14,10 @@ pub enum CliptzyError {
     #[error("AI provider error: {0}")]
     AIProvider(String),
 
+    #[error("Model/AI inference error: {0}")]
+    Model(String),
+
+
     #[error("Upload error ({platform}): {message}")]
     Upload { platform: String, message: String },
 
