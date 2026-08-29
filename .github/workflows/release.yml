@@ -15,13 +15,13 @@ jobs:
       matrix:
         include:
           - platform: "macos-latest"
-            args: "--target aarch64-apple-darwin --no-default-features --features gpu-metal"
+            args: "--target aarch64-apple-darwin -- --features gpu-metal"
           - platform: "macos-latest"
-            args: "--target x86_64-apple-darwin --no-default-features --features gpu-metal"
+            args: "--target x86_64-apple-darwin -- --features gpu-metal"
           - platform: "ubuntu-22.04"
-            args: "--no-default-features --features gpu-vulkan"
+            args: "-- --features gpu-vulkan"
           - platform: "windows-latest"
-            args: "--no-default-features --features gpu-vulkan"
+            args: "-- --features gpu-vulkan"
 
     runs-on: ${{ matrix.platform }}
     steps:
