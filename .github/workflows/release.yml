@@ -15,7 +15,7 @@ jobs:
       matrix:
         include:
           - platform: "macos-latest"
-            args: "--target aarch64-apple-darwin -- --features gpu-metal"
+            args: "--target aarch64-apple-darwin"
           - platform: "macos-latest"
             args: "--target x86_64-apple-darwin -- --features gpu-metal"
           - platform: "ubuntu-22.04"
@@ -32,19 +32,28 @@ jobs:
         if: matrix.platform == 'ubuntu-22.04'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev libvulkan-dev
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
-      - name: Install Vulkan SDK
-        if: matrix.platform == 'ubuntu-22.04' || matrix.platform == 'windows-latest'
+      - name: Install Vulkan SDK (Ubuntu)
+        if: matrix.platform == 'ubuntu-22.04'
         uses: humbletim/install-vulkan-sdk@v1.2
         with:
           version: latest
           cache: true
+
+      - name: Install Vulkan SDK (Windows)
+        if: matrix.platform == 'windows-latest'
+        shell: pwsh
+        run: |
+          choco install vulkan-sdk -y --no-progress
+          $vulkanDir = (Get-ChildItem -Path "C:\VulkanSDK" -Directory | Select-Object -First 1).FullName
+          $vulkanDir = $vulkanDir -replace '\\', '/'
+          echo "VULKAN_SDK=$vulkanDir" >> $env:GITHUB_ENV
 
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
