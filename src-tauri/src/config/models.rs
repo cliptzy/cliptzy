@@ -130,19 +130,19 @@ impl AppConfig {
         let config_path = app_dir.join("config.json");
 
         if !config_path.exists() {
-            tracing::info!("config.json tidak ditemukan di {:?}, menggunakan nilai default.", config_path);
+            log::info!("config.json tidak ditemukan di {:?}, menggunakan nilai default.", config_path);
             return Ok(Self::default());
         }
 
-        tracing::info!("Membaca konfigurasi dari {:?}", config_path);
+        log::info!("Membaca konfigurasi dari {:?}", config_path);
         let content = std::fs::read_to_string(&config_path)?;
         match serde_json::from_str(&content) {
             Ok(config) => {
-                tracing::info!("Berhasil memuat konfigurasi.");
+                log::info!("Berhasil memuat konfigurasi.");
                 Ok(config)
             }
             Err(e) => {
-                tracing::warn!("Gagal parsing config.json: {}. Menggunakan fallback default.", e);
+                log::warn!("Gagal parsing config.json: {}. Menggunakan fallback default.", e);
                 // Return default on parse failure to prevent UI breaking completely
                 Ok(Self::default())
             }
@@ -152,15 +152,15 @@ impl AppConfig {
     pub fn save(&self) -> Result<(), crate::error::CliptzyError> {
         let app_dir = crate::paths::app_data_dir();
         if let Err(e) = std::fs::create_dir_all(&app_dir) {
-            tracing::error!("Gagal membuat direktori data aplikasi {:?}: {}", app_dir, e);
+            log::error!("Gagal membuat direktori data aplikasi {:?}: {}", app_dir, e);
         }
         
         let config_path = app_dir.join("config.json");
-        tracing::info!("Menyimpan konfigurasi ke {:?}", config_path);
+        log::info!("Menyimpan konfigurasi ke {:?}", config_path);
 
         let content = serde_json::to_string_pretty(self)?;
         std::fs::write(&config_path, content)?;
-        tracing::info!("Konfigurasi berhasil disimpan.");
+        log::info!("Konfigurasi berhasil disimpan.");
         Ok(())
     }
 }

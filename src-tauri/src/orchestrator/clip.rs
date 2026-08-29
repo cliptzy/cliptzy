@@ -76,7 +76,7 @@ impl ClipVideoUseCase {
                     detail: None,
                 },
             );
-            tracing::info!("Using cached source video: {:?}", source_video);
+            log::info!("Using cached source video: {:?}", source_video);
         } else {
             emit_progress(
                 &self.ctx.app_handle,
@@ -140,7 +140,7 @@ impl ClipVideoUseCase {
             {
                 Ok(kfs) => keyframes = Some(kfs),
                 Err(e) => {
-                    tracing::warn!("Face tracking failed: {}. Fallback to center.", e);
+                    log::warn!("Face tracking failed: {}. Fallback to center.", e);
                 }
             }
         }

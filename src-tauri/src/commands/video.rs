@@ -21,7 +21,7 @@ pub async fn clip_video(
     app: tauri::AppHandle,
     payload: ClipPayload,
 ) -> Result<ClipResult, CliptzyError> {
-    tracing::info!("Menerima permintaan clip_video untuk Video ID: {}", payload.video_id);
+    log::info!("Menerima permintaan clip_video untuk Video ID: {}", payload.video_id);
     let cancel_token = CancellationToken::new();
     let (progress_tx, _) = tokio::sync::broadcast::channel(100);
 
@@ -80,7 +80,7 @@ pub async fn analyze_segment_audio(
         end
     );
     let audio_wav_path = temp_dir.join(file_name);
-    tracing::info!(
+    log::info!(
         "Analisis segmen audio dimulai | Start: {}s, End: {}s",
         start,
         end
@@ -92,7 +92,7 @@ pub async fn analyze_segment_audio(
     let deps = crate::utils::AppDependencies::check().map_err(|e| CliptzyError::Download(e))?;
 
     // 1. Extract audio chunk (pass the original YouTube URL so yt-dlp can handle cookies/throttling)
-    tracing::info!("Tahap 1: Ekstraksi WAV melalui yt-dlp/FFmpeg...");
+    log::info!("Tahap 1: Ekstraksi WAV melalui yt-dlp/FFmpeg...");
     crate::transcription::audio::extract_audio_segment(
         &_url,
         start,
@@ -109,22 +109,22 @@ pub async fn analyze_segment_audio(
     } else {
         config.subtitle.whisper_model.clone()
     };
-    tracing::info!(
+    log::info!(
         "Tahap 2: Memeriksa dan memuat model Whisper ({})...",
         whisper_model
     );
     let model_path = crate::transcription::whisper::ensure_model_exists(&whisper_model).await?;
 
     // 3. Transcribe audio
-    tracing::info!("Tahap 3: Menjalankan transkripsi Whisper (local)...");
+    log::info!("Tahap 3: Menjalankan transkripsi Whisper (local)...");
     let transcriber = crate::transcription::whisper::WhisperTranscriber::new(&model_path)?;
     let transcript = transcriber.transcribe(&audio_wav_path).await?;
 
     // Clean up temporary audio file
-    tracing::info!("Tahap 4: Membersihkan file audio sementara...");
+    log::info!("Tahap 4: Membersihkan file audio sementara...");
     let _ = std::fs::remove_file(&audio_wav_path);
 
-    tracing::info!(
+    log::info!(
         "Analisis segmen audio selesai. Ditemukan {} blok teks.",
         transcript.len()
     );

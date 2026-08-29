@@ -6,7 +6,7 @@ use image::GenericImageView;
 use std::path::Path;
 use tokio::process::Command;
 use tempfile::tempdir;
-use tracing::info;
+use log::info;
 
 pub async fn get_face_keyframes(
     video_path: &Path,

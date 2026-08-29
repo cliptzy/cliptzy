@@ -108,7 +108,7 @@ pub async fn cancel_processing(state: tauri::State<'_, crate::AppState>) -> Resu
         // Force kill any ffmpeg/yt-dlp to interrupt rust_ffmpeg processes
         crate::utils::kill_processes(&["ffmpeg", "yt-dlp"]);
 
-        tracing::info!("Proses dihentikan oleh user (CancellationToken trigger & aggressive kill)");
+        log::info!("Proses dihentikan oleh user (CancellationToken trigger & aggressive kill)");
     }
     Ok(())
 }

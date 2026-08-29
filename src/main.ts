@@ -9,6 +9,10 @@ import BaseButton from './components/BaseButton.vue';
 import SpatialInput from './components/SpatialInput.vue';
 import RangeSlider from './components/RangeSlider.vue';
 
+import { attachConsole } from '@tauri-apps/plugin-log';
+
+attachConsole().catch(console.error);
+
 console.log('[Main] Starting Vue app...');
 const app = createApp(App);
 

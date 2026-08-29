@@ -21,9 +21,9 @@ pub async fn copy_asset_file(
 
 #[tauri::command]
 pub async fn save_config_file(config_json: String) -> Result<(), CliptzyError> {
-    tracing::debug!("Menerima permintaan save_config_file dari Frontend");
+    log::debug!("Menerima permintaan save_config_file dari Frontend");
     let config: AppConfig = serde_json::from_str(&config_json).map_err(|e| {
-        tracing::error!("Payload config dari UI tidak valid: {}", e);
+        log::error!("Payload config dari UI tidak valid: {}", e);
         CliptzyError::Config(e.to_string())
     })?;
     config.save()?;
@@ -32,7 +32,7 @@ pub async fn save_config_file(config_json: String) -> Result<(), CliptzyError> {
 
 #[tauri::command]
 pub async fn load_config_file() -> Result<String, CliptzyError> {
-    tracing::debug!("Menerima permintaan load_config_file dari Frontend");
+    log::debug!("Menerima permintaan load_config_file dari Frontend");
     let config = AppConfig::load()?;
     let json = serde_json::to_string(&config)?;
     Ok(json)

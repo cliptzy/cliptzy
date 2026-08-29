@@ -64,6 +64,7 @@ Seluruh sistem sekarang terdiri dari dua lapisan saja (Frontend dan Native Backe
 1. **DILARANG MENGGUNAKAN PYTHON** — Kita tidak lagi menggunakan server Python (FastAPI). Jangan pernah mengusulkan atau menambahkan kembali kode Python untuk fungsi backend. Semuanya harus native Rust.
 2. **DILARANG hardcode path absolut** — Gunakan modul `crate::paths` di Rust untuk mendapatkan lokasi AppData dan direktori kerja.
 3. **DILARANG menambah dependensi besar tanpa alasan yang kuat** — Cari implementasi crate Rust terkecil yang bisa menyelesaikan tugas, hindari crate monolithic jika tidak perlu.
+4. **SELALU cek ekosistem sebelum membangun dari awal** — Sebelum menulis modul logika kompleks secara manual, selalu telusuri *Tauri Plugins* resmi atau *Crates* Rust di internet. Gunakan solusi komunitas jika memungkinkan untuk mempermudah implementasi.
 
 ### 2.2 Larangan Frontend (Vue + TypeScript)
 
@@ -84,6 +85,7 @@ Sebelum menulis kode, AI Model WAJIB menjawab pertanyaan berikut:
 1. ✅ Apakah saya sadar bahwa aplikasi ini **100% Native Rust + Vue** dan kita telah membuang Python?
 2. ✅ Apakah saya menggunakan Crate Rust (seperti `reqwest`, `tokio`, dsb) atau CLI (seperti memanggil `ffmpeg.exe` via `std::process::Command`) alih-alih server Python?
 3. ✅ Apakah semua perintah di-*expose* ke Frontend melalui `#[tauri::command]`?
+4. ✅ Apakah saya sudah menelusuri **Tauri Plugin** resmi atau **Rust Crate** yang relevan di internet sebelum memutuskan untuk menulis ulang fungsionalitas secara manual?
 
 ---
 
@@ -170,3 +172,10 @@ Sebelum menulis kode, AI Model WAJIB menjawab pertanyaan berikut:
 - **Solusi**: 
   1. Menerapkan pengalihan `target-dir = "../t"` pada *local cache* khusus lingkungan Windows.
   2. Modifikasi `release.yml` GitHub Actions untuk menghilangkan *default features* secara global, lalu mem-*passing* argumen spesifik `--features gpu-metal` khusus macOS dan menginjeksi dependensi GitHub Action `humbletim/install-vulkan-sdk` agar *runner* Windows/Ubuntu dapat meng- *compile* *shader* Vulkan secara mulus demi 100% stabilitas rilis distribusi.
+
+### 4.17. Standarisasi Logging Terpusat via Tauri Plugin
+- **Problem**: Implementasi logging sebelumnya dilakukan secara manual menggunakan kombinasi `tracing-subscriber` dan `tracing-appender`, serta kurang terintegrasi secara praktis dengan konsol webview frontend.
+- **Solusi**: 
+  1. Menghapus manajemen log manual dan menggantinya dengan pustaka resmi `tauri-plugin-log` (v2).
+  2. Mengganti seluruh pemanggilan macro `tracing::info!` dan kawan-kawannya di seluruh *codebase* Rust menjadi `log::info!` (pustaka standar `log`), serta mencabut dependensi `tracing` sepenuhnya. Hal ini dikarenakan `tauri-plugin-log` berintegrasi secara *native* dan menangkap event dari *facade* `log` untuk ditulis ke file dan diteruskan ke *webview*.
+  3. Memanggil fungsi `attachConsole()` di dalam `main.ts` Vue untuk meneruskan seluruh riwayat logging backend ke antarmuka *Developer Tools* browser tanpa merusak integrasi pelaporan progres `GlobalStatusBar.vue` yang berjalan murni via Tauri Event Emitter.

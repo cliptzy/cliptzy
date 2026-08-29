@@ -35,7 +35,7 @@ pub async fn get_downloader(
 
     if let Some(browser) = cookies_path {
         if !browser.is_empty() {
-            tracing::info!("Menggunakan cookies dari browser: {}", browser);
+            log::info!("Menggunakan cookies dari browser: {}", browser);
             extra_args.push("--cookies-from-browser".to_string());
             extra_args.push(browser);
         }
@@ -80,13 +80,13 @@ pub async fn analyze_youtube_video(
     args_to_log.push(url.to_string());
     cmd.arg(url);
 
-    tracing::info!("Menjalankan perintah fetch video: yt-dlp {}", args_to_log.join(" "));
+    log::info!("Menjalankan perintah fetch video: yt-dlp {}", args_to_log.join(" "));
 
     let output = cmd.output().await.map_err(|e| format!("Gagal mengeksekusi yt-dlp: {}", e))?;
 
     if !output.status.success() {
         let err_str = String::from_utf8_lossy(&output.stderr);
-        tracing::error!("yt-dlp error: {}", err_str);
+        log::error!("yt-dlp error: {}", err_str);
         return Err(format!("Gagal fetch info video: {}", err_str));
     }
 
@@ -125,7 +125,7 @@ pub async fn analyze_youtube_video(
         });
     }
 
-    tracing::info!("Mencari format media yang cocok untuk video ID: {}", video.id);
+    log::info!("Mencari format media yang cocok untuk video ID: {}", video.id);
 
     let valid_formats: Vec<_> = video
         .formats
@@ -160,12 +160,12 @@ pub async fn analyze_youtube_video(
         });
 
     if let Some(ref url) = stream_url {
-        tracing::info!(
+        log::info!(
             "Berhasil mendapatkan stream URL: {}...",
             &url[..std::cmp::min(url.len(), 50)]
         );
     } else {
-        tracing::warn!("Tidak menemukan stream URL yang valid dari yt-dlp!");
+        log::warn!("Tidak menemukan stream URL yang valid dari yt-dlp!");
     }
 
     Ok(VideoAnalysisResult {

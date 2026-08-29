@@ -19,23 +19,23 @@ pub async fn scan_video(
     url: String,
     cookies_path: Option<String>,
 ) -> Result<ScanResult, CliptzyError> {
-    tracing::info!("Memulai scan video untuk URL: {}", url);
+    log::info!("Memulai scan video untuk URL: {}", url);
     let deps = crate::utils::AppDependencies::check().map_err(|e| {
-        tracing::error!("Dependency check gagal: {}", e);
+        log::error!("Dependency check gagal: {}", e);
         CliptzyError::Download(e)
     })?;
 
     if url.starts_with("http") || url.starts_with("www") {
-        tracing::debug!("URL terdeteksi sebagai resource online (YouTube)");
+        log::debug!("URL terdeteksi sebagai resource online (YouTube)");
         // YouTube video
         let analysis = analyze_youtube_video(&url, cookies_path.clone(), &deps.ytdlp)
             .await
             .map_err(|e| {
-                tracing::error!("Gagal menganalisis video YouTube: {}", e);
+                log::error!("Gagal menganalisis video YouTube: {}", e);
                 CliptzyError::Download(e)
             })?;
 
-        tracing::info!("Berhasil menganalisis YouTube video: {}", analysis.title);
+        log::info!("Berhasil menganalisis YouTube video: {}", analysis.title);
         Ok(ScanResult {
             video_id: analysis.video_id,
             title: analysis.title,
@@ -45,16 +45,16 @@ pub async fn scan_video(
             stream_url: analysis.stream_url,
         })
     } else {
-        tracing::debug!("URL terdeteksi sebagai file lokal: {}", url);
+        log::debug!("URL terdeteksi sebagai file lokal: {}", url);
         // Local video
         let path = Path::new(&url);
         if !path.exists() {
-            tracing::error!("File lokal tidak ditemukan: {}", url);
+            log::error!("File lokal tidak ditemukan: {}", url);
             return Err(CliptzyError::FileNotFound(url));
         }
 
         let probe = probe_local_video(path).await.map_err(|e| {
-            tracing::error!("Gagal membaca metadata video lokal: {}", e);
+            log::error!("Gagal membaca metadata video lokal: {}", e);
             e
         })?;
         let duration = probe
@@ -93,7 +93,7 @@ pub async fn scan_video(
             start += segment_length;
         }
 
-        tracing::info!("Berhasil menganalisis video lokal dengan {} segmen", segments.len());
+        log::info!("Berhasil menganalisis video lokal dengan {} segmen", segments.len());
         Ok(ScanResult {
             video_id: "local".to_string(),
             title,

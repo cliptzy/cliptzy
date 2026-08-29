@@ -25,7 +25,7 @@ pub async fn extract_audio_segment(
         let cached_audio_path = cache_dir.join(format!("full_audio_{}.wav", hash));
 
         if !cached_audio_path.exists() {
-            tracing::info!(
+            log::info!(
                 "Mengunduh audio penuh untuk di-cache: {:?}",
                 cached_audio_path
             );
@@ -72,7 +72,7 @@ pub async fn extract_audio_segment(
                 });
             }
         } else {
-            tracing::info!("Audio cache ditemukan: {:?}", cached_audio_path);
+            log::info!("Audio cache ditemukan: {:?}", cached_audio_path);
         }
         cached_audio_path.to_string_lossy().to_string()
     } else {
@@ -80,7 +80,7 @@ pub async fn extract_audio_segment(
     };
 
     // 2. Extract Segment from Local File
-    tracing::info!("Memotong audio lokal dari detik {} sampai {}", start, end);
+    log::info!("Memotong audio lokal dari detik {} sampai {}", start, end);
     let mut builder = FFmpegBuilder::new().map_err(|e| CliptzyError::FFmpeg {
         code: -1,
         message: format!("FFmpeg builder error: {}", e),

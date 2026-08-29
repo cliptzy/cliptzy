@@ -31,34 +31,24 @@ pub fn run() {
     // Set up PATH environment variables for dependencies
     deps::manager::setup_env();
 
-    // Inisialisasi tracing untuk logging
     let app_dir = paths::app_data_dir();
     let logs_dir = app_dir.join("logs");
     std::fs::create_dir_all(&logs_dir).ok();
 
-    let file_appender = tracing_appender::rolling::daily(logs_dir, "cliptzy.log");
-    let (file_writer, guard) = tracing_appender::non_blocking(file_appender);
-    Box::leak(Box::new(guard));
-
-    use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-
-    let stdout_log = tracing_subscriber::fmt::layer()
-        .with_writer(std::io::stdout)
-        .with_ansi(true);
-        
-    let file_log = tracing_subscriber::fmt::layer()
-        .with_writer(file_writer)
-        .with_ansi(false);
-
-    tracing_subscriber::registry()
-        .with(stdout_log)
-        .with(file_log)
-        .with(tracing_subscriber::EnvFilter::from_default_env().add_directive(tracing::Level::INFO.into()))
-        .init();
-
-    tracing::info!("Aplikasi Cliptzy dimulai. Log diaktifkan.");
-
     tauri::Builder::default()
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .targets([
+                    tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Stdout),
+                    tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Folder {
+                        path: logs_dir,
+                        file_name: Some("cliptzy.log".to_string()),
+                    }),
+                    tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Webview),
+                ])
+                .level(log::LevelFilter::Info)
+                .build(),
+        )
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
@@ -70,8 +60,9 @@ pub fn run() {
             cancel_token: Mutex::new(None),
         })
         .setup(|_app| {
+            log::info!("Aplikasi Cliptzy dimulai. Log diaktifkan.");
             ctrlc::set_handler(move || {
-                tracing::info!("Ctrl+C received, shutting down...");
+                log::info!("Ctrl+C received, shutting down...");
                 std::process::exit(0);
             })
             .ok();

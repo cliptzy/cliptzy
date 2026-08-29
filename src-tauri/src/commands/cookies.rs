@@ -161,7 +161,7 @@ pub async fn test_youtube_cookies(browser_name: String) -> Result<serde_json::Va
         }))
     } else {
         let err_str = String::from_utf8_lossy(&output.stderr);
-        tracing::error!("Cookies test failed: {}", err_str);
+        log::error!("Cookies test failed: {}", err_str);
 
         let mut reason = "Tidak dapat fetch video.";
         if err_str.contains("Sign in to confirm you")
