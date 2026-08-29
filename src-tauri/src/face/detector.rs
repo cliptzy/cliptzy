@@ -1,4 +1,3 @@
-use rustface::{Detector, FaceInfo};
 use std::path::Path;
 
 pub struct FaceDetectorWrapper {
@@ -25,9 +24,13 @@ impl FaceDetectorWrapper {
         Ok(Self { detector })
     }
 
-    pub fn detect_faces(&mut self, image_data: &[u8], width: u32, height: u32) -> Vec<rustface::FaceInfo> {
+    pub fn detect_faces(
+        &mut self,
+        image_data: &[u8],
+        width: u32,
+        height: u32,
+    ) -> Vec<rustface::FaceInfo> {
         let mut img = rustface::ImageData::new(image_data, width, height);
         self.detector.detect(&mut img)
     }
 }
-

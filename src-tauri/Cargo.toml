@@ -59,9 +59,10 @@ optical-flow-lk = "0.3.1"
 tracing-appender = "0.2.5"
 
 [features]
-default = ["gpu-vulkan"]
+default = []
 gpu-vulkan = ["whisper-rs/vulkan"]
 gpu-cuda = ["whisper-rs/cuda"]
+gpu-metal = ["whisper-rs/metal"]
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
 [profile.release]

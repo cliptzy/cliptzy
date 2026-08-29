@@ -3,7 +3,7 @@ name: Release Tauri App
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
   workflow_dispatch:
 
 jobs:
@@ -14,19 +14,19 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: 'macos-latest'
-            args: '--target aarch64-apple-darwin --no-default-features --features gpu-metal'
-          - platform: 'macos-latest'
-            args: '--target x86_64-apple-darwin --no-default-features --features gpu-metal'
-          - platform: 'ubuntu-22.04'
-            args: '--no-default-features --features gpu-vulkan'
-          - platform: 'windows-latest'
-            args: '--no-default-features --features gpu-vulkan'
+          - platform: "macos-latest"
+            args: "--target aarch64-apple-darwin --no-default-features --features gpu-metal"
+          - platform: "macos-latest"
+            args: "--target x86_64-apple-darwin --no-default-features --features gpu-metal"
+          - platform: "ubuntu-22.04"
+            args: "--no-default-features --features gpu-vulkan"
+          - platform: "windows-latest"
+            args: "--no-default-features --features gpu-vulkan"
 
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install dependencies (ubuntu only)
         if: matrix.platform == 'ubuntu-22.04'
@@ -54,7 +54,7 @@ jobs:
       - name: Rust cache
         uses: swatinem/rust-cache@v2
         with:
-          workspaces: './src-tauri -> target'
+          workspaces: "./src-tauri -> target"
 
       - name: Install frontend dependencies
         run: bun install
@@ -65,8 +65,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ github.ref_name }}
-          releaseName: 'Cliptzy ${{ github.ref_name }}'
-          releaseBody: 'Pembaruan terbaru untuk Cliptzy.'
+          releaseName: "Cliptzy ${{ github.ref_name }}"
+          releaseBody: "Pembaruan terbaru untuk Cliptzy."
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}

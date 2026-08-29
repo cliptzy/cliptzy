@@ -660,10 +660,10 @@ impl From<CliptzyError> for String {
   3. **`SplitLeftCrop` / `SplitRightCrop`** — Top center + bottom left/right
      - [ ] Port dari: `crop_mode == "split_left"` / `"split_right"`
 
-  4. **`CenterFaceCrop`** — Dynamic keyframe face tracking crop
-     - [ ] **Paling kompleks:** Membutuhkan face detection (Phase terpisah)
-     - [ ] Port dynamic FFmpeg expression builder (`if(lt(t,...), ...)`)
-     - [ ] Keyframe simplification (max 85 terms untuk AST limit FFmpeg)
+  4. **`CenterFaceCrop`** - Dynamic keyframe face tracking crop
+     - [x] **Paling kompleks:** Membutuhkan face detection (Phase terpisah)
+     - [x] Port dynamic FFmpeg expression builder (`if(lt(t,...), ...)`)
+     - [x] Keyframe simplification (max 85 terms untuk AST limit FFmpeg)
 
   5. **`SplitFaceCrop`** — Top center + bottom dynamic face
      - [ ] Kombinasi split + face tracking
@@ -1086,18 +1086,17 @@ impl From<CliptzyError> for String {
 
 ### 10.2 Face Detection
 
-- [ ] Buat `src/face/detector.rs`:
-  - **Rekomendasi:** Gunakan `ort` (ONNX Runtime binding untuk Rust)
-    - Load model YuNet ONNX
-    - Inference pada frame yang di-extract via FFmpeg
-  - **Alternatif ringan:** Gunakan OpenCV via FFmpeg filter `cropdetect` atau face detection filter
+- [x] Buat `src/face/detector.rs`:
+  - **Implementasi:** Menggunakan `rustface` (SeetaFace) murni di CPU.
+  - Alasan: Lebih ringan, tidak butuh dependensi `ort`/ONNX.
+  - Threshold ditingkatkan ke 3.5 (untuk memfilter patung/kartun).
 
-- [ ] Buat `src/face/tracker.rs`:
+- [x] Buat `src/face/tracker.rs`:
   - Port `get_face_keyframes()`:
-    - Sample video frames setiap N detik
-    - Detect face di setiap frame
-    - Jitter filtering (threshold 0.03)
-    - Extreme movement detection (threshold 0.15)
+    - Extract JPEG dari FFmpeg di resolusi 360p (9x lebih cepat).
+    - Detect face di setiap frame via `rustface`.
+    - Jitter filtering (threshold 0.03) & Exponential Moving Average (EMA).
+    - Extreme movement detection (threshold 0.15).
     - Classify: `glide` vs `cut`
     - Keyframe deduplication
 
