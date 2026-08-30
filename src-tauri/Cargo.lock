@@ -800,6 +800,7 @@ dependencies = [
  "optical-flow-lk",
  "ort",
  "rand 0.10.2",
+ "rayon",
  "regex",
  "reqwest 0.12.28",
  "rust_ffmpeg",

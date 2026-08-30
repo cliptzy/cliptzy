@@ -208,9 +208,7 @@ fn parse_restreamer_entry(entry: &serde_json::Value) -> Option<RestreamerInfo> {
             .get("upload_date")
             .and_then(|d| d.as_str())
             .map(|s| s.to_string()),
-        view_count: entry
-            .get("view_count")
-            .and_then(|v| v.as_u64()),
+        view_count: entry.get("view_count").and_then(|v| v.as_u64()),
     })
 }
 
@@ -259,11 +257,16 @@ fn add_days_yyyymmdd(date: &str, days: u32) -> Option<String> {
     Some(format!("{:04}{:02}{:02}", year, month, day))
 }
 
-fn is_upload_within_reaction_window(entry_date: &str, main_date: &str, max_days_after: u32) -> bool {
+fn is_upload_within_reaction_window(
+    entry_date: &str,
+    main_date: &str,
+    max_days_after: u32,
+) -> bool {
     if entry_date.len() != 8 || main_date.len() != 8 {
         return false;
     }
-    let max_date = add_days_yyyymmdd(main_date, max_days_after).unwrap_or_else(|| "99999999".to_string());
+    let max_date =
+        add_days_yyyymmdd(main_date, max_days_after).unwrap_or_else(|| "99999999".to_string());
     entry_date >= main_date && entry_date <= max_date.as_str()
 }
 
@@ -366,7 +369,10 @@ fn ensure_main_audio_segments_cached(
         },
     )?;
 
-    log::info!("Mengekstrak {} segmen audio utama ke cache.", prepared.len());
+    log::info!(
+        "Mengekstrak {} segmen audio utama ke cache.",
+        prepared.len()
+    );
     Ok(prepared)
 }
 
@@ -403,7 +409,7 @@ fn epic_moments_prompt(
             1. ONLY select segments from the ACTUAL MATCH / GAMEPLAY.\n\
             2. STRICTLY IGNORE all non-gameplay segments. You must completely skip: Draft Picks, Hero Bans, caster desk analysis, interviews, pre-game intros, commercial breaks, and post-game celebrations.\n\
             3. Look for high-energy shoutcasting cues.\n\
-            4. The duration of each segment CANNOT exceed 1 minute except when the full context of the team fight or momentum shift requires it. Do not cut the action abruptly; ensure the buildup and aftermath are included.\n\
+            4. The duration of each segment CANNOT exceed 30 SECONDS except when the full context of the team fight or momentum shift requires it. Do not cut the action abruptly; ensure the buildup and aftermath are included.\n\
             \n\
             Output YOUR RESPONSE STRICTLY as a valid JSON array of objects, and absolutely nothing else (no markdown formatting, no explanations). Example format:\n\
             [{{\"start\": 12.5, \"end\": 125.0, \"description\": \"Intense Lord contest leading to a RRQ Wiped Out\"}}]\n\
@@ -1289,8 +1295,7 @@ pub async fn sync_restreamer_audio(
 
     log::info!("Menganalisis peak match via Audio Fingerprinting (background thread)...");
 
-    let prepared_segments =
-        ensure_main_audio_segments_cached(job_dir, &main_audio_path, &moments)?;
+    let prepared_segments = ensure_main_audio_segments_cached(job_dir, &main_audio_path, &moments)?;
 
     if prepared_segments.is_empty() {
         return Err(CliptzyError::Config(
@@ -1299,23 +1304,30 @@ pub async fn sync_restreamer_audio(
     }
 
     let restr_wav_str = restr_wav.to_string_lossy().to_string();
+    let fingerprint_cache_path = cache_file(
+        job_dir,
+        &format!(
+            "restr_{}_fingerprint.bin",
+            job_cache::sanitize_cache_token(restreamer_id)
+        ),
+    );
     let url_clone = restreamer_url.clone();
 
     let restreamer_clips =
         tokio::task::spawn_blocking(move || -> Result<Vec<RestreamerClip>, String> {
-            let (restr_samples, restr_rate) =
-                crate::orchestrator::audio_fingerprint::decode_wav(&restr_wav_str)?;
+            let restr_rate = hound::WavReader::open(&restr_wav_str)
+                .map_err(|e| e.to_string())?
+                .spec()
+                .sample_rate;
 
+            let fingerprint_db = crate::orchestrator::audio_fingerprint::build_or_load_fingerprint_db(
+                std::path::Path::new(&restr_wav_str),
+                &fingerprint_cache_path,
+            )?;
             log::info!(
-                "Membangun fingerprint database restreamer ({} sampel, {} hash)...",
-                restr_samples.len(),
-                0
-            );
-            let fingerprint_db =
-                crate::orchestrator::audio_fingerprint::build_fingerprint_db(&restr_samples);
-            log::info!(
-                "Fingerprint database siap: {} hash dari audio restreamer.",
-                fingerprint_db.hashes.len()
+                "Fingerprint database siap: {} hash, {} sampel preprocessed.",
+                fingerprint_db.hash_count(),
+                fingerprint_db.preprocessed_len()
             );
 
             let mut results = Vec::new();

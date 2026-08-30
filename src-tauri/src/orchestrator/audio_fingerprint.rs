@@ -1,14 +1,31 @@
+use crate::orchestrator::job_cache::FileFingerprint;
+use rayon::prelude::*;
 use rustfft::{num_complex::Complex, FftPlanner};
 use std::collections::HashMap;
 use std::f32::consts::PI;
+use std::io::Read;
+use std::path::Path;
+use std::sync::Arc;
 
 pub const WINDOW_SIZE: usize = 4096;
 pub const HOP_SIZE: usize = WINDOW_SIZE / 2;
+const CACHE_MAGIC: &[u8; 4] = b"CLFP";
+const CACHE_VERSION: u32 = 1;
 
 /// Cached fingerprint index for a long audio track (e.g. restreamer VOD).
 pub struct AudioFingerprintDb {
-    pub hashes: Vec<HashEntry>,
-    pub preprocessed: Vec<f32>,
+    hashes: Vec<HashEntry>,
+    preprocessed: Vec<f32>,
+}
+
+impl AudioFingerprintDb {
+    pub fn hash_count(&self) -> usize {
+        self.hashes.len()
+    }
+
+    pub fn preprocessed_len(&self) -> usize {
+        self.preprocessed.len()
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -24,10 +41,42 @@ struct AudioHash {
     delta_time: usize,
 }
 
-#[derive(Debug, Clone)]
-pub struct HashEntry {
+#[derive(Debug, Clone, Copy)]
+struct HashEntry {
     hash: AudioHash,
     anchor_time: usize,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct StoredHashEntry {
+    freq_anchor: u32,
+    freq_target: u32,
+    delta_time: u32,
+    anchor_time: u32,
+}
+
+impl From<HashEntry> for StoredHashEntry {
+    fn from(entry: HashEntry) -> Self {
+        Self {
+            freq_anchor: entry.hash.freq_anchor as u32,
+            freq_target: entry.hash.freq_target as u32,
+            delta_time: entry.hash.delta_time as u32,
+            anchor_time: entry.anchor_time as u32,
+        }
+    }
+}
+
+impl From<StoredHashEntry> for HashEntry {
+    fn from(entry: StoredHashEntry) -> Self {
+        Self {
+            hash: AudioHash {
+                freq_anchor: entry.freq_anchor as usize,
+                freq_target: entry.freq_target as usize,
+                delta_time: entry.delta_time as usize,
+            },
+            anchor_time: entry.anchor_time as usize,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -53,7 +102,7 @@ pub fn decode_wav(path: &str) -> Result<(Vec<f32>, u32), String> {
 
 /// Write mono f32 samples to a 16-bit PCM WAV file.
 pub fn write_wav_segment(
-    path: &std::path::Path,
+    path: &Path,
     samples: &[f32],
     sample_rate: u32,
 ) -> Result<(), String> {
@@ -85,6 +134,147 @@ pub fn build_fingerprint_db(samples: &[f32]) -> AudioFingerprintDb {
         hashes,
         preprocessed,
     }
+}
+
+/// Load fingerprint DB from disk cache, or build and persist it when missing/stale.
+pub fn build_or_load_fingerprint_db(
+    source_wav: &Path,
+    cache_path: &Path,
+) -> Result<AudioFingerprintDb, String> {
+    let source_fp = crate::orchestrator::job_cache::fingerprint(source_wav)
+        .ok_or_else(|| format!("File audio tidak ditemukan: {}", source_wav.display()))?;
+
+    if let Some(db) = load_fingerprint_db(cache_path, &source_fp) {
+        log::info!(
+            "Fingerprint database dimuat dari cache: {:?} ({} hash, {} sampel)",
+            cache_path,
+            db.hash_count(),
+            db.preprocessed_len()
+        );
+        return Ok(db);
+    }
+
+    log::info!(
+        "Cache fingerprint tidak tersedia, membangun database dari {:?}...",
+        source_wav
+    );
+    let (samples, _) = decode_wav(&source_wav.to_string_lossy())?;
+    let db = build_fingerprint_db(&samples);
+    save_fingerprint_db(cache_path, &db, &source_fp)?;
+    log::info!(
+        "Fingerprint database disimpan ke cache: {:?} ({} hash)",
+        cache_path,
+        db.hash_count()
+    );
+    Ok(db)
+}
+
+fn save_fingerprint_db(
+    cache_path: &Path,
+    db: &AudioFingerprintDb,
+    source_fp: &FileFingerprint,
+) -> Result<(), String> {
+    if let Some(parent) = cache_path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+
+    let mut buffer = Vec::new();
+    buffer.extend_from_slice(CACHE_MAGIC);
+    write_u32(&mut buffer, CACHE_VERSION);
+    write_u64(&mut buffer, source_fp.size);
+    write_u64(&mut buffer, source_fp.modified_secs);
+    write_u64(&mut buffer, db.hashes.len() as u64);
+
+    for entry in &db.hashes {
+        let stored = StoredHashEntry::from(*entry);
+        write_u32(&mut buffer, stored.freq_anchor);
+        write_u32(&mut buffer, stored.freq_target);
+        write_u32(&mut buffer, stored.delta_time);
+        write_u32(&mut buffer, stored.anchor_time);
+    }
+
+    write_u64(&mut buffer, db.preprocessed.len() as u64);
+    for &sample in &db.preprocessed {
+        buffer.extend_from_slice(&sample.to_le_bytes());
+    }
+
+    std::fs::write(cache_path, buffer).map_err(|e| e.to_string())
+}
+
+fn load_fingerprint_db(cache_path: &Path, source_fp: &FileFingerprint) -> Option<AudioFingerprintDb> {
+    let data = std::fs::read(cache_path).ok()?;
+    let mut cursor = &data[..];
+
+    let mut magic = [0u8; 4];
+    cursor.read_exact(&mut magic).ok()?;
+    if &magic != CACHE_MAGIC {
+        log::warn!("Cache fingerprint format tidak dikenal: {:?}", cache_path);
+        return None;
+    }
+
+    let version = read_u32(&mut cursor)?;
+    if version != CACHE_VERSION {
+        log::info!("Cache fingerprint versi lama (v{}), rebuild diperlukan.", version);
+        return None;
+    }
+
+    let cached_size = read_u64(&mut cursor)?;
+    let cached_modified = read_u64(&mut cursor)?;
+    if cached_size != source_fp.size || cached_modified != source_fp.modified_secs {
+        log::info!("Cache fingerprint tidak cocok dengan file audio sumber, rebuild diperlukan.");
+        return None;
+    }
+
+    let hash_count = read_u64(&mut cursor)? as usize;
+    let mut hashes = Vec::with_capacity(hash_count);
+    for _ in 0..hash_count {
+        let stored = StoredHashEntry {
+            freq_anchor: read_u32(&mut cursor)?,
+            freq_target: read_u32(&mut cursor)?,
+            delta_time: read_u32(&mut cursor)?,
+            anchor_time: read_u32(&mut cursor)?,
+        };
+        hashes.push(stored.into());
+    }
+
+    let preprocessed_len = read_u64(&mut cursor)? as usize;
+    let mut preprocessed = Vec::with_capacity(preprocessed_len);
+    for _ in 0..preprocessed_len {
+        let mut bytes = [0u8; 4];
+        cursor.read_exact(&mut bytes).ok()?;
+        preprocessed.push(f32::from_le_bytes(bytes));
+    }
+
+    Some(AudioFingerprintDb {
+        hashes,
+        preprocessed,
+    })
+}
+
+fn write_u32(buffer: &mut Vec<u8>, value: u32) {
+    buffer.extend_from_slice(&value.to_le_bytes());
+}
+
+fn write_u64(buffer: &mut Vec<u8>, value: u64) {
+    buffer.extend_from_slice(&value.to_le_bytes());
+}
+
+fn read_u32(cursor: &mut &[u8]) -> Option<u32> {
+    if cursor.len() < 4 {
+        return None;
+    }
+    let (head, tail) = cursor.split_at(4);
+    *cursor = tail;
+    Some(u32::from_le_bytes(head.try_into().ok()?))
+}
+
+fn read_u64(cursor: &mut &[u8]) -> Option<u64> {
+    if cursor.len() < 8 {
+        return None;
+    }
+    let (head, tail) = cursor.split_at(8);
+    *cursor = tail;
+    Some(u64::from_le_bytes(head.try_into().ok()?))
 }
 
 /// Find where `short_samples` occurs inside pre-built long audio database.
@@ -162,7 +352,7 @@ fn find_envelope_match(
     short_samples: &[f32],
     sample_rate: u32,
 ) -> Option<AudioMatchResult> {
-    const CHUNK_SAMPLES: usize = 800; // 50ms at 16kHz — onset/transient focused
+    const CHUNK_SAMPLES: usize = 800;
     const MIN_CORRELATION: f32 = 0.32;
 
     let long_env = onset_envelope(long_samples, CHUNK_SAMPLES);
@@ -188,40 +378,29 @@ fn find_envelope_match(
         .collect();
 
     let search_range = long_env.len() - short_env.len();
-    let mut max_corr = -1.0_f32;
-    let mut best_offset = 0usize;
-    let mut second_best = -1.0_f32;
+    let best = (0..=search_range)
+        .into_par_iter()
+        .filter_map(|offset| {
+            let slice = &long_env[offset..offset + short_env.len()];
+            let slice_mean = slice.iter().sum::<f32>() / slice.len() as f32;
+            let slice_std = (slice.iter().map(|x| (x - slice_mean).powi(2)).sum::<f32>()
+                / slice.len() as f32)
+                .sqrt();
+            if slice_std < 1e-6 {
+                return None;
+            }
 
-    for offset in 0..=search_range {
-        let slice = &long_env[offset..offset + short_env.len()];
-        let slice_mean = slice.iter().sum::<f32>() / slice.len() as f32;
-        let slice_std = (slice.iter().map(|x| (x - slice_mean).powi(2)).sum::<f32>()
-            / slice.len() as f32)
-            .sqrt();
-        if slice_std < 1e-6 {
-            continue;
-        }
+            let mut corr = 0.0_f32;
+            for i in 0..short_norm.len() {
+                corr += short_norm[i] * ((slice[i] - slice_mean) / slice_std);
+            }
+            corr /= short_norm.len() as f32;
+            Some((offset, corr))
+        })
+        .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
 
-        let mut corr = 0.0_f32;
-        for i in 0..short_norm.len() {
-            corr += short_norm[i] * ((slice[i] - slice_mean) / slice_std);
-        }
-        corr /= short_norm.len() as f32;
-
-        if corr > max_corr {
-            second_best = max_corr;
-            max_corr = corr;
-            best_offset = offset;
-        } else if corr > second_best {
-            second_best = corr;
-        }
-    }
-
+    let (best_offset, max_corr) = best?;
     if max_corr < MIN_CORRELATION {
-        return None;
-    }
-
-    if second_best > 0.0 && max_corr / second_best < 1.08 {
         return None;
     }
 
@@ -241,7 +420,6 @@ fn frame_to_seconds(frame_offset: isize) -> f64 {
     (frame_offset as f64 * HOP_SIZE as f64) / 16_000.0
 }
 
-/// Band-pass + normalize to emphasize game SFX over dominant voice.
 fn preprocess_for_matching(samples: &[f32]) -> Vec<f32> {
     let hp = biquad_filter(samples, 16_000.0, 280.0, true);
     let bp = biquad_filter(&hp, 16_000.0, 5_500.0, false);
@@ -354,50 +532,56 @@ fn adaptive_peak_threshold(spectrogram: &[Vec<f32>]) -> f32 {
 
 fn get_spectrogram(samples: &[f32]) -> Vec<Vec<f32>> {
     let mut planner = FftPlanner::new();
-    let fft = planner.plan_fft_forward(WINDOW_SIZE);
-    let mut spectrogram = Vec::new();
+    let fft = Arc::new(planner.plan_fft_forward(WINDOW_SIZE));
 
-    let window: Vec<f32> = (0..WINDOW_SIZE)
-        .map(|i| 0.5 * (1.0 - (2.0 * PI * i as f32 / (WINDOW_SIZE - 1) as f32).cos()))
-        .collect();
+    let window: Arc<Vec<f32>> = Arc::new(
+        (0..WINDOW_SIZE)
+            .map(|i| 0.5 * (1.0 - (2.0 * PI * i as f32 / (WINDOW_SIZE - 1) as f32).cos()))
+            .collect(),
+    );
 
-    // Game SFX band ~300Hz–5.5kHz at 16kHz sample rate
     let min_bin = (300.0 * WINDOW_SIZE as f32 / 16_000.0) as usize;
     let max_bin = (5_500.0 * WINDOW_SIZE as f32 / 16_000.0) as usize;
 
-    let mut offset = 0;
-    while offset + WINDOW_SIZE <= samples.len() {
-        let chunk = &samples[offset..offset + WINDOW_SIZE];
-        let mut buffer: Vec<Complex<f32>> = chunk
-            .iter()
-            .enumerate()
-            .map(|(i, &val)| Complex {
-                re: val * window[i],
-                im: 0.0,
-            })
-            .collect();
+    let offsets: Vec<usize> = (0..samples.len().saturating_sub(WINDOW_SIZE))
+        .step_by(HOP_SIZE)
+        .collect();
 
-        fft.process(&mut buffer);
+    offsets
+        .par_iter()
+        .map(|&offset| {
+            let fft = Arc::clone(&fft);
+            let window = Arc::clone(&window);
+            let chunk = &samples[offset..offset + WINDOW_SIZE];
 
-        let mut magnitudes: Vec<f32> = buffer
-            .iter()
-            .take(WINDOW_SIZE / 2)
-            .map(|c| c.norm())
-            .collect();
+            let mut buffer: Vec<Complex<f32>> = chunk
+                .iter()
+                .enumerate()
+                .map(|(i, &val)| Complex {
+                    re: val * window[i],
+                    im: 0.0,
+                })
+                .collect();
 
-        for (i, mag) in magnitudes.iter_mut().enumerate() {
-            if i < min_bin || i > max_bin {
-                *mag = 0.0;
+            fft.process(&mut buffer);
+
+            let mut magnitudes: Vec<f32> = buffer
+                .iter()
+                .take(WINDOW_SIZE / 2)
+                .map(|c| c.norm())
+                .collect();
+
+            for (i, mag) in magnitudes.iter_mut().enumerate() {
+                if i < min_bin || i > max_bin {
+                    *mag = 0.0;
+                }
             }
-        }
 
-        whiten_frame(&mut magnitudes);
-        emphasize_percussive(&mut magnitudes);
-        spectrogram.push(magnitudes);
-        offset += HOP_SIZE;
-    }
-
-    spectrogram
+            whiten_frame(&mut magnitudes);
+            emphasize_percussive(&mut magnitudes);
+            magnitudes
+        })
+        .collect()
 }
 
 fn whiten_frame(magnitudes: &mut [f32]) {
@@ -432,50 +616,54 @@ fn get_constellation_map(
     neighborhood_f: usize,
     threshold: f32,
 ) -> Vec<Peak> {
-    let mut peaks = Vec::new();
-    let time_frames = spectrogram.len();
-    if time_frames == 0 {
-        return peaks;
+    if spectrogram.is_empty() {
+        return Vec::new();
     }
+
     let freq_bins = spectrogram[0].len();
 
-    for t in 0..time_frames {
-        for f in 0..freq_bins {
-            let current_mag = spectrogram[t][f];
-            if current_mag < threshold {
-                continue;
-            }
-
-            let t_start = t.saturating_sub(neighborhood_t);
-            let t_end = (t + neighborhood_t + 1).min(time_frames);
-            let f_start = f.saturating_sub(neighborhood_f);
-            let f_end = (f + neighborhood_f + 1).min(freq_bins);
-
-            let mut is_local_max = true;
-            for nt in t_start..t_end {
-                if !is_local_max {
-                    break;
+    spectrogram
+        .par_iter()
+        .enumerate()
+        .flat_map(|(t, frame)| {
+            let mut local_peaks = Vec::new();
+            for f in 0..freq_bins {
+                let current_mag = frame[f];
+                if current_mag < threshold {
+                    continue;
                 }
-                for nf in f_start..f_end {
-                    if nt == t && nf == f {
-                        continue;
-                    }
-                    if spectrogram[nt][nf] >= current_mag {
-                        is_local_max = false;
+
+                let t_start = t.saturating_sub(neighborhood_t);
+                let t_end = (t + neighborhood_t + 1).min(spectrogram.len());
+                let f_start = f.saturating_sub(neighborhood_f);
+                let f_end = (f + neighborhood_f + 1).min(freq_bins);
+
+                let mut is_local_max = true;
+                for nt in t_start..t_end {
+                    if !is_local_max {
                         break;
                     }
+                    for nf in f_start..f_end {
+                        if nt == t && nf == f {
+                            continue;
+                        }
+                        if spectrogram[nt][nf] >= current_mag {
+                            is_local_max = false;
+                            break;
+                        }
+                    }
+                }
+
+                if is_local_max {
+                    local_peaks.push(Peak {
+                        time_idx: t,
+                        freq_idx: f,
+                    });
                 }
             }
-
-            if is_local_max {
-                peaks.push(Peak {
-                    time_idx: t,
-                    freq_idx: f,
-                });
-            }
-        }
-    }
-    peaks
+            local_peaks
+        })
+        .collect()
 }
 
 fn generate_hashes(
