@@ -16,7 +16,7 @@ jobs:
         include:
           - platform: "macos-latest"
             args: "--target aarch64-apple-darwin"
-          - platform: "macos-13"
+          - platform: "macos-latest"
             args: "--target x86_64-apple-darwin"
           - platform: "ubuntu-24.04"
             args: "-- --features gpu-vulkan"
@@ -70,7 +70,7 @@ jobs:
       - name: Install LLVM
         uses: KyleMayes/install-llvm-action@v2
         with:
-          version: "22"
+          version: "16"
 
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
