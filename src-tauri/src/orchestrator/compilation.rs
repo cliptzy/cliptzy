@@ -403,7 +403,7 @@ fn epic_moments_prompt(
             1. ONLY select segments from the ACTUAL MATCH / GAMEPLAY.\n\
             2. STRICTLY IGNORE all non-gameplay segments. You must completely skip: Draft Picks, Hero Bans, caster desk analysis, interviews, pre-game intros, commercial breaks, and post-game celebrations.\n\
             3. Look for high-energy shoutcasting cues.\n\
-            4. The duration of each segment CAN exceed 3 minutes if the full context of the team fight or momentum shift requires it. Do not cut the action abruptly; ensure the buildup and aftermath are included.\n\
+            4. The duration of each segment CANNOT exceed 1 minute except when the full context of the team fight or momentum shift requires it. Do not cut the action abruptly; ensure the buildup and aftermath are included.\n\
             \n\
             Output YOUR RESPONSE STRICTLY as a valid JSON array of objects, and absolutely nothing else (no markdown formatting, no explanations). Example format:\n\
             [{{\"start\": 12.5, \"end\": 125.0, \"description\": \"Intense Lord contest leading to a RRQ Wiped Out\"}}]\n\
@@ -1306,6 +1306,18 @@ pub async fn sync_restreamer_audio(
             let (restr_samples, restr_rate) =
                 crate::orchestrator::audio_fingerprint::decode_wav(&restr_wav_str)?;
 
+            log::info!(
+                "Membangun fingerprint database restreamer ({} sampel, {} hash)...",
+                restr_samples.len(),
+                0
+            );
+            let fingerprint_db =
+                crate::orchestrator::audio_fingerprint::build_fingerprint_db(&restr_samples);
+            log::info!(
+                "Fingerprint database siap: {} hash dari audio restreamer.",
+                fingerprint_db.hashes.len()
+            );
+
             let mut results = Vec::new();
 
             for segment in prepared_segments {
@@ -1323,13 +1335,15 @@ pub async fn sync_restreamer_audio(
                     continue;
                 }
 
-                let Some(match_result) = crate::orchestrator::audio_fingerprint::find_audio_match(
-                    &restr_samples,
-                    &moment_samples,
-                    restr_rate,
-                ) else {
+                let Some(match_result) =
+                    crate::orchestrator::audio_fingerprint::find_match_in_db(
+                        &fingerprint_db,
+                        &moment_samples,
+                        restr_rate,
+                    )
+                else {
                     log::warn!(
-                        "Tidak ditemukan kecocokan fingerprint untuk momen [{}], melompat...",
+                        "Tidak ditemukan kecocokan audio untuk momen [{}] (fingerprint + envelope), melompat...",
                         moment.description
                     );
                     continue;
@@ -1340,12 +1354,12 @@ pub async fn sync_restreamer_audio(
                 let matched_end_time = matched_start_time + moment_duration;
                 let offset_diff = matched_start_time - moment.start;
 
-                log::debug!(
-                    "Moment [{}] cocok di restr_time {:.2}s (skor: {} hash, offset frame: {}, selisih: {:.2}s)",
+                log::info!(
+                    "Moment [{}] cocok di {:.2}s via {} (skor: {}, selisih: {:.2}s)",
                     moment.description,
                     matched_start_time,
+                    match_result.method,
                     match_result.score,
-                    match_result.frame_offset,
                     offset_diff
                 );
 
