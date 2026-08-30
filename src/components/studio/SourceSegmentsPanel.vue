@@ -124,6 +124,13 @@
                 <h3 class="text-lg font-black text-[var(--color-text-main)] tracking-wide flex items-center gap-2 whitespace-nowrap">
                     <IconList class="w-5 h-5" /> {{ isReactionMode ? 'Restreamer Tersinkronisasi' : 'Target Restreamer' }}
                 </h3>
+                <button
+                    v-if="videoStore.compilationData?.restreamers?.length"
+                    @click="toggleSelectAllRestreamers"
+                    class="text-[10px] text-[var(--color-text-main)] hover:opacity-80 transition-opacity whitespace-nowrap shrink-0"
+                >
+                    Toggle Select All
+                </button>
             </div>
             <p v-if="isReactionMode" class="text-[10px] text-[var(--color-text-muted)] mb-3 leading-tight">
                 Ditemukan otomatis via pencocokan audio. Uncheck untuk mengecualikan dari kompilasi.
@@ -135,14 +142,68 @@
                     <span class="text-xs font-bold uppercase tracking-widest text-[var(--color-text-muted)] animate-pulse">Menyiapkan Kompilasi...</span>
                 </div>
                 
-                <div class="flex flex-col gap-2 relative">
-                    <div v-if="videoStore.compilationData?.restreamer_urls?.length" class="flex flex-col gap-2">
-                        <label v-for="(url, idx) in videoStore.compilationData.restreamer_urls" :key="idx" class="flex items-center gap-3 p-3 bg-white/60 dark:bg-black/40 rounded-xl cursor-pointer hover:bg-white dark:hover:bg-black/60 transition-colors border border-transparent hover:border-gray-200 dark:hover:border-gray-700">
-                            <input type="checkbox" :value="url" v-model="videoStore.selectedRestreamers" class="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 bg-gray-100 border-gray-300" />
-                            <span class="text-xs font-bold text-[var(--color-text-main)] truncate flex-1">{{ url }}</span>
+                <div class="flex flex-col gap-2 relative max-h-80 overflow-y-auto custom-scrollbar">
+                    <div v-if="videoStore.compilationData?.restreamers?.length" class="flex flex-col gap-2">
+                        <div class="flex justify-between items-center px-1 mb-1">
+                            <span class="text-[10px] text-[var(--color-text-muted)] font-bold uppercase">
+                                {{ videoStore.compilationData.restreamers.length }} Restreamer Ditemukan
+                            </span>
+                            <span class="text-[10px] text-[var(--color-text-muted)] font-bold">
+                                {{ videoStore.selectedRestreamers.length }} dipilih
+                            </span>
+                        </div>
+                        <label
+                            v-for="restreamer in videoStore.compilationData.restreamers"
+                            :key="restreamer.video_id"
+                            class="flex items-start gap-3 p-3 bg-white/60 dark:bg-black/40 rounded-xl cursor-pointer hover:bg-white dark:hover:bg-black/60 transition-colors border border-transparent hover:border-gray-200 dark:hover:border-gray-700"
+                        >
+                            <input
+                                type="checkbox"
+                                :value="restreamer.video_url"
+                                v-model="videoStore.selectedRestreamers"
+                                class="w-4 h-4 mt-1 text-indigo-600 rounded focus:ring-indigo-500 bg-gray-100 border-gray-300 shrink-0"
+                            />
+                            <div class="w-24 aspect-video bg-slate-300 dark:bg-slate-800 rounded-lg overflow-hidden shrink-0 relative">
+                                <img
+                                    :src="restreamer.thumbnail"
+                                    :alt="restreamer.title"
+                                    class="w-full h-full object-cover"
+                                />
+                                <div
+                                    v-if="restreamer.duration"
+                                    class="absolute bottom-0.5 right-0.5 bg-black/80 text-white text-[9px] font-mono font-bold px-1 rounded"
+                                >
+                                    {{ formatDuration(restreamer.duration) }}
+                                </div>
+                            </div>
+                            <div class="flex flex-col flex-1 min-w-0">
+                                <h4
+                                    class="font-bold text-xs text-[var(--color-text-main)] line-clamp-2 leading-tight mb-0.5"
+                                    :title="restreamer.title"
+                                >
+                                    {{ restreamer.title }}
+                                </h4>
+                                <span class="text-[10px] font-bold text-[var(--color-text-muted)] dark:text-slate-400 truncate mb-1">
+                                    {{ restreamer.uploader || 'YouTube Channel' }}
+                                </span>
+                                <div class="flex flex-wrap gap-1.5">
+                                    <span
+                                        v-if="restreamer.view_count"
+                                        class="text-[9px] font-bold bg-white/60 dark:bg-black/30 text-[var(--color-text-main)] px-1.5 py-0.5 rounded-full"
+                                    >
+                                        {{ restreamer.view_count.toLocaleString() }} views
+                                    </span>
+                                    <span
+                                        v-if="restreamer.upload_date"
+                                        class="text-[9px] font-bold bg-white/60 dark:bg-black/30 text-[var(--color-text-muted)] px-1.5 py-0.5 rounded-full"
+                                    >
+                                        {{ formatUploadDate(restreamer.upload_date) }}
+                                    </span>
+                                </div>
+                            </div>
                         </label>
                     </div>
-                    <div v-else-if="videoStore.metadata" class="h-full flex flex-col items-center justify-center text-[var(--color-text-muted)] opacity-50">
+                    <div v-else-if="videoStore.metadata" class="h-full flex flex-col items-center justify-center text-[var(--color-text-muted)] opacity-50 py-6">
                         <IconList class="w-10 h-10 mb-2 opacity-50" />
                         <span class="text-xs font-bold uppercase tracking-widest text-center">
                             {{ isReactionMode ? 'SIAPKAN KOMPILASI UNTUK MENEMUKAN RESTREAMER' : 'TIDAK ADA RESTREAMER DITEMUKAN' }}
@@ -491,12 +552,34 @@ const toggleSelectAll = (tab: "heatmap" | "ai") => {
             : videoStore.metadata.ai_segments;
     if (!segments || segments.length === 0) return;
 
-    // Check if all are currently selected
     const allSelected = segments.every((s: any) => s.selectedForRender);
 
     segments.forEach((s: any) => {
         s.selectedForRender = !allSelected;
     });
+};
+
+const toggleSelectAllRestreamers = () => {
+    const restreamers = videoStore.compilationData?.restreamers;
+    if (!restreamers?.length) return;
+
+    const allSelected = restreamers.every((r) =>
+        videoStore.selectedRestreamers.includes(r.video_url),
+    );
+
+    if (allSelected) {
+        videoStore.selectedRestreamers = [];
+    } else {
+        videoStore.selectedRestreamers = restreamers.map((r) => r.video_url);
+    }
+};
+
+const formatUploadDate = (yyyymmdd: string) => {
+    if (!yyyymmdd || yyyymmdd.length !== 8) return yyyymmdd;
+    const y = yyyymmdd.slice(0, 4);
+    const m = yyyymmdd.slice(4, 6);
+    const d = yyyymmdd.slice(6, 8);
+    return `${d}/${m}/${y}`;
 };
 </script>
 

@@ -1,3 +1,4 @@
+pub mod audio_fingerprint;
 pub mod batch_upload;
 pub mod clip;
 pub mod compile;

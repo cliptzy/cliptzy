@@ -11,9 +11,13 @@ pub struct SegmentInfo {
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct VideoAnalysisResult {
     pub video_id: String,
+    #[serde(default)]
+    pub video_url: String,
     pub title: String,
     pub thumbnail: String,
     pub duration: f64,
+    #[serde(default)]
+    pub upload_date: Option<String>,
     pub segments: Vec<SegmentInfo>,
     pub stream_url: Option<String>,
 }
@@ -111,6 +115,13 @@ pub async fn analyze_youtube_video(
         }
     };
 
+    let raw_json: serde_json::Value = serde_json::from_str(clean_json)
+        .map_err(|e| format!("Gagal memparsing JSON mentah yt-dlp: {}", e))?;
+    let upload_date = raw_json
+        .get("upload_date")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+
     let engaged = video.get_heatmap()
         .map(|h| h.get_highly_engaged_segments(0.5))
         .unwrap_or_default();
@@ -184,9 +195,11 @@ pub async fn analyze_youtube_video(
 
     Ok(VideoAnalysisResult {
         video_id: video.id.clone(),
+        video_url: url.to_string(),
         title: video.title.clone(),
         thumbnail: video.thumbnail.unwrap_or_default(),
         duration: video_duration,
+        upload_date,
         segments,
         stream_url,
     })

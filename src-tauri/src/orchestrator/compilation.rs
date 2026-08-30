@@ -29,12 +29,26 @@ pub struct RestreamerClip {
     pub description: String,
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct RestreamerInfo {
+    pub video_id: String,
+    pub video_url: String,
+    pub title: String,
+    pub uploader: String,
+    pub thumbnail: String,
+    pub duration: f64,
+    #[serde(default)]
+    pub upload_date: Option<String>,
+    #[serde(default)]
+    pub view_count: Option<u64>,
+}
+
 #[derive(Serialize, Clone, Debug)]
 pub struct PrepareCompilationResult {
     pub video_info: crate::video::youtube::VideoAnalysisResult,
     pub main_audio_16k_path: String,
     pub epic_moments: Vec<EpicMoment>,
-    pub restreamer_urls: Vec<String>,
+    pub restreamers: Vec<RestreamerInfo>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -62,7 +76,35 @@ struct EpicMomentsCacheEntry {
 struct RestreamerSearchCacheEntry {
     query: String,
     min_duration_minutes: u32,
+    #[serde(default)]
+    main_upload_date: Option<String>,
+    #[serde(default)]
+    restreamers: Vec<RestreamerInfo>,
+    /// Legacy cache field (URL-only); migrated on read.
+    #[serde(default)]
     urls: Vec<String>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+struct MainSegmentFile {
+    index: usize,
+    start: f64,
+    end: f64,
+    description: String,
+    wav_path: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+struct MainSegmentsCacheEntry {
+    main_audio_fingerprint: FileFingerprint,
+    moments_hash: String,
+    segments: Vec<MainSegmentFile>,
+}
+
+#[derive(Clone, Debug)]
+struct PreparedMainSegment {
+    wav_path: String,
+    moment: EpicMoment,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -77,6 +119,255 @@ fn moments_hash(moments: &[EpicMoment]) -> String {
     serde_json::to_string(moments)
         .map(|s| hash_payload(&s))
         .unwrap_or_else(|_| "invalid".to_string())
+}
+
+fn extract_youtube_video_id(url: &str) -> String {
+    url.split("v=")
+        .nth(1)
+        .and_then(|s| s.split('&').next())
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| {
+            url.split('/')
+                .last()
+                .unwrap_or("unknown")
+                .split('?')
+                .next()
+                .unwrap_or("unknown")
+                .to_string()
+        })
+}
+
+fn migrate_cached_restreamers(cached: &RestreamerSearchCacheEntry) -> Vec<RestreamerInfo> {
+    if !cached.restreamers.is_empty() {
+        return cached.restreamers.clone();
+    }
+
+    cached
+        .urls
+        .iter()
+        .map(|url| {
+            let video_id = extract_youtube_video_id(url);
+            RestreamerInfo {
+                video_id: video_id.clone(),
+                video_url: url.clone(),
+                title: url.clone(),
+                uploader: String::new(),
+                thumbnail: format!("https://i.ytimg.com/vi/{}/hqdefault.jpg", video_id),
+                duration: 0.0,
+                upload_date: None,
+                view_count: None,
+            }
+        })
+        .collect()
+}
+
+fn parse_restreamer_entry(entry: &serde_json::Value) -> Option<RestreamerInfo> {
+    let id = entry.get("id").and_then(|i| i.as_str()).unwrap_or("");
+    if id.is_empty() {
+        return None;
+    }
+
+    let entry_url = entry
+        .get("webpage_url")
+        .and_then(|u| u.as_str())
+        .or_else(|| entry.get("url").and_then(|u| u.as_str()))
+        .unwrap_or("");
+    let video_url = if entry_url.starts_with("http") {
+        entry_url.to_string()
+    } else {
+        format!("https://www.youtube.com/watch?v={}", id)
+    };
+
+    let thumbnail = entry
+        .get("thumbnail")
+        .and_then(|t| t.as_str())
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| format!("https://i.ytimg.com/vi/{}/hqdefault.jpg", id));
+
+    Some(RestreamerInfo {
+        video_id: id.to_string(),
+        video_url,
+        title: entry
+            .get("title")
+            .and_then(|t| t.as_str())
+            .unwrap_or("Tanpa Judul")
+            .to_string(),
+        uploader: entry
+            .get("uploader")
+            .or_else(|| entry.get("channel"))
+            .and_then(|u| u.as_str())
+            .unwrap_or("")
+            .to_string(),
+        thumbnail,
+        duration: entry
+            .get("duration")
+            .and_then(|d| d.as_f64())
+            .unwrap_or(0.0),
+        upload_date: entry
+            .get("upload_date")
+            .and_then(|d| d.as_str())
+            .map(|s| s.to_string()),
+        view_count: entry
+            .get("view_count")
+            .and_then(|v| v.as_u64()),
+    })
+}
+
+fn days_in_month(year: i32, month: u32) -> u32 {
+    match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 => {
+            if (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0) {
+                29
+            } else {
+                28
+            }
+        }
+        _ => 30,
+    }
+}
+
+fn add_days_yyyymmdd(date: &str, days: u32) -> Option<String> {
+    if date.len() != 8 {
+        return None;
+    }
+    let mut year: i32 = date[0..4].parse().ok()?;
+    let mut month: u32 = date[4..6].parse().ok()?;
+    let mut day: u32 = date[6..8].parse().ok()?;
+    let mut remaining = days;
+
+    while remaining > 0 {
+        let dim = days_in_month(year, month);
+        let days_left_in_month = dim.saturating_sub(day);
+        if remaining <= days_left_in_month {
+            day += remaining;
+            remaining = 0;
+        } else {
+            remaining -= days_left_in_month + 1;
+            day = 1;
+            if month == 12 {
+                month = 1;
+                year += 1;
+            } else {
+                month += 1;
+            }
+        }
+    }
+
+    Some(format!("{:04}{:02}{:02}", year, month, day))
+}
+
+fn is_upload_within_reaction_window(entry_date: &str, main_date: &str, max_days_after: u32) -> bool {
+    if entry_date.len() != 8 || main_date.len() != 8 {
+        return false;
+    }
+    let max_date = add_days_yyyymmdd(main_date, max_days_after).unwrap_or_else(|| "99999999".to_string());
+    entry_date >= main_date && entry_date <= max_date.as_str()
+}
+
+fn ensure_main_audio_segments_cached(
+    job_dir: &std::path::Path,
+    main_audio_path: &str,
+    moments: &[EpicMoment],
+) -> Result<Vec<PreparedMainSegment>, CliptzyError> {
+    let audio_file = std::path::Path::new(main_audio_path);
+    let source_fp = fingerprint(audio_file).ok_or_else(|| {
+        CliptzyError::FileNotFound(format!("File audio tidak ditemukan: {}", main_audio_path))
+    })?;
+    let current_hash = moments_hash(moments);
+    let cache_path = cache_file(job_dir, "main_segments.json");
+    let segments_dir = cache_file(job_dir, "main_segments");
+
+    if let Some(cached) = read_json_cache::<MainSegmentsCacheEntry>(&cache_path) {
+        if cached.main_audio_fingerprint == source_fp
+            && cached.moments_hash == current_hash
+            && !cached.segments.is_empty()
+            && cached
+                .segments
+                .iter()
+                .all(|s| std::path::Path::new(&s.wav_path).exists())
+        {
+            log::info!(
+                "Menggunakan segmen audio utama dari cache ({} segmen): {:?}",
+                cached.segments.len(),
+                cache_path
+            );
+            return Ok(cached
+                .segments
+                .into_iter()
+                .map(|seg| PreparedMainSegment {
+                    wav_path: seg.wav_path,
+                    moment: EpicMoment {
+                        start: seg.start,
+                        end: seg.end,
+                        description: seg.description,
+                    },
+                })
+                .collect());
+        }
+
+        log::info!("Cache segmen audio utama tidak valid, mengekstrak ulang...");
+    }
+
+    std::fs::create_dir_all(&segments_dir)?;
+
+    let (main_samples, sample_rate) =
+        crate::orchestrator::audio_fingerprint::decode_wav(main_audio_path)
+            .map_err(CliptzyError::Internal)?;
+
+    let mut segment_files = Vec::new();
+    let mut prepared = Vec::new();
+
+    for (index, moment) in moments.iter().enumerate() {
+        let start_sample = (moment.start * sample_rate as f64) as usize;
+        let end_sample = (moment.end * sample_rate as f64) as usize;
+
+        if start_sample >= main_samples.len() {
+            continue;
+        }
+        let end_sample_safe = end_sample.min(main_samples.len());
+        let slice = &main_samples[start_sample..end_sample_safe];
+
+        if slice.len() < crate::orchestrator::audio_fingerprint::WINDOW_SIZE {
+            log::warn!(
+                "Momen '{}' terlalu pendek untuk diekstrak ke cache ({} sampel), dilewati.",
+                moment.description,
+                slice.len()
+            );
+            continue;
+        }
+
+        let wav_path = segments_dir.join(format!("segment_{:03}.wav", index));
+        crate::orchestrator::audio_fingerprint::write_wav_segment(&wav_path, slice, sample_rate)
+            .map_err(CliptzyError::Internal)?;
+
+        let wav_path_str = wav_path.to_string_lossy().to_string();
+        segment_files.push(MainSegmentFile {
+            index,
+            start: moment.start,
+            end: moment.end,
+            description: moment.description.clone(),
+            wav_path: wav_path_str.clone(),
+        });
+        prepared.push(PreparedMainSegment {
+            wav_path: wav_path_str,
+            moment: moment.clone(),
+        });
+    }
+
+    write_json_cache(
+        &cache_path,
+        &MainSegmentsCacheEntry {
+            main_audio_fingerprint: source_fp,
+            moments_hash: current_hash,
+            segments: segment_files,
+        },
+    )?;
+
+    log::info!("Mengekstrak {} segmen audio utama ke cache.", prepared.len());
+    Ok(prepared)
 }
 
 fn epic_moments_prompt(
@@ -242,18 +533,32 @@ pub async fn extract_main_audio(
     let video_info =
         if let Some(cached) = read_json_cache::<VideoInfoCacheEntry>(&video_info_cache_path) {
             if cached.video_id == video_id {
-                log::info!(
-                    "Menggunakan metadata video dari cache: {:?}",
-                    video_info_cache_path
-                );
-                emit_stage(
-                    ctx,
-                    "download",
-                    "Menggunakan metadata video dari cache...",
-                    8,
-                    100,
-                );
-                cached.info
+                if cached.info.upload_date.is_none() || cached.info.video_url.is_empty() {
+                    log::info!(
+                        "Cache metadata belum lengkap (upload_date/video_url), mengambil ulang..."
+                    );
+                    fetch_and_cache_video_info(
+                        &video_url,
+                        cookies_path.clone(),
+                        ctx,
+                        &video_info_cache_path,
+                        &video_id,
+                    )
+                    .await?
+                } else {
+                    log::info!(
+                        "Menggunakan metadata video dari cache: {:?}",
+                        video_info_cache_path
+                    );
+                    emit_stage(
+                        ctx,
+                        "download",
+                        "Menggunakan metadata video dari cache...",
+                        8,
+                        100,
+                    );
+                    cached.info
+                }
             } else {
                 log::info!("Cache metadata tidak cocok (video_id berbeda), mengambil ulang...");
                 fetch_and_cache_video_info(
@@ -679,7 +984,8 @@ pub async fn search_restreamers(
     original_title: String,
     _custom_keywords: Option<String>,
     min_duration_minutes: Option<u32>,
-) -> Result<Vec<String>, CliptzyError> {
+    main_upload_date: Option<String>,
+) -> Result<Vec<RestreamerInfo>, CliptzyError> {
     log::info!(
         "Memulai Pencarian Restreamer / Reaksi (Phase 4) untuk judul: {}",
         original_title
@@ -698,23 +1004,29 @@ pub async fn search_restreamers(
     let search_cache_path = cache_file(&ctx.job_dir, "restreamer_search.json");
 
     if let Some(cached) = read_json_cache::<RestreamerSearchCacheEntry>(&search_cache_path) {
-        if cached.query == original_title && cached.min_duration_minutes == min_duration {
-            log::info!(
-                "Menggunakan hasil pencarian restreamer dari cache ({} URL): {:?}",
-                cached.urls.len(),
-                search_cache_path
-            );
-            emit_stage(
-                ctx,
-                "search",
-                &format!(
-                    "Menggunakan cache pencarian ({} restreamer)...",
-                    cached.urls.len()
-                ),
-                90,
-                100,
-            );
-            return Ok(cached.urls);
+        if cached.query == original_title
+            && cached.min_duration_minutes == min_duration
+            && cached.main_upload_date == main_upload_date
+        {
+            let restreamers = migrate_cached_restreamers(&cached);
+            if !restreamers.is_empty() {
+                log::info!(
+                    "Menggunakan hasil pencarian restreamer dari cache ({} item): {:?}",
+                    restreamers.len(),
+                    search_cache_path
+                );
+                emit_stage(
+                    ctx,
+                    "search",
+                    &format!(
+                        "Menggunakan cache pencarian ({} restreamer)...",
+                        restreamers.len()
+                    ),
+                    90,
+                    100,
+                );
+                return Ok(restreamers);
+            }
         }
 
         log::info!("Cache pencarian restreamer tidak valid (kueri berubah), mencari ulang...");
@@ -725,11 +1037,17 @@ pub async fn search_restreamers(
     let yt_search_query = format!("ytsearch40:'{}'", original_title);
 
     log::info!("Kueri yt-dlp: {}", yt_search_query);
+    if let Some(ref upload_date) = main_upload_date {
+        log::info!(
+            "Filter tanggal upload restreamer: {} hingga +1 hari dari {}",
+            upload_date,
+            add_days_yyyymmdd(upload_date, 1).unwrap_or_else(|| "?".to_string())
+        );
+    }
 
     let mut cmd = tokio::process::Command::new(&ctx.deps.ytdlp);
     cmd.arg(&yt_search_query)
         .arg("--dump-single-json")
-        .arg("--flat-playlist")
         .arg("--no-warnings")
         .arg("--extractor-args")
         .arg("youtube:player-client=android,web,default")
@@ -776,36 +1094,52 @@ pub async fn search_restreamers(
     })?;
 
     let min_duration_sec = min_duration as f64 * 60.0;
-    let mut potential_restreamers: Vec<String> = Vec::new();
+    let mut potential_restreamers: Vec<RestreamerInfo> = Vec::new();
     let mut uploaders: Vec<String> = Vec::new();
 
     if let Some(entries) = json_out.get("entries").and_then(|e| e.as_array()) {
         for entry in entries {
-            let duration = entry
-                .get("duration")
-                .and_then(|d| d.as_f64())
-                .unwrap_or(0.0);
-            let title = entry.get("title").and_then(|t| t.as_str()).unwrap_or("");
-            let url = entry.get("url").and_then(|u| u.as_str()).unwrap_or("");
-            let id = entry.get("id").and_then(|i| i.as_str()).unwrap_or("");
-            let uploader = entry.get("uploader").and_then(|u| u.as_str()).unwrap_or("");
+            let Some(info) = parse_restreamer_entry(entry) else {
+                continue;
+            };
+
+            let title = &info.title;
+            let id = &info.video_id;
+            let url = &info.video_url;
+            let duration = info.duration;
+            let entry_upload_date = info.upload_date.as_deref().unwrap_or("");
 
             let is_shorts_url = url.contains("/shorts/") || id.is_empty();
             let is_shorts_title = title.to_lowercase().contains("#shorts");
 
-            // Some process or filtering based on duration, title, and uploader
+            let upload_date_ok = match (&main_upload_date, entry_upload_date.is_empty()) {
+                (Some(main_date), false) => {
+                    is_upload_within_reaction_window(entry_upload_date, main_date, 1)
+                }
+                (Some(_), true) => {
+                    log::debug!(
+                        "Lewati '{}' — tidak ada upload_date pada hasil pencarian.",
+                        title
+                    );
+                    false
+                }
+                (None, _) => true,
+            };
+
             if !is_shorts_url
                 && !is_shorts_title
-                && !uploaders.contains(&uploader.to_string())
+                && !uploaders.contains(&info.uploader)
                 && duration >= min_duration_sec
+                && upload_date_ok
             {
-                potential_restreamers.push(url.to_string());
-                uploaders.push(uploader.to_string());
+                uploaders.push(info.uploader.clone());
+                potential_restreamers.push(info);
             }
         }
     }
 
-    potential_restreamers.dedup();
+    potential_restreamers.sort_by(|a, b| a.video_id.cmp(&b.video_id));
+    potential_restreamers.dedup_by(|a, b| a.video_id == b.video_id);
 
     if potential_restreamers.is_empty() {
         log::warn!(
@@ -835,7 +1169,9 @@ pub async fn search_restreamers(
         &RestreamerSearchCacheEntry {
             query: original_title,
             min_duration_minutes: min_duration,
-            urls: potential_restreamers.clone(),
+            main_upload_date,
+            restreamers: potential_restreamers.clone(),
+            urls: Vec::new(),
         },
     )?;
 
@@ -849,7 +1185,7 @@ pub async fn sync_restreamer_audio(
     moments: Vec<EpicMoment>,
 ) -> Result<Vec<RestreamerClip>, CliptzyError> {
     log::info!(
-        "Memulai Sinkronisasi Cross-Correlation (Phase 5) untuk {}",
+        "Memulai Sinkronisasi Audio Fingerprinting (Phase 5) untuk {}",
         restreamer_url
     );
 
@@ -889,7 +1225,7 @@ pub async fn sync_restreamer_audio(
             }
         }
 
-        log::info!("Cache sinkronisasi tidak valid, menjalankan ulang cross-correlation...");
+        log::info!("Cache sinkronisasi tidak valid, menjalankan ulang audio fingerprinting...");
     }
 
     if !restr_wav.exists() {
@@ -951,129 +1287,65 @@ pub async fn sync_restreamer_audio(
         })?;
     }
 
-    log::info!("Menganalisis peak match via Cross-Correlation (background thread)...");
+    log::info!("Menganalisis peak match via Audio Fingerprinting (background thread)...");
 
-    let main_audio_path_str = main_audio_path.clone();
+    let prepared_segments =
+        ensure_main_audio_segments_cached(job_dir, &main_audio_path, &moments)?;
+
+    if prepared_segments.is_empty() {
+        return Err(CliptzyError::Config(
+            "Tidak ada segmen audio utama yang valid untuk sinkronisasi.".into(),
+        ));
+    }
+
     let restr_wav_str = restr_wav.to_string_lossy().to_string();
     let url_clone = restreamer_url.clone();
 
     let restreamer_clips =
         tokio::task::spawn_blocking(move || -> Result<Vec<RestreamerClip>, String> {
-            let mut main_reader =
-                hound::WavReader::open(&main_audio_path_str).map_err(|e| e.to_string())?;
-            let mut restr_reader =
-                hound::WavReader::open(&restr_wav_str).map_err(|e| e.to_string())?;
-
-            let sample_rate = 16000.0;
-            let chunk_size = 1600;
-
-            let restr_samples: Vec<i16> = restr_reader
-                .samples::<i16>()
-                .map(|s| s.unwrap_or(0))
-                .collect();
-            let restr_env: Vec<f32> = restr_samples
-                .chunks(chunk_size)
-                .map(|c| (c.iter().map(|&s| (s as f64).abs()).sum::<f64>() / c.len() as f64) as f32)
-                .collect();
-
-            let main_samples: Vec<i16> = main_reader
-                .samples::<i16>()
-                .map(|s| s.unwrap_or(0))
-                .collect();
+            let (restr_samples, restr_rate) =
+                crate::orchestrator::audio_fingerprint::decode_wav(&restr_wav_str)?;
 
             let mut results = Vec::new();
 
-            for moment in moments {
-                let start_sample = (moment.start * sample_rate) as usize;
-                let end_sample = (moment.end * sample_rate) as usize;
+            for segment in prepared_segments {
+                let moment = segment.moment;
+                let (moment_samples, moment_rate) =
+                    crate::orchestrator::audio_fingerprint::decode_wav(&segment.wav_path)?;
 
-                if start_sample >= main_samples.len() {
-                    continue;
-                }
-                let end_sample_safe = end_sample.min(main_samples.len());
-
-                let moment_slice = &main_samples[start_sample..end_sample_safe];
-                let moment_env: Vec<f32> = moment_slice
-                    .chunks(chunk_size)
-                    .map(|c| {
-                        (c.iter().map(|&s| (s as f64).abs()).sum::<f64>() / c.len() as f64) as f32
-                    })
-                    .collect();
-
-                if moment_env.is_empty()
-                    || restr_env.is_empty()
-                    || moment_env.len() > restr_env.len()
-                {
-                    continue;
-                }
-
-                // Hitung rata-rata dan standar deviasi dari moment_env
-                let moment_mean = moment_env.iter().sum::<f32>() / moment_env.len() as f32;
-                let moment_std = (moment_env
-                    .iter()
-                    .map(|&x| (x - moment_mean).powi(2))
-                    .sum::<f32>())
-                .sqrt();
-
-                // Normalisasi moment_env (Zero-mean)
-                let moment_norm: Vec<f32> = moment_env
-                    .iter()
-                    .map(|&x| (x - moment_mean) / moment_std)
-                    .collect();
-
-                let mut max_corr = -1.0_f32; // Mulai dari nilai terendah korelasi Pearson
-                let mut best_offset_idx = 0;
-                let search_range = restr_env.len() - moment_env.len();
-
-                for offset in 0..=search_range {
-                    let restr_slice = &restr_env[offset..offset + moment_env.len()];
-
-                    // Normalisasi slice dari restreamer yang sedang dievaluasi
-                    let slice_mean = restr_slice.iter().sum::<f32>() / restr_slice.len() as f32;
-                    let slice_std = (restr_slice
-                        .iter()
-                        .map(|&x| (x - slice_mean).powi(2))
-                        .sum::<f32>())
-                    .sqrt();
-
-                    // Cegah pembagian dengan nol jika audio hening total
-                    if slice_std == 0.0 {
-                        continue;
-                    }
-
-                    let mut corr = 0.0;
-                    for i in 0..moment_norm.len() {
-                        let restr_norm = (restr_slice[i] - slice_mean) / slice_std;
-                        corr += moment_norm[i] * restr_norm;
-                    }
-
-                    // Normalisasi hasil akhir ke range -1.0 hingga 1.0 (Pearson Correlation)
-                    corr /= moment_norm.len() as f32;
-
-                    if corr > max_corr {
-                        max_corr = corr;
-                        best_offset_idx = offset;
-                    }
-                }
-
-                // Tambahkan Thresholding: Jika max_corr terlalu rendah (misal di bawah 0.4), buang momen ini.
-                if max_corr < 0.4 {
+                if moment_rate != restr_rate {
                     log::warn!(
-                        "Korelasi terlalu rendah ({:.2}) untuk momen [{}], melompat...",
-                        max_corr,
-                        moment.description
+                        "Sample rate segmen '{}' ({}) tidak cocok dengan restreamer ({}), melompat...",
+                        moment.description,
+                        moment_rate,
+                        restr_rate
                     );
                     continue;
                 }
 
-                let matched_start_time = (best_offset_idx * chunk_size) as f64 / sample_rate;
-                let matched_end_time = matched_start_time + (moment.end - moment.start);
+                let Some(match_result) = crate::orchestrator::audio_fingerprint::find_audio_match(
+                    &restr_samples,
+                    &moment_samples,
+                    restr_rate,
+                ) else {
+                    log::warn!(
+                        "Tidak ditemukan kecocokan fingerprint untuk momen [{}], melompat...",
+                        moment.description
+                    );
+                    continue;
+                };
+
+                let matched_start_time = match_result.start_time_secs;
+                let moment_duration = moment.end - moment.start;
+                let matched_end_time = matched_start_time + moment_duration;
                 let offset_diff = matched_start_time - moment.start;
 
                 log::debug!(
-                    "Moment [{}] cocok di restr_time {:.2}s. (Offset: {:.2}s)",
+                    "Moment [{}] cocok di restr_time {:.2}s (skor: {} hash, offset frame: {}, selisih: {:.2}s)",
                     moment.description,
                     matched_start_time,
+                    match_result.score,
+                    match_result.frame_offset,
                     offset_diff
                 );
 
@@ -1094,7 +1366,7 @@ pub async fn sync_restreamer_audio(
             CliptzyError::Internal(format!("Panic spawn_blocking: {}", e))
         })?
         .map_err(|e| {
-            log::error!("[Compilation] Cross-correlation gagal: {}", e);
+            log::error!("[Compilation] Audio fingerprinting gagal: {}", e);
             CliptzyError::Internal(e)
         })?;
 
@@ -1322,6 +1594,7 @@ impl PrepareCompilationUseCase {
             audio_res.video_info.title.clone(),
             search_keywords,
             Some(60),
+            audio_res.video_info.upload_date.clone(),
         )
         .await
         .map_err(|e| {
@@ -1346,7 +1619,7 @@ impl PrepareCompilationUseCase {
             video_info: audio_res.video_info,
             main_audio_16k_path: audio_res.main_audio_16k_path,
             epic_moments: moments,
-            restreamer_urls: restreamers,
+            restreamers,
         })
     }
 }

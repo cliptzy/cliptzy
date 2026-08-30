@@ -13,15 +13,36 @@ export interface VideoSegment {
 
 export interface VideoMetadata {
   video_id?: string;
+  video_url?: string;
   title: string;
   duration: number;
   thumbnail_url: string;
+  thumbnail?: string;
   uploader?: string;
   view_count?: number;
+  upload_date?: string | null;
   heatmap?: any[];
   segments?: VideoSegment[];
   ai_segments?: VideoSegment[];
   stream_url?: string;
+}
+
+export interface RestreamerInfo {
+  video_id: string;
+  video_url: string;
+  title: string;
+  uploader: string;
+  thumbnail: string;
+  duration: number;
+  upload_date?: string | null;
+  view_count?: number | null;
+}
+
+export interface CompilationData {
+  video_info: VideoMetadata;
+  main_audio_16k_path: string;
+  epic_moments: { start: number; end: number; description: string }[];
+  restreamers: RestreamerInfo[];
 }
 
 export const useVideoStore = defineStore('video', () => {
@@ -35,7 +56,7 @@ export const useVideoStore = defineStore('video', () => {
   const selectedSegment = ref<VideoSegment | null>(null);
   const analyzedSegments = ref<Record<string, any>>({});
   const error = ref('');
-  const compilationData = ref<any>(null);
+  const compilationData = ref<CompilationData | null>(null);
   const selectedRestreamers = ref<string[]>([]);
   const isPreparingCompilation = ref(false);
   
@@ -56,16 +77,28 @@ export const useVideoStore = defineStore('video', () => {
         videoId: video_id, 
         searchKeywords: searchKeywords || null,
       });
-      compilationData.value = res;
-      if (res && (res as any).video_info) {
-        metadata.value = (res as any).video_info;
+      compilationData.value = res as CompilationData;
+      if (res && (res as CompilationData).video_info) {
+        const info = (res as CompilationData).video_info;
+        metadata.value = {
+          video_id: info.video_id,
+          video_url: info.video_url,
+          title: info.title,
+          duration: info.duration,
+          thumbnail_url: info.thumbnail || info.thumbnail_url || '',
+          uploader: info.uploader,
+          upload_date: info.upload_date,
+          stream_url: info.stream_url,
+        };
       }
-      if (res && (res as any).restreamer_urls) {
-        selectedRestreamers.value = [...(res as any).restreamer_urls];
+      if (res && (res as CompilationData).restreamers?.length) {
+        selectedRestreamers.value = (res as CompilationData).restreamers.map((r) => r.video_url);
+      } else {
+        selectedRestreamers.value = [];
       }
       appStore.addToast({
         title: 'Persiapan Selesai',
-        message: `Ditemukan ${(res as any)?.epic_moments?.length ?? 0} momen epik dan ${(res as any)?.restreamer_urls?.length ?? 0} restreamer.`,
+        message: `Ditemukan ${(res as CompilationData)?.epic_moments?.length ?? 0} momen epik dan ${(res as CompilationData)?.restreamers?.length ?? 0} restreamer.`,
         type: 'success',
       });
     } catch (e: any) {
