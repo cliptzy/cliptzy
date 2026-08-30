@@ -14,7 +14,7 @@ pub struct GeminiProvider {
 impl GeminiProvider {
     pub fn new(api_key: &str, model: &str) -> Self {
         let model = if model.is_empty() {
-            "gemini-1.5-flash"
+            "gemini-3.5-flash-lite"
         } else {
             model
         };

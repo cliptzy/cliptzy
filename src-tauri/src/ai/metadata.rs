@@ -116,6 +116,19 @@ impl MetadataGenerator {
                     all_standalone.extend(arr.clone());
                 }
             }
+
+            if idx < words_chunks.len() - 1 && !is_local {
+                if let Some(p) = progress {
+                    let _ = p.send(crate::orchestrator::pipeline::ProgressEvent {
+                        stage: "ai".to_string(),
+                        label: format!("Menunggu 30 detik (Anti-RateLimit Gemini) sebelum memproses part {}...", idx + 2),
+                        current: 0,
+                        total: 100,
+                        detail: None
+                    });
+                }
+                tokio::time::sleep(tokio::time::Duration::from_secs(30)).await;
+            }
         }
 
         global_metadata["enriched_transcript"] = json!(all_enriched);

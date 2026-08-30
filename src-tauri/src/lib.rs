@@ -86,6 +86,8 @@ pub fn run() {
             commands::config::read_image_base64,
             commands::video::analyze_video,
             commands::video::clip_video,
+            commands::video::prepare_compilation,
+            commands::video::execute_compilation,
             commands::video::analyze_segment_audio,
             commands::auth::login_with_google,
             commands::auth::logout,

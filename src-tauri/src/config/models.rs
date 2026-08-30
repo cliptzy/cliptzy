@@ -71,12 +71,17 @@ pub struct InstagramConfig {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(default)]
 pub struct CompilationConfig {
+    /// `meme_shorts` (vertikal) atau `reaction` (horizontal tanpa crop)
+    pub compilation_type: String,
     pub ordering: String,
     pub numbering_duration: f64,
     pub use_tts: bool,
     pub tts_template: String,
     pub use_subtitle: bool,
+    /// `none` = tanpa crop, pertahankan resolusi asli (mode reaksi)
     pub crop_mode: String,
+    /// Batas durasi segmen dalam detik. `0` = tidak terbatas (mode reaksi).
+    pub max_segment_duration: u32,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

@@ -109,8 +109,27 @@
                     </template>
 
                     <!-- Full Video View (All Segments) -->
-                    <template v-else-if="videoStore.metadata.segments?.length">
+                    <template v-else-if="videoStore.metadata.segments?.length || props.mode === 'compilation'">
+                        <div v-if="props.mode === 'compilation'" class="flex flex-col gap-1 w-full relative">
+                            <!-- Reaksi Track (atas) -->
+                            <div class="w-full h-6 relative bg-gray-100/50 dark:bg-gray-950/50 rounded flex items-center px-2">
+                                <span class="text-[8px] text-[var(--color-text-muted)] absolute left-2 uppercase font-black z-10">Reaksi</span>
+                                <!-- Mock items -->
+                                <div class="absolute top-1 bottom-1 bg-fuchsia-500/50 border border-fuchsia-400/50 rounded left-[15%] w-[10%]"></div>
+                                <div class="absolute top-1 bottom-1 bg-fuchsia-500/50 border border-fuchsia-400/50 rounded left-[40%] w-[15%]"></div>
+                                <div class="absolute top-1 bottom-1 bg-fuchsia-500/50 border border-fuchsia-400/50 rounded left-[75%] w-[12%]"></div>
+                            </div>
+                            <!-- Momen Track (bawah) -->
+                            <div class="w-full h-6 relative bg-gray-100/50 dark:bg-gray-950/50 rounded flex items-center px-2">
+                                <span class="text-[8px] text-[var(--color-text-muted)] absolute left-2 uppercase font-black z-10">Momen Utama</span>
+                                <!-- Mock items -->
+                                <div class="absolute top-1 bottom-1 bg-sky-500/50 border border-sky-400/50 rounded left-[10%] w-[20%]"></div>
+                                <div class="absolute top-1 bottom-1 bg-sky-500/50 border border-sky-400/50 rounded left-[35%] w-[25%]"></div>
+                                <div class="absolute top-1 bottom-1 bg-sky-500/50 border border-sky-400/50 rounded left-[70%] w-[20%]"></div>
+                            </div>
+                        </div>
                         <div
+                            v-else
                             class="w-full h-12 relative bg-gray-100/50 dark:bg-gray-950/50 rounded-xl"
                         >
                             <div
@@ -161,16 +180,16 @@
             />
             <div class="flex flex-col gap-1 z-10">
                 <h3 class="text-2xl font-black text-[var(--color-text-main)]">
-                    Generate {{ selectedSegmentsCount }} Shorts
+                    Generate {{ props.mode === 'compilation' ? 'Kompilasi' : selectedSegmentsCount + ' Shorts' }}
                 </h3>
                 <p class="text-sm font-bold text-[var(--color-text-muted)]">
-                    Total estimasi: ~{{ selectedSegmentsCount * 3 }} menit
+                    Total estimasi: {{ compilationEstimate }}
                 </p>
             </div>
 
             <button
                 class="w-full py-4 text-base font-black mt-2 rounded-full transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg z-10 bg-[var(--color-accent)] text-white hover:bg-rose-500"
-                :disabled="selectedSegmentsCount === 0 || isRendering"
+                :disabled="(props.mode !== 'compilation' && selectedSegmentsCount === 0) || (props.mode === 'compilation' && !canRenderCompilation) || isRendering"
                 @click="handleRender"
             >
                 <span
@@ -193,12 +212,38 @@ import { useSettingsStore } from "../../stores/settings";
 import { invoke } from "@tauri-apps/api/core";
 import BentoCard from "../BentoCard.vue";
 
+const props = defineProps<{
+    mode?: 'clipper' | 'compilation'
+}>();
+
+const settingsStore = useSettingsStore();
+
+const canRenderCompilation = computed(() => {
+    if (!videoStore.compilationData) return false;
+    const hasMoments = (videoStore.compilationData.epic_moments?.length ?? 0) > 0;
+    const hasRestreamers = videoStore.selectedRestreamers.length > 0;
+    return hasMoments && hasRestreamers;
+});
+
+const compilationEstimate = computed(() => {
+    if (props.mode !== 'compilation') {
+        return `~${selectedSegmentsCount.value * 3} menit`;
+    }
+    if (settingsStore.config.compilation.compilation_type === 'reaction') {
+        const momentCount = videoStore.compilationData?.epic_moments?.length ?? 0;
+        if (momentCount > 0) {
+            return `bervariasi (${momentCount} momen epik)`;
+        }
+        return 'bervariasi (tanpa batas durasi segmen)';
+    }
+    return '~15 menit';
+});
+
 import IconListVideo from "~icons/lucide/list-video";
 import IconWand2 from "~icons/lucide/wand-2";
 import IconLoader from "~icons/lucide/loader-2";
 
 const videoStore = useVideoStore();
-const settingsStore = useSettingsStore();
 const timelineTrack = ref<HTMLElement | null>(null);
 const isRendering = ref(false);
 
@@ -256,6 +301,52 @@ const selectedSegmentsCount = computed(() => {
 });
 
 const handleRender = async () => {
+    if (props.mode === 'compilation') {
+        if (!videoStore.compilationData || videoStore.selectedRestreamers.length === 0) return;
+        isRendering.value = true;
+        const appStore = useAppStore();
+        appStore.setProgress({
+            stage: "COMPILATION",
+            label: "Memulai rendering kompilasi...",
+            current: 1,
+            total: 100,
+        });
+        try {
+            const payload = {
+                videoId: videoStore.metadata?.video_id || "",
+                mainAudioPath: videoStore.compilationData.main_audio_16k_path,
+                restreamerUrls: videoStore.selectedRestreamers,
+                moments: videoStore.compilationData.epic_moments,
+                outputFilename: "kompilasi_reaksi_final.mp4"
+            };
+            console.log("Invoking execute_compilation", payload);
+            await invoke("execute_compilation", payload);
+            appStore.addToast({
+                type: "success",
+                title: "Kompilasi Selesai",
+                message: "Video kompilasi berhasil dirender.",
+            });
+        } catch (err: any) {
+            const message = typeof err === "string" ? err : (err?.message || String(err));
+            console.error("Compilation failed", message);
+            appStore.setProgress({
+                stage: "COMPILATION",
+                label: `Gagal: ${message}`,
+                current: 100,
+                total: 100,
+            });
+            appStore.isProcessing = false;
+            appStore.addToast({
+                type: "error",
+                title: "Kompilasi Gagal",
+                message,
+                duration: 8000,
+            });
+        } finally {
+            isRendering.value = false;
+        }
+        return;
+    }
     if (!videoStore.metadata || !videoStore.currentUrl) return;
 
     let segmentsToProcess = [];
@@ -315,3 +406,6 @@ const handleRender = async () => {
     }
 };
 </script>
+
+
+

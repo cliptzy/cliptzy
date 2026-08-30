@@ -81,12 +81,14 @@ impl Default for InstagramConfig {
 impl Default for CompilationConfig {
     fn default() -> Self {
         Self {
+            compilation_type: "reaction".to_string(),
             ordering: "countdown".to_string(),
             numbering_duration: 3.0,
             use_tts: false,
             tts_template: "Klip nomor {}".to_string(),
             use_subtitle: true,
-            crop_mode: "default".to_string(),
+            crop_mode: "none".to_string(),
+            max_segment_duration: 0,
         }
     }
 }

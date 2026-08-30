@@ -19,9 +19,14 @@ const router = createRouter({
     },
     {
       path: "/studio",
+      redirect: "/studio/clipper",
+    },
+    {
+      path: "/studio/:mode(clipper|compilation)",
       name: "studio",
       component: () => import("../views/StudioView.vue"),
       meta: { requiresAuth: true },
+      props: true,
     },
     {
       path: "/library",

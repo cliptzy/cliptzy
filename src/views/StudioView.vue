@@ -1,56 +1,67 @@
 <template>
-  <div class="h-full flex flex-col gap-4 max-w-[1600px] mx-auto w-full">
-    <!-- Top Area: 3 Spatial Panels -->
-    <div class="flex-1 flex flex-col xl:flex-row gap-4 min-h-0">
-      
-      <!-- LEFT PANEL: Inspector -->
-      <InspectorPanel 
-        v-model:aiWhisper="aiWhisper"
-        v-model:aiBRoll="aiBRoll"
-      />
+  <div class="h-full min-h-0 flex flex-col gap-4 max-w-[1600px] mx-auto w-full">
+    <div class="flex-1 min-h-0 flex flex-col xl:flex-row gap-4 overflow-y-auto xl:overflow-hidden transition-all duration-300 ease-out">
+      <InspectorPanel :mode="currentMode" />
 
-      <!-- CENTER PANEL: Stage / Preview -->
-      <PreviewPanel />
+      <PreviewPanel :mode="currentMode" />
 
-      <!-- RIGHT PANEL: Source & Segments -->
-      <SourceSegmentsPanel 
+      <SourceSegmentsPanel
+        :mode="currentMode"
         v-model:videoUrl="videoUrl"
         v-model:scanMode="scanMode"
+        v-model:compilationKeyword="compilationKeyword"
         @load-video="handleLoadVideo"
         @scan-heatmap="handleScanHeatmap"
         @scan-ai="handleScanAI"
       />
     </div>
 
-    <!-- Bottom Area: Timeline & Action -->
-    <TimelinePanel />
+    <TimelinePanel :mode="currentMode" class="transition-all duration-300 ease-out" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
 import { useVideoStore } from '../stores/video';
+import { useSettingsStore } from '../stores/settings';
+import { isReactionCompilation } from '../constants/compilation';
 
-// Import refactored components
 import InspectorPanel from '../components/studio/InspectorPanel.vue';
 import PreviewPanel from '../components/studio/PreviewPanel.vue';
 import SourceSegmentsPanel from '../components/studio/SourceSegmentsPanel.vue';
 import TimelinePanel from '../components/studio/TimelinePanel.vue';
 
-const videoStore = useVideoStore();
-const videoUrl = ref('');
+const props = defineProps<{
+  mode?: string;
+}>();
 
-const aiWhisper = ref(true);
-const aiBRoll = ref(false);
+export type StudioMode = 'clipper' | 'compilation';
+
+const currentMode = computed<StudioMode>(() =>
+  props.mode === 'compilation' ? 'compilation' : 'clipper'
+);
+
+const videoStore = useVideoStore();
+const settingsStore = useSettingsStore();
+const videoUrl = ref('');
 const scanMode = ref('heatmap');
+const compilationKeyword = ref('');
+
+const isReactionCompilationMode = computed(() =>
+  isReactionCompilation(settingsStore.config.compilation.compilation_type),
+);
 
 const handleLoadVideo = async () => {
   if (!videoUrl.value) return;
-  await videoStore.previewVideo(videoUrl.value);
-  // Auto-switch to heatmap if metadata loaded
-  if (videoStore.metadata) {
-    scanMode.value = 'heatmap';
+  if (currentMode.value === 'compilation') {
+    const keywords = isReactionCompilationMode.value ? undefined : compilationKeyword.value;
+    await videoStore.prepareCompilation(videoUrl.value, keywords);
+  } else {
+    await videoStore.previewVideo(videoUrl.value);
+    if (videoStore.metadata) {
+      scanMode.value = 'heatmap';
+    }
   }
 };
 
@@ -62,19 +73,16 @@ const handleScanHeatmap = async () => {
 const handleScanAI = async () => {
   if (!videoStore.metadata) return;
   videoStore.isScanningAI = true;
-  
+
   try {
     const settingsStore = (await import('../stores/settings')).useSettingsStore();
     const browserName = settingsStore.config?.browser || null;
-    
-    // Panggil real AI backend endpoint
-    const result: any = await invoke('scan_video', { 
-      url: videoUrl.value, 
+
+    const result: any = await invoke('scan_video', {
+      url: videoUrl.value,
       cookiesPath: browserName,
-      // parameter mode 'ai' diperlukan oleh Rust jika itu opsi scan yang berbeda
-      // namun fungsi ini diasumsikan tetap memanggil logic scanning (ditambahkan di backend nanti)
     });
-    
+
     if (result && result.segments) {
       videoStore.metadata.ai_segments = result.segments.map((s: any) => ({ ...s, selectedForRender: true }));
     }
@@ -83,7 +91,7 @@ const handleScanAI = async () => {
     appStore.addToast({
       title: 'AI Scan Gagal',
       message: String(err),
-      type: 'error'
+      type: 'error',
     });
   } finally {
     videoStore.isScanningAI = false;

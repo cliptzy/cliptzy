@@ -35,6 +35,61 @@ export const useVideoStore = defineStore('video', () => {
   const selectedSegment = ref<VideoSegment | null>(null);
   const analyzedSegments = ref<Record<string, any>>({});
   const error = ref('');
+  const compilationData = ref<any>(null);
+  const selectedRestreamers = ref<string[]>([]);
+  const isPreparingCompilation = ref(false);
+  
+  const prepareCompilation = async (url: string, searchKeywords?: string) => {
+    isPreparingCompilation.value = true;
+    const appStore = useAppStore();
+    appStore.setProgress({
+      stage: 'COMPILATION',
+      label: 'Memulai persiapan kompilasi...',
+      current: 1,
+      total: 100,
+    });
+
+    try {
+      const video_id = extractVideoId(url) || "unknown";
+      const res = await invoke('prepare_compilation', { 
+        videoUrl: url, 
+        videoId: video_id, 
+        searchKeywords: searchKeywords || null,
+      });
+      compilationData.value = res;
+      if (res && (res as any).video_info) {
+        metadata.value = (res as any).video_info;
+      }
+      if (res && (res as any).restreamer_urls) {
+        selectedRestreamers.value = [...(res as any).restreamer_urls];
+      }
+      appStore.addToast({
+        title: 'Persiapan Selesai',
+        message: `Ditemukan ${(res as any)?.epic_moments?.length ?? 0} momen epik dan ${(res as any)?.restreamer_urls?.length ?? 0} restreamer.`,
+        type: 'success',
+      });
+    } catch (e: any) {
+      const message = typeof e === 'string' ? e : (e?.message || String(e));
+      console.error('[prepare_compilation] Gagal:', message);
+      error.value = message;
+      appStore.setProgress({
+        stage: 'COMPILATION',
+        label: `Gagal: ${message}`,
+        current: 100,
+        total: 100,
+      });
+      appStore.isProcessing = false;
+      appStore.addToast({
+        title: 'Persiapan Kompilasi Gagal',
+        message,
+        type: 'error',
+        duration: 8000,
+      });
+    } finally {
+      isPreparingCompilation.value = false;
+    }
+  };
+
   
   const extractVideoId = (url: string) => {
     const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/);
@@ -133,7 +188,7 @@ export const useVideoStore = defineStore('video', () => {
     }
   });
 
-  return {
+  return { compilationData, selectedRestreamers, isPreparingCompilation, prepareCompilation,
     currentUrl,
     isAnalyzing,
     isLoading,
@@ -150,3 +205,5 @@ export const useVideoStore = defineStore('video', () => {
     analyzeSegmentAudio
   };
 });
+
+

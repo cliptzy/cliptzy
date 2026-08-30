@@ -1,6 +1,6 @@
 <template>
     <BentoCard
-        class="flex-1 flex flex-col items-center justify-center !bg-black relative overflow-hidden group p-4 h-full min-h-[400px]"
+        class="flex-1 flex flex-col items-center justify-center !bg-black relative overflow-hidden group p-4 h-full min-h-0 xl:min-h-[400px]"
     >
         <h3
             class="absolute top-4 left-4 text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider z-10 flex items-center gap-2"
@@ -9,8 +9,8 @@
         </h3>
 
         <div
-            class="relative w-full max-w-[320px] bg-gray-900 rounded-lg overflow-hidden border border-gray-800 shadow-2xl transition-all duration-300"
-            :class="{ 'aspect-[9/16]': settings.config.output_ratio === '9:16', 'aspect-square': settings.config.output_ratio === '1:1', 'aspect-video': settings.config.output_ratio === '16:9', 'aspect-auto': settings.config.output_ratio === 'original' }"
+            class="relative w-full bg-gray-900 rounded-lg overflow-hidden border border-gray-800 shadow-2xl transition-all duration-300"
+            :class="props.mode === 'compilation' ? 'aspect-video max-w-[640px]' : { 'max-w-[320px]': true, 'aspect-[9/16]': settings.config.output_ratio === '9:16', 'aspect-square': settings.config.output_ratio === '1:1', 'aspect-video': settings.config.output_ratio === '16:9', 'aspect-auto': settings.config.output_ratio === 'original' }"
         >
             <!-- Iframe Container to crop YouTube to output ratio -->
             <div
@@ -52,7 +52,7 @@
 
             <!-- Safe Zones Overlay -->
             <div
-                v-show="showSafeZone && settings.config.output_ratio === '9:16'"
+                v-show="props.mode !== 'compilation' && showSafeZone && settings.config.output_ratio === '9:16'"
                 class="absolute inset-0 pointer-events-none"
             >
                 <!-- Bottom Vignette (Title & description area) -->
@@ -205,6 +205,10 @@ import { invoke } from "@tauri-apps/api/core";
 import { useVideoStore } from "../../stores/video";
 import { useSettingsStore } from "../../stores/settings";
 import BentoCard from "../BentoCard.vue";
+
+const props = defineProps<{
+    mode?: 'clipper' | 'compilation'
+}>();
 
 import IconMonitorPlay from "~icons/lucide/monitor-play";
 import IconPlay from "~icons/lucide/play";

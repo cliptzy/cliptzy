@@ -1,9 +1,11 @@
 use crate::config::models::AppConfig;
 use crate::error::CliptzyError;
 use crate::orchestrator::clip::{ClipPayload, ClipResult, ClipVideoUseCase};
+use crate::orchestrator::compilation::{
+    EpicMoment, ExecuteCompilationUseCase, PrepareCompilationResult, PrepareCompilationUseCase,
+};
 use crate::orchestrator::pipeline::PipelineContext;
 use std::collections::HashMap;
-use tokio_util::sync::CancellationToken;
 
 #[tauri::command]
 pub async fn analyze_video(
@@ -19,19 +21,20 @@ pub async fn analyze_video(
 #[tauri::command]
 pub async fn clip_video(
     app: tauri::AppHandle,
+    state: tauri::State<'_, crate::AppState>,
     payload: ClipPayload,
 ) -> Result<ClipResult, CliptzyError> {
-    log::info!("Menerima permintaan clip_video untuk Video ID: {}", payload.video_id);
-    let cancel_token = CancellationToken::new();
+    log::info!(
+        "Menerima permintaan clip_video untuk Video ID: {}",
+        payload.video_id
+    );
+    let cancel_token = tokio_util::sync::CancellationToken::new();
+    *state.cancel_token.lock().await = Some(cancel_token.clone());
     let (progress_tx, _) = tokio::sync::broadcast::channel(100);
 
-    // Load config
     let config = AppConfig::load().unwrap_or_default();
-
-    // Setup job dir
     let app_dir = crate::paths::app_data_dir();
     let job_dir = app_dir.join("jobs").join(payload.video_id.clone());
-
     let deps = crate::utils::AppDependencies::check().map_err(|e| CliptzyError::Download(e))?;
 
     let ctx = PipelineContext {
@@ -68,7 +71,6 @@ pub async fn analyze_segment_audio(
     let temp_dir = app_dir.join("temp");
     std::fs::create_dir_all(&temp_dir).ok();
 
-    // Hash URL and timing to avoid re-downloading during same session
     let file_name = format!(
         "seg_{}_{}_{}.wav",
         uuid::Uuid::new_v4()
@@ -86,12 +88,10 @@ pub async fn analyze_segment_audio(
         end
     );
 
-    // Load config to check for youtube cookies
     let config = crate::config::models::AppConfig::load().unwrap_or_default();
     let cookies_path = config.browser.as_deref().filter(|s| !s.is_empty());
     let deps = crate::utils::AppDependencies::check().map_err(|e| CliptzyError::Download(e))?;
 
-    // 1. Extract audio chunk (pass the original YouTube URL so yt-dlp can handle cookies/throttling)
     log::info!("Tahap 1: Ekstraksi WAV melalui yt-dlp/FFmpeg...");
     crate::transcription::audio::extract_audio_segment(
         &_url,
@@ -103,7 +103,6 @@ pub async fn analyze_segment_audio(
     )
     .await?;
 
-    // 2. Ensure model exists
     let whisper_model = if config.subtitle.whisper_model.is_empty() {
         "tiny".to_string()
     } else {
@@ -115,12 +114,10 @@ pub async fn analyze_segment_audio(
     );
     let model_path = crate::transcription::whisper::ensure_model_exists(&whisper_model).await?;
 
-    // 3. Transcribe audio
     log::info!("Tahap 3: Menjalankan transkripsi Whisper (local)...");
     let transcriber = crate::transcription::whisper::WhisperTranscriber::new(&model_path)?;
     let transcript = transcriber.transcribe(&audio_wav_path).await?;
 
-    // Clean up temporary audio file
     log::info!("Tahap 4: Membersihkan file audio sementara...");
     let _ = std::fs::remove_file(&audio_wav_path);
 
@@ -133,4 +130,105 @@ pub async fn analyze_segment_audio(
         transcript,
         ai_effects: vec![],
     })
+}
+
+#[tauri::command]
+pub async fn prepare_compilation(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, crate::AppState>,
+    video_url: String,
+    video_id: String,
+    search_keywords: Option<String>,
+) -> Result<PrepareCompilationResult, CliptzyError> {
+    log::info!(
+        "Menerima permintaan prepare_compilation untuk Video ID: {}",
+        video_id
+    );
+
+    let cancel_token = tokio_util::sync::CancellationToken::new();
+    *state.cancel_token.lock().await = Some(cancel_token.clone());
+    let (progress_tx, _) = tokio::sync::broadcast::channel(100);
+
+    let config = AppConfig::load().unwrap_or_default();
+    let app_dir = crate::paths::app_data_dir();
+    let job_dir = app_dir.join("jobs").join(video_id.clone());
+    let deps = crate::utils::AppDependencies::check().map_err(|e| CliptzyError::Download(e))?;
+
+    let ctx = PipelineContext {
+        job_dir,
+        video_id: video_id.clone(),
+        config,
+        cancel_token,
+        progress_tx,
+        app_handle: app.clone(),
+        metadata: HashMap::new(),
+        deps,
+    };
+
+    let mut use_case = PrepareCompilationUseCase::new(ctx);
+    use_case
+        .execute(video_url, search_keywords)
+        .await
+        .map_err(|e| {
+            log::error!(
+                "prepare_compilation gagal untuk Video ID {}: {}",
+                video_id,
+                e
+            );
+            e
+        })
+}
+
+#[tauri::command]
+pub async fn execute_compilation(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, crate::AppState>,
+    video_id: String,
+    main_audio_path: String,
+    restreamer_urls: Vec<String>,
+    moments: Vec<EpicMoment>,
+    output_filename: String,
+) -> Result<String, CliptzyError> {
+    log::info!(
+        "Menerima permintaan execute_compilation untuk Video ID: {}",
+        video_id
+    );
+
+    let cancel_token = tokio_util::sync::CancellationToken::new();
+    *state.cancel_token.lock().await = Some(cancel_token.clone());
+    let (progress_tx, _) = tokio::sync::broadcast::channel(100);
+
+    let config = AppConfig::load().unwrap_or_default();
+    let app_dir = crate::paths::app_data_dir();
+    let job_dir = app_dir.join("jobs").join(video_id.clone());
+    let deps = crate::utils::AppDependencies::check().map_err(|e| CliptzyError::Download(e))?;
+
+    let ctx = PipelineContext {
+        job_dir,
+        video_id: video_id.clone(),
+        config,
+        cancel_token,
+        progress_tx,
+        app_handle: app.clone(),
+        metadata: HashMap::new(),
+        deps,
+    };
+
+    let mut use_case = ExecuteCompilationUseCase::new(ctx);
+    use_case
+        .execute(
+            main_audio_path,
+            restreamer_urls,
+            moments,
+            output_filename,
+        )
+        .await
+        .map_err(|e| {
+            log::error!(
+                "execute_compilation gagal untuk Video ID {}: {}",
+                video_id,
+                e
+            );
+            e
+        })
 }

@@ -34,7 +34,6 @@ export interface AIConfig {
   use_audio_analysis: boolean;
   use_text_analysis: boolean;
   use_add_meme: boolean;
-  debug_face_tracking: boolean;
 }
 
 export interface YoutubeConfig {
@@ -62,12 +61,15 @@ export interface InstagramConfig {
 }
 
 export interface CompilationConfig {
+  compilation_type: string;
   ordering: string;
   numbering_duration: number;
   use_tts: boolean;
   tts_template: string;
   use_subtitle: boolean;
   crop_mode: string;
+  /** Batas durasi segmen (detik). 0 = tidak terbatas (mode reaksi). */
+  max_segment_duration: number;
 }
 
 export interface AppConfig {
@@ -202,12 +204,14 @@ const defaultSettings: AppConfig = {
     auto_upload: false,
   },
   compilation: {
+    compilation_type: "reaction",
     ordering: "countdown",
     numbering_duration: 3.0,
     use_tts: true,
     tts_template: "Nomor {n}! {name}!",
     use_subtitle: true,
-    crop_mode: "default",
+    crop_mode: "none",
+    max_segment_duration: 0,
   },
 };
 

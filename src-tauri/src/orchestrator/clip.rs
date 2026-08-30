@@ -1,11 +1,28 @@
+use crate::analysis::AnalysisSegment;
 use crate::error::CliptzyError;
+use crate::orchestrator::job_cache::{
+    cache_file, fingerprint, is_fingerprint_valid, read_json_cache, sanitize_cache_token,
+    write_json_cache, FileFingerprint,
+};
 use crate::orchestrator::pipeline::{emit_progress, PipelineContext, ProgressEvent};
 use crate::processing::cropper::{create_crop_strategy, OutputConfig};
 use crate::processing::stacker::{stack_video, StackerConfig};
 use crate::processing::thumbnail::generate_thumbnail;
 use crate::video::downloader::download_segment;
 use serde::{Deserialize, Serialize};
-use crate::analysis::AnalysisSegment;
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+struct SegmentTranscriptCacheEntry {
+    whisper_model: String,
+    source_fingerprint: FileFingerprint,
+    segments: Vec<crate::transcription::models::TranscriptionSegment>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+struct EmotionCacheEntry {
+    source_fingerprint: FileFingerprint,
+    segments: Vec<AnalysisSegment>,
+}
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct ClipPayload {
@@ -105,171 +122,244 @@ impl ClipVideoUseCase {
 
         // 2. AI Analyzers
         if self.ctx.config.ai.use_emotion_detection {
-            emit_progress(
-                &self.ctx.app_handle,
-                &ProgressEvent {
-                    stage: "analyze".into(),
-                    label: "Menganalisa emosi visual wajah (ONNX)...".into(),
-                    current: 30,
-                    total: 100,
-                    detail: None,
-                },
-            );
+            let emotion_cache_path = cache_file(job_dir, &format!("emotions_{}.json", idx));
+            let mut use_cached_emotions = false;
 
-            use crate::analysis::EmotionAnalyzer;
-            let analyzer = crate::analysis::visual::VisualEmotionAnalyzer::new();
-
-            match analyzer.analyze(&source_video, &self.ctx.cancel_token, &self.ctx.progress_tx).await {
-                Ok(segments) => {
-                    let json_path = job_dir.join(format!("emotions_{}.json", idx));
-                    if let Ok(json_str) = serde_json::to_string_pretty(&segments) {
-                        let _ = std::fs::write(&json_path, json_str);
-                        log::info!("Emotion analysis selesai, tersimpan di {:?}", json_path);
+            if source_video.exists() {
+                if let (Some(cached), Some(_)) = (
+                    read_json_cache::<EmotionCacheEntry>(&emotion_cache_path),
+                    fingerprint(&source_video),
+                ) {
+                    if is_fingerprint_valid(&cached.source_fingerprint, &source_video) {
+                        log::info!(
+                            "Menggunakan analisis emosi dari cache: {:?}",
+                            emotion_cache_path
+                        );
+                        use_cached_emotions = true;
                     }
                 }
-                Err(e) => {
-                    log::warn!("Visual Emotion Analyzer gagal (dilewati): {}", e);
+            }
+
+            if !use_cached_emotions {
+                emit_progress(
+                    &self.ctx.app_handle,
+                    &ProgressEvent {
+                        stage: "analyze".into(),
+                        label: "Menganalisa emosi visual wajah (ONNX)...".into(),
+                        current: 30,
+                        total: 100,
+                        detail: None,
+                    },
+                );
+
+                use crate::analysis::EmotionAnalyzer;
+                let analyzer = crate::analysis::visual::VisualEmotionAnalyzer::new();
+
+                match analyzer
+                    .analyze(&source_video, &self.ctx.cancel_token, &self.ctx.progress_tx)
+                    .await
+                {
+                    Ok(segments) => {
+                        if let Some(source_fp) = fingerprint(&source_video) {
+                            let _ = write_json_cache(
+                                &emotion_cache_path,
+                                &EmotionCacheEntry {
+                                    source_fingerprint: source_fp,
+                                    segments: segments.clone(),
+                                },
+                            );
+                        }
+                        log::info!("Emotion analysis selesai, tersimpan di {:?}", emotion_cache_path);
+                    }
+                    Err(e) => {
+                        log::warn!("Visual Emotion Analyzer gagal (dilewati): {}", e);
+                    }
                 }
             }
         }
 
-        // 3. Crop Video
-        emit_progress(
-            &self.ctx.app_handle,
-            &ProgressEvent {
-                stage: "crop".into(),
-                label: "Memotong & menyesuaikan rasio video...".into(),
-                current: 40,
-                total: 100,
-                detail: None,
-            },
-        );
+        // 3. Crop Video (lewati jika crop_mode = none)
+        let hw_accel =
+            crate::processing::ffmpeg::hwaccel::HwAccel::detect(Some(&self.ctx.config.hw_accel));
+        let total_duration = payload.end - payload.start;
 
-        let mut keyframes = None;
-        if payload.crop_mode == "full_face" || payload.crop_mode == "center_face" {
+        let mut current_video = if payload.crop_mode == "none" {
             emit_progress(
                 &self.ctx.app_handle,
                 &ProgressEvent {
                     stage: "crop".into(),
-                    label: "Menganalisa wajah (AI Tracking)...".into(),
-                    current: 45,
+                    label: "Mempertahankan resolusi asli (tanpa crop)...".into(),
+                    current: 50,
                     total: 100,
                     detail: None,
                 },
             );
-            let tracking_mode = self.ctx.config.face_tracking_mode.clone();
-            match crate::face::tracker::get_face_keyframes(
-                &source_video,
-                1.0,
-                tracking_mode,
-                Some(self.ctx.app_handle.clone()),
-                self.ctx.cancel_token.clone(),
-                None,
-            )
-            .await
-            {
-                Ok((kfs, _)) => keyframes = Some(kfs),
-                Err(e) => {
-                    log::warn!("Face tracking failed: {}. Fallback to center.", e);
+            log::info!("crop_mode=none, melewati proses crop untuk {:?}", source_video);
+            source_video.clone()
+        } else {
+            emit_progress(
+                &self.ctx.app_handle,
+                &ProgressEvent {
+                    stage: "crop".into(),
+                    label: "Memotong & menyesuaikan rasio video...".into(),
+                    current: 40,
+                    total: 100,
+                    detail: None,
+                },
+            );
+
+            let mut keyframes = None;
+            if payload.crop_mode == "full_face" || payload.crop_mode == "center_face" {
+                emit_progress(
+                    &self.ctx.app_handle,
+                    &ProgressEvent {
+                        stage: "crop".into(),
+                        label: "Menganalisa wajah (AI Tracking)...".into(),
+                        current: 45,
+                        total: 100,
+                        detail: None,
+                    },
+                );
+                let tracking_mode = self.ctx.config.face_tracking_mode.clone();
+                match crate::face::tracker::get_face_keyframes(
+                    &source_video,
+                    1.0,
+                    tracking_mode,
+                    Some(self.ctx.app_handle.clone()),
+                    self.ctx.cancel_token.clone(),
+                    None,
+                )
+                .await
+                {
+                    Ok((kfs, _)) => keyframes = Some(kfs),
+                    Err(e) => {
+                        log::warn!("Face tracking failed: {}. Fallback to center.", e);
+                    }
                 }
             }
-        }
 
-        let cropper = create_crop_strategy(&payload.crop_mode);
-        let hw_accel =
-            crate::processing::ffmpeg::hwaccel::HwAccel::detect(Some(&self.ctx.config.hw_accel));
-        let mut debug_ass_path = None;
-        if self.ctx.config.debug_mode {
-            let json_path = job_dir.join(format!("emotions_{}.json", idx));
-            match std::fs::read_to_string(&json_path) {
-                Ok(json_str) => {
-                    match serde_json::from_str::<Vec<AnalysisSegment>>(&json_str) {
-                        Ok(segments) => {
-                            match crate::video::local::probe_local_video(&source_video).await {
-                                Ok(probe) => {
-                                    let mut v_w = 1920;
-                                    let mut v_h = 1080;
-                                    for stream in probe.streams {
-                                        if stream.codec_type == Some("video".to_string()) {
-                                            if let Some(w) = stream.width { v_w = w as u32; }
-                                            if let Some(h) = stream.height { v_h = h as u32; }
-                                            break;
+            let cropper = create_crop_strategy(&payload.crop_mode);
+            let mut debug_ass_path = None;
+            if self.ctx.config.debug_mode {
+                let json_path = cache_file(job_dir, &format!("emotions_{}.json", idx));
+                match std::fs::read_to_string(&json_path) {
+                    Ok(json_str) => {
+                        match serde_json::from_str::<Vec<AnalysisSegment>>(&json_str) {
+                            Ok(segments) => {
+                                match crate::video::local::probe_local_video(&source_video).await {
+                                    Ok(probe) => {
+                                        let mut v_w = 1920;
+                                        let mut v_h = 1080;
+                                        for stream in probe.streams {
+                                            if stream.codec_type == Some("video".to_string()) {
+                                                if let Some(w) = stream.width { v_w = w as u32; }
+                                                if let Some(h) = stream.height { v_h = h as u32; }
+                                                break;
+                                            }
+                                        }
+
+                                        let ass_out = job_dir.join(format!("debug_boxes_{}.ass", idx));
+                                        match crate::transcription::ass_writer::generate_debug_ass(&segments, &ass_out, v_w, v_h) {
+                                            Ok(_) => {
+                                                debug_ass_path = Some(ass_out.to_string_lossy().to_string());
+                                                log::info!("Debug ASS generated at {:?}", ass_out);
+                                            }
+                                            Err(e) => log::warn!("Gagal generate debug ASS: {}", e),
                                         }
                                     }
-
-                                    let ass_out = job_dir.join(format!("debug_boxes_{}.ass", idx));
-                                    match crate::transcription::ass_writer::generate_debug_ass(&segments, &ass_out, v_w, v_h) {
-                                        Ok(_) => {
-                                            debug_ass_path = Some(ass_out.to_string_lossy().to_string());
-                                            log::info!("Debug ASS generated at {:?}", ass_out);
-                                        }
-                                        Err(e) => log::warn!("Gagal generate debug ASS: {}", e),
-                                    }
+                                    Err(e) => log::warn!("Gagal probe_local_video: {}", e),
                                 }
-                                Err(e) => log::warn!("Gagal probe_local_video: {}", e),
                             }
+                            Err(e) => log::warn!("Gagal parsing JSON: {}", e),
                         }
-                        Err(e) => log::warn!("Gagal parsing JSON: {}", e),
                     }
+                    Err(e) => log::warn!("Gagal membaca emotions JSON: {}", e),
                 }
-                Err(e) => log::warn!("Gagal membaca emotions JSON: {}", e),
             }
-        }
 
-        let out_config = OutputConfig {
-            hw_accel: hw_accel.clone(),
-            debug_ass_path,
-            ..OutputConfig::default()
-        };
-        let total_duration = payload.end - payload.start;
-        let handle_clone = self.ctx.app_handle.clone();
+            let crop_out_config = OutputConfig {
+                hw_accel: hw_accel.clone(),
+                debug_ass_path,
+                ..OutputConfig::default()
+            };
+            let handle_clone = self.ctx.app_handle.clone();
 
-        let crop_cmd = cropper
-            .build_command(
-                &source_video,
-                &cropped_video,
-                &out_config,
-                keyframes.as_deref(),
-            )?
-            .on_progress(move |prog| {
-                if let Some(time) = prog.time {
-                    let current_sec = time.as_secs_f64();
-                    if total_duration > 0.0 {
-                        let mut pct = (current_sec / total_duration) * 100.0;
-                        if pct > 99.9 {
-                            pct = 99.9;
+            let crop_cmd = cropper
+                .build_command(
+                    &source_video,
+                    &cropped_video,
+                    &crop_out_config,
+                    keyframes.as_deref(),
+                )?
+                .on_progress(move |prog| {
+                    if let Some(time) = prog.time {
+                        let current_sec = time.as_secs_f64();
+                        if total_duration > 0.0 {
+                            let mut pct = (current_sec / total_duration) * 100.0;
+                            if pct > 99.9 {
+                                pct = 99.9;
+                            }
+                            emit_progress(
+                                &handle_clone,
+                                &ProgressEvent {
+                                    stage: "crop".into(),
+                                    label: format!(
+                                        "Memotong & menyesuaikan rasio video... ({:.1}%)",
+                                        pct
+                                    ),
+                                    current: pct as u32,
+                                    total: 100,
+                                    detail: None,
+                                },
+                            );
                         }
-                        emit_progress(
-                            &handle_clone,
-                            &ProgressEvent {
-                                stage: "crop".into(),
-                                label: format!(
-                                    "Memotong & menyesuaikan rasio video... ({:.1}%)",
-                                    pct
-                                ),
-                                current: pct as u32,
-                                total: 100,
-                                detail: None,
-                            },
-                        );
                     }
-                }
-            });
+                });
 
-        let crop_process = crop_cmd.spawn().await.map_err(|e| CliptzyError::FFmpeg {
-            code: -1,
-            message: format!("Spawn failed: {}", e),
-        })?;
-        crop_process
-            .wait()
-            .await
-            .map_err(|e| CliptzyError::FFmpeg {
+            #[allow(unused_mut)]
+            let mut crop_process = crop_cmd.spawn().await.map_err(|e| CliptzyError::FFmpeg {
                 code: -1,
-                message: format!("Crop failed: {}", e),
+                message: format!("Spawn failed: {}", e),
             })?;
 
+            tokio::select! {
+                status = crop_process.wait() => {
+                    status.map_err(|e| CliptzyError::FFmpeg {
+                        code: -1,
+                        message: format!("Crop failed: {}", e),
+                    })?;
+                }
+                _ = self.ctx.cancel_token.cancelled() => {
+                    log::warn!("Membatalkan proses crop...");
+                    crate::utils::kill_processes(&["ffmpeg", "yt-dlp"]);
+                    return Err(CliptzyError::Config("Proses crop dibatalkan oleh pengguna".into()));
+                }
+            }
+
+            cropped_video.clone()
+        };
+
+        let mut out_config = OutputConfig {
+            hw_accel: hw_accel.clone(),
+            ..OutputConfig::default()
+        };
+        if payload.crop_mode == "none" {
+            if let Ok(probe) = crate::video::local::probe_local_video(&current_video).await {
+                for stream in probe.streams {
+                    if stream.codec_type == Some("video".to_string()) {
+                        if let Some(w) = stream.width {
+                            out_config.width = w as u32;
+                        }
+                        if let Some(h) = stream.height {
+                            out_config.height = h as u32;
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+
         // 4. Transcription & Subtitle Burn (Optional)
-        let mut current_video = cropped_video.clone();
 
         let has_watermark = self
             .ctx
@@ -294,75 +384,148 @@ impl ClipVideoUseCase {
             let mut sub_config_opt = None;
 
             if payload.use_subtitle {
-                // Extract audio for Whisper using existing audio module
-                emit_progress(
-                    &self.ctx.app_handle,
-                    &ProgressEvent {
-                        stage: "subtitle".into(),
-                        label: "Mengekstrak audio untuk AI Transcription...".into(),
-                        current: 62,
-                        total: 100,
-                        detail: None,
-                    },
-                );
-
-                let audio_wav = job_dir.join(format!("audio_16k_{}.wav", idx));
-                let duration = payload.end - payload.start;
-                crate::transcription::audio::extract_audio_segment(
-                    &current_video.to_string_lossy(),
-                    0.0,
-                    duration,
-                    &audio_wav,
-                    None,
-                    &self.ctx.deps.ytdlp,
-                )
-                .await?;
-
-                // Transcribe
-                emit_progress(
-                    &self.ctx.app_handle,
-                    &ProgressEvent {
-                        stage: "subtitle".into(),
-                        label: "Menyiapkan AI Whisper...".into(),
-                        current: 65,
-                        total: 100,
-                        detail: None,
-                    },
-                );
                 let whisper_model = if self.ctx.config.subtitle.whisper_model.is_empty() {
                     "tiny".to_string()
                 } else {
                     self.ctx.config.subtitle.whisper_model.clone()
                 };
-                let model_path =
-                    crate::transcription::whisper::ensure_model_exists(&whisper_model).await?;
-                let transcriber =
-                    crate::transcription::whisper::WhisperTranscriber::new(&model_path)?;
-
-                emit_progress(
-                    &self.ctx.app_handle,
-                    &ProgressEvent {
-                        stage: "subtitle".into(),
-                        label: "Menjalankan Transkripsi Teks (Whisper)...".into(),
-                        current: 70,
-                        total: 100,
-                        detail: None,
-                    },
-                );
-                let transcript = transcriber.transcribe(&audio_wav).await?;
-
-                // Generate ASS
-                emit_progress(
-                    &self.ctx.app_handle,
-                    &ProgressEvent {
-                        stage: "subtitle".into(),
-                        label: "Menyusun format Subtitle (ASS)...".into(),
-                        current: 75,
-                        total: 100,
-                        detail: None,
-                    },
+                let transcript_cache_path = cache_file(
+                    job_dir,
+                    &format!(
+                        "transcript_{}_{}.json",
+                        idx,
+                        sanitize_cache_token(&whisper_model)
+                    ),
                 );
                 let ass_path = job_dir.join(format!("subtitles_{}.ass", idx));
+
+                let transcript = if let (Some(cached), Some(_)) = (
+                    read_json_cache::<SegmentTranscriptCacheEntry>(&transcript_cache_path),
+                    fingerprint(&current_video),
+                ) {
+                    if cached.whisper_model == whisper_model
+                        && is_fingerprint_valid(&cached.source_fingerprint, &current_video)
+                    {
+                        log::info!(
+                            "Menggunakan transkripsi segmen dari cache: {:?}",
+                            transcript_cache_path
+                        );
+                        emit_progress(
+                            &self.ctx.app_handle,
+                            &ProgressEvent {
+                                stage: "subtitle".into(),
+                                label: "Menggunakan transkripsi dari cache...".into(),
+                                current: 68,
+                                total: 100,
+                                detail: None,
+                            },
+                        );
+                        cached.segments
+                    } else {
+                        Vec::new()
+                    }
+                } else {
+                    Vec::new()
+                };
+
+                let transcript = if transcript.is_empty() {
+                    emit_progress(
+                        &self.ctx.app_handle,
+                        &ProgressEvent {
+                            stage: "subtitle".into(),
+                            label: "Mengekstrak audio untuk AI Transcription...".into(),
+                            current: 62,
+                            total: 100,
+                            detail: None,
+                        },
+                    );
+
+                    let audio_wav = job_dir.join(format!("audio_16k_{}.wav", idx));
+                    let duration = payload.end - payload.start;
+
+                    if !audio_wav.exists() {
+                        crate::transcription::audio::extract_audio_segment(
+                            &current_video.to_string_lossy(),
+                            0.0,
+                            duration,
+                            &audio_wav,
+                            None,
+                            &self.ctx.deps.ytdlp,
+                        )
+                        .await?;
+                    } else {
+                        log::info!("Menggunakan audio segmen dari cache: {:?}", audio_wav);
+                    }
+
+                    emit_progress(
+                        &self.ctx.app_handle,
+                        &ProgressEvent {
+                            stage: "subtitle".into(),
+                            label: "Menyiapkan AI Whisper...".into(),
+                            current: 65,
+                            total: 100,
+                            detail: None,
+                        },
+                    );
+
+                    let model_path =
+                        crate::transcription::whisper::ensure_model_exists(&whisper_model).await?;
+                    let transcriber =
+                        crate::transcription::whisper::WhisperTranscriber::new(&model_path)?;
+
+                    emit_progress(
+                        &self.ctx.app_handle,
+                        &ProgressEvent {
+                            stage: "subtitle".into(),
+                            label: "Menjalankan Transkripsi Teks (Whisper)...".into(),
+                            current: 70,
+                            total: 100,
+                            detail: None,
+                        },
+                    );
+                    let segments = transcriber.transcribe(&audio_wav).await?;
+
+                    if let Some(source_fp) = fingerprint(&current_video) {
+                        let _ = write_json_cache(
+                            &transcript_cache_path,
+                            &SegmentTranscriptCacheEntry {
+                                whisper_model: whisper_model.clone(),
+                                source_fingerprint: source_fp,
+                                segments: segments.clone(),
+                            },
+                        );
+                    }
+
+                    segments
+                } else {
+                    transcript
+                };
+
+                if !ass_path.exists() {
+                    emit_progress(
+                        &self.ctx.app_handle,
+                        &ProgressEvent {
+                            stage: "subtitle".into(),
+                            label: "Menyusun format Subtitle (ASS)...".into(),
+                            current: 75,
+                            total: 100,
+                            detail: None,
+                        },
+                    );
+                } else {
+                    log::info!("Menggunakan subtitle ASS dari cache: {:?}", ass_path);
+                    emit_progress(
+                        &self.ctx.app_handle,
+                        &ProgressEvent {
+                            stage: "subtitle".into(),
+                            label: "Menggunakan subtitle dari cache...".into(),
+                            current: 75,
+                            total: 100,
+                            detail: None,
+                        },
+                    );
+                }
+
                 let mut sub_config = crate::transcription::models::SubtitleConfig::default();
                 if !self.ctx.config.subtitle.font.is_empty() {
                     sub_config.font = self.ctx.config.subtitle.font.clone();
@@ -405,12 +568,14 @@ impl ClipVideoUseCase {
                     sub_config.shadow = 4; // Shadow offset
                 }
 
-                crate::transcription::ass_writer::generate_ass_file(
-                    &transcript,
-                    &ass_path,
-                    &sub_config,
-                    (out_config.width, out_config.height),
-                )?;
+                if !ass_path.exists() {
+                    crate::transcription::ass_writer::generate_ass_file(
+                        &transcript,
+                        &ass_path,
+                        &sub_config,
+                        (out_config.width, out_config.height),
+                    )?;
+                }
 
                 ass_path_opt = Some(ass_path.to_string_lossy().to_string());
                 sub_config_opt = Some(sub_config);
@@ -511,3 +676,5 @@ impl ClipVideoUseCase {
         })
     }
 }
+
+

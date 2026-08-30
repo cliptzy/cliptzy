@@ -221,71 +221,6 @@
                 ></span>
             </button>
         </div>
-
-        <!-- API Keys -->
-        <div
-            class="flex flex-col gap-3 pt-5 border-t border-gray-300 dark:border-gray-800 mt-auto shrink-0"
-        >
-            <span class="text-xs font-bold text-[var(--color-text-main)]"
-                >API Keys (AI Analytics)</span
-            >
-            <div class="relative group">
-                <IconKey
-                    class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-700/60 dark:text-gray-300/60"
-                />
-                <input
-                    type="password"
-                    v-model="settings.config.ai.openai_key"
-                    placeholder="OpenAI Key (sk-...)"
-                    class="w-full bg-white/60 dark:bg-black/30 border-none rounded-2xl py-3 pl-11 pr-4 text-sm font-bold text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] placeholder-gray-700/60 dark:placeholder-gray-300/60 transition-all shadow-sm"
-                />
-            </div>
-            <div class="relative group">
-                <IconSparkles
-                    class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-700/60 dark:text-gray-300/60"
-                />
-                <input
-                    type="password"
-                    v-model="settings.config.ai.gemini_key"
-                    placeholder="Gemini API Key"
-                    class="w-full bg-white/60 dark:bg-black/30 border-none rounded-2xl py-3 pl-11 pr-4 text-sm font-bold text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] placeholder-gray-700/60 dark:placeholder-gray-300/60 transition-all shadow-sm"
-                />
-            </div>
-        </div>
-    </BentoCard>
-
-    <!-- Model Whisper -->
-    <BentoCard
-        class="col-span-1 md:col-span-2 xl:col-span-2 row-span-1 h-full overflow-y-auto custom-scrollbar p-6 flex flex-col gap-4 !bg-orange-100 dark:!bg-orange-900/40"
-    >
-        <h2
-            class="text-lg font-black text-[var(--color-text-main)] tracking-wide flex items-center gap-2 shrink-0"
-        >
-            <IconType class="w-5 h-5" /> Engine Transkripsi
-        </h2>
-        <div class="flex flex-col gap-3 shrink-0">
-            <span class="text-xs text-[var(--color-text-main)] font-bold"
-                >Model Whisper Default</span
-            >
-            <select
-                v-model="settings.config.subtitle.whisper_model"
-                class="w-full bg-white/60 dark:bg-black/30 border-none rounded-2xl p-3 text-sm font-bold text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] transition-all shadow-sm"
-            >
-                <option value="tiny">Tiny (Cepat, Kurang Akurat)</option>
-                <option value="base">Base</option>
-                <option value="small">Small (Rekomendasi)</option>
-                <option value="medium">Medium</option>
-                <option value="large-v3">Large v3 (Paling Akurat)</option>
-                <option value="large-v3-turbo">Large v3 Turbo</option>
-            </select>
-            <p
-                class="text-[10px] text-[var(--color-text-muted)] font-medium mt-1 leading-relaxed"
-            >
-                Pengaturan tampilan subtitle (font, warna, ukuran) telah
-                dipindahkan ke menu Studio agar Anda bisa melihat perubahannya
-                secara real-time.
-            </p>
-        </div>
     </BentoCard>
 </template>
 
@@ -299,9 +234,6 @@ import ProgressBar from "../ProgressBar.vue";
 
 // Icons
 import IconCpu from "~icons/lucide/cpu";
-import IconKey from "~icons/lucide/key";
-import IconSparkles from "~icons/lucide/sparkles";
-import IconType from "~icons/lucide/type";
 import IconPackage from "~icons/lucide/package";
 import IconCheckCircle from "~icons/lucide/check-circle-2";
 import IconXCircle from "~icons/lucide/x-circle";

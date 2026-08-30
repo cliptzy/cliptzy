@@ -1,14 +1,14 @@
 use std::path::{Path, PathBuf};
 use yt_dlp::Downloader;
 
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct SegmentInfo {
     pub start: f64,
     pub end: f64,
     pub score: f64,
 }
 
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct VideoAnalysisResult {
     pub video_id: String,
     pub title: String,
@@ -92,14 +92,28 @@ pub async fn analyze_youtube_video(
 
     let stdout_str = String::from_utf8_lossy(&output.stdout);
     
-    let video: yt_dlp::model::video::Video = serde_json::from_str(&stdout_str)
-        .map_err(|e| format!("Gagal memparsing JSON dari yt-dlp: {}", e))?;
+    // Kadang yt-dlp mengeluarkan pesan peringatan sebelum JSON object
+    let json_start = stdout_str.find('{').unwrap_or(0);
+    let json_end = stdout_str.rfind('}').map(|i| i + 1).unwrap_or(stdout_str.len());
+    let clean_json = if json_start < json_end {
+        &stdout_str[json_start..json_end]
+    } else {
+        &stdout_str
+    };
+    
+    let video: yt_dlp::model::video::Video = match serde_json::from_str(clean_json) {
+        Ok(v) => v,
+        Err(e) => {
+            log::error!("Gagal memparsing JSON dari yt-dlp: {}", e);
+            let peek = &clean_json[..std::cmp::min(clean_json.len(), 500)];
+            log::debug!("Output yt-dlp: {}...", peek);
+            return Err(format!("Gagal memparsing JSON dari yt-dlp: {}", e));
+        }
+    };
 
-    let heatmap = video
-        .get_heatmap()
-        .ok_or("Heatmap tidak tersedia untuk video ini")?;
-
-    let engaged = heatmap.get_highly_engaged_segments(0.5);
+    let engaged = video.get_heatmap()
+        .map(|h| h.get_highly_engaged_segments(0.5))
+        .unwrap_or_default();
 
     let config = crate::config::models::AppConfig::load().unwrap_or_default();
     let padding = config.padding as f64;
@@ -203,3 +217,5 @@ pub async fn download_youtube_video(
 
     Ok(())
 }
+
+
