@@ -16,12 +16,16 @@ jobs:
         include:
           - platform: "macos-latest"
             args: "--target aarch64-apple-darwin"
+            target: "aarch64-apple-darwin"
           - platform: "macos-latest"
             args: "--target x86_64-apple-darwin"
+            target: "x86_64-apple-darwin"
           - platform: "ubuntu-24.04"
             args: "-- --features gpu-vulkan"
-          - platform: "windows-latest"
-            args: "-- --features gpu-vulkan"
+            target: "x86_64-unknown-linux-gnu"
+          - platform: "ubuntu-24.04"
+            args: "-- --runner cargo-xwin --target x86_64-pc-windows-msvc --features gpu-vulkan"
+            target: "x86_64-pc-windows-msvc"
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -44,7 +48,9 @@ jobs:
             libxdo-dev \
             libssl-dev \
             librsvg2-dev \
-            libglib2.0-dev
+            libglib2.0-dev \
+            lld \
+            llvm
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -58,24 +64,17 @@ jobs:
           version: latest
           cache: true
 
-      - name: Install Vulkan SDK (Windows)
-        if: matrix.platform == 'windows-latest'
-        shell: pwsh
-        run: |
-          choco install vulkan-sdk -y --no-progress
-          $vulkanDir = (Get-ChildItem -Path "C:\VulkanSDK" -Directory | Select-Object -First 1).FullName
-          $vulkanDir = $vulkanDir -replace '\\', '/'
-          echo "VULKAN_SDK=$vulkanDir" >> $env:GITHUB_ENV
-      
-      - name: Install LLVM
-        uses: KyleMayes/install-llvm-action@v2
-        with:
-          version: "16"
-
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: Install Windows dependencies (Ubuntu)
+        if: matrix.platform == 'ubuntu-24.04' && matrix.target == 'x86_64-pc-windows-msvc'
+        run: |
+          sudo apt-get install -y nsis
+          rustup target add x86_64-pc-windows-msvc
+          cargo install --locked cargo-xwin
 
       - name: Install frontend dependencies
         run: bun install

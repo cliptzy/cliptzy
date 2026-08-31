@@ -1,7 +1,7 @@
-use once_cell::sync::OnceCell;
-use ort::{ep, session::Session};
-use std::sync::Mutex;
 use crate::error::CliptzyError;
+use once_cell::sync::OnceCell;
+use ort::session::Session;
+use std::sync::Mutex;
 
 pub struct OnnxModelManager {
     pub model_name: String,
@@ -36,9 +36,12 @@ impl OnnxModelManager {
 
             #[cfg(target_os = "windows")]
             {
+                use ort::ep;
                 builder = builder
                     .with_execution_providers([ep::DirectML::default().build()])
-                    .map_err(|e| CliptzyError::Model(format!("Failed to set execution provider: {}", e)))?;
+                    .map_err(|e| {
+                        CliptzyError::Model(format!("Failed to set execution provider: {}", e))
+                    })?;
             }
 
             let session = builder
