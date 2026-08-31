@@ -32,6 +32,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Get dotenv
+        run: echo ${{ secrets.DOTENV }} | base64 --decode > .env
+
       - name: Install dependencies (Ubuntu)
         if: matrix.platform == 'ubuntu-24.04'
         run: |
