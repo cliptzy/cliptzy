@@ -86,7 +86,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CARGO_TARGET_DIR: ${{ matrix.platform == 'windows-latest' && 'D:/t' || format('{0}/src-tauri/target', github.workspace) }}
-          CMAKE_GENERATOR: ${{ matrix.platform == 'windows-latest' && 'Ninja' || '' }}
         with:
           tagName: ${{ github.ref_name }}
           releaseName: "Cliptzy ${{ github.ref_name }}"
