@@ -26,6 +26,9 @@ jobs:
             target: "x86_64-pc-windows-msvc"
 
     runs-on: ${{ matrix.platform }}
+    env:
+      CARGO_TARGET_DIR: ${{ matrix.platform == 'windows-latest' && 'D:/t' || format('{0}/src-tauri/target', github.workspace) }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -34,30 +37,27 @@ jobs:
         shell: bash
         run: echo ${{ secrets.DOTENV }} | base64 --decode > .env
 
-      - name: Install dependencies (Ubuntu)
+      - name: Install & Cache dependencies (Ubuntu)
         if: matrix.platform == 'ubuntu-24.04'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            patchelf \
-            libappindicator3-dev \
-            libvulkan-dev \
-            libwebkit2gtk-4.1-dev \
-            build-essential \
-            curl \
-            wget \
-            file \
-            libxdo-dev \
-            libssl-dev \
-            librsvg2-dev \
-            libglib2.0-dev \
-            lld \
-            llvm
+        uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: patchelf libappindicator3-dev libvulkan-dev libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev librsvg2-dev libglib2.0-dev lld llvm
+          version: 1.0
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
 
       - name: Install Vulkan SDK (Ubuntu)
         if: matrix.platform == 'ubuntu-24.04'
@@ -66,11 +66,24 @@ jobs:
           version: latest
           cache: true
 
-      - name: Install Vulkan SDK (Windows)
+      - name: Cache Vulkan SDK (Windows)
         if: matrix.platform == 'windows-latest'
+        id: cache-vulkan-windows
+        uses: actions/cache@v4
+        with:
+          path: C:\VulkanSDK
+          key: ${{ runner.os }}-vulkan-sdk
+
+      - name: Install Vulkan SDK (Windows)
+        if: matrix.platform == 'windows-latest' && steps.cache-vulkan-windows.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
           choco install vulkan-sdk -y --no-progress
+
+      - name: Set Vulkan ENV (Windows)
+        if: matrix.platform == 'windows-latest'
+        shell: pwsh
+        run: |
           $vulkanDir = (Get-ChildItem -Path "C:\VulkanSDK" -Directory | Select-Object -First 1).FullName
           $vulkanDir = $vulkanDir -replace '\\', '/'
           echo "VULKAN_SDK=$vulkanDir" >> $env:GITHUB_ENV
@@ -80,6 +93,12 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          key: ${{ matrix.platform }}-${{ matrix.target }}
+
       - name: Install frontend dependencies
         run: bun install
 
@@ -87,7 +106,6 @@ jobs:
         uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CARGO_TARGET_DIR: ${{ matrix.platform == 'windows-latest' && 'D:/t' || format('{0}/src-tauri/target', github.workspace) }}
         with:
           tagName: ${{ github.ref_name }}
           releaseName: "Cliptzy ${{ github.ref_name }}"
