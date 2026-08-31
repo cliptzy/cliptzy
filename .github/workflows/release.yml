@@ -86,6 +86,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CARGO_TARGET_DIR: ${{ github.workspace }}/src-tauri/target
+          CMAKE_GENERATOR: "Ninja"
         with:
           tagName: ${{ github.ref_name }}
           releaseName: "Cliptzy ${{ github.ref_name }}"
