@@ -85,8 +85,8 @@ jobs:
         uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CARGO_TARGET_DIR: ${{ github.workspace }}/src-tauri/target
-          CMAKE_GENERATOR: "Ninja"
+          CARGO_TARGET_DIR: ${{ matrix.platform == 'windows-latest' && 'D:/t' || '' }}
+          CMAKE_GENERATOR: ${{ matrix.platform == 'windows-latest' && 'Ninja' || '' }}
         with:
           tagName: ${{ github.ref_name }}
           releaseName: "Cliptzy ${{ github.ref_name }}"
