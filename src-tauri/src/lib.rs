@@ -1,5 +1,6 @@
 pub mod ai;
 pub mod analysis;
+pub mod auth;
 pub mod channels;
 pub mod commands;
 pub mod config;
@@ -12,6 +13,7 @@ pub mod orchestrator;
 pub mod paths;
 pub mod processing;
 pub mod supabase;
+pub mod system;
 pub mod transcription;
 pub mod tts;
 pub mod uploaders;
@@ -54,7 +56,13 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .manage(Arc::new(
-            supabase::SupabaseClient::new().expect("Failed to initialize Supabase"),
+            supabase::SupabaseClient::new().unwrap_or_else(|e| {
+                log::warn!(
+                    "Supabase tidak tersedia, menjalankan mode offline: {}",
+                    e
+                );
+                supabase::SupabaseClient::offline()
+            }),
         ))
         .manage(AppState {
             cancel_token: Mutex::new(None),
@@ -92,6 +100,7 @@ pub fn run() {
             commands::auth::login_with_google,
             commands::auth::logout,
             commands::auth::get_user_id,
+            commands::auth::is_supabase_available,
             commands::sync::sync_config_up,
             commands::sync::sync_config_down,
             commands::sync::upload_file,

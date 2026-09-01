@@ -24,6 +24,9 @@ pub enum CliptzyError {
     #[error("Config error: {0}")]
     Config(String),
 
+    #[error("Supabase error: {0}")]
+    Supabase(String),
+
     #[error("Operasi dibatalkan oleh pengguna")]
     Cancelled,
 

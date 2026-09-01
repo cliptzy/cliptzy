@@ -55,7 +55,7 @@ const isReactionCompilationMode = computed(() =>
 const handleLoadVideo = async () => {
   if (!videoUrl.value) return;
   if (currentMode.value === 'compilation') {
-    const keywords = isReactionCompilationMode.value ? undefined : compilationKeyword.value;
+    const keywords = compilationKeyword.value.trim() || undefined;
     await videoStore.prepareCompilation(videoUrl.value, keywords);
   } else {
     await videoStore.previewVideo(videoUrl.value);

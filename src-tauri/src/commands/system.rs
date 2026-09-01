@@ -20,7 +20,7 @@ pub async fn get_available_hwaccels() -> Result<Vec<String>, String> {
     #[cfg(target_os = "macos")]
     accels.push("mac".to_string());
 
-    let gpus = crate::utils::get_system_gpus();
+    let gpus = crate::system::get_system_gpus();
     let has_nvidia = gpus.iter().any(|g| g.contains("nvidia") || g.contains("geforce") || g.contains("quadro") || g.contains("rtx") || g.contains("gtx"));
     let has_amd = gpus.iter().any(|g| g.contains("amd") || g.contains("radeon") || g.contains("rx "));
     let has_intel = gpus.iter().any(|g| g.contains("intel") || g.contains("uhd") || g.contains("iris") || g.contains("arc"));
@@ -115,5 +115,5 @@ pub async fn cancel_processing(state: tauri::State<'_, crate::AppState>) -> Resu
 
 #[tauri::command]
 pub fn get_installed_browsers() -> Vec<String> {
-    crate::utils::get_installed_browsers_list()
+    crate::system::get_installed_browsers_list()
 }

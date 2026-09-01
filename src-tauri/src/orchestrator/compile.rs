@@ -17,7 +17,7 @@ pub struct CompileResult {
 pub struct CompileVideoUseCase {
     pub job_dir: PathBuf,
     pub hwaccel: crate::processing::ffmpeg::hwaccel::HwAccel,
-    pub deps: crate::utils::AppDependencies,
+    pub deps: crate::deps::AppDependencies,
 }
 
 /// Format a filesystem path for FFmpeg concat demuxer list files.
@@ -28,7 +28,7 @@ fn format_concat_entry(path: &Path) -> String {
 }
 
 impl CompileVideoUseCase {
-    pub fn new(job_dir: PathBuf, hwaccel: crate::processing::ffmpeg::hwaccel::HwAccel, deps: crate::utils::AppDependencies) -> Self {
+    pub fn new(job_dir: PathBuf, hwaccel: crate::processing::ffmpeg::hwaccel::HwAccel, deps: crate::deps::AppDependencies) -> Self {
         Self { job_dir, hwaccel, deps }
     }
 

@@ -109,6 +109,8 @@ impl Default for AppConfig {
             watermark_image: None,
             video_frame: None,
             watermark_position: "center".to_string(),
+            burn_watermark: true,
+            burn_subtitle: true,
 
             output_ratio: "9:16".to_string(),
             out_width: Some(720),

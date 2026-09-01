@@ -5,6 +5,9 @@ use crate::error::CliptzyError;
 use crate::orchestrator::pipeline::ProgressTx;
 use regex::Regex;
 use serde_json::{json, Value};
+use std::sync::OnceLock;
+
+static RE_META_OBJ: OnceLock<Regex> = OnceLock::new();
 
 pub struct MetadataGenerator;
 
@@ -85,7 +88,7 @@ impl MetadataGenerator {
 
             let raw_response = provider.generate(&prompt, progress).await?;
 
-            let re = Regex::new(r#"(?s)\{\s*".*"\s*:.*\s*\}"#).unwrap();
+            let re = RE_META_OBJ.get_or_init(|| Regex::new(r#"(?s)\{\s*".*"\s*:.*\s*\}"#).expect("Invalid regex pattern"));
             let json_str = if let Some(mat) = re.find(&raw_response) {
                 mat.as_str()
             } else {

@@ -1,7 +1,35 @@
 use crate::error::CliptzyError;
 use once_cell::sync::OnceCell;
 use ort::session::Session;
+use std::path::PathBuf;
 use std::sync::Mutex;
+
+pub async fn ensure_model_downloaded(file_name: &str, url: &str) -> Result<PathBuf, String> {
+    let model_dir = crate::paths::app_data_dir().join("models");
+    std::fs::create_dir_all(&model_dir)
+        .map_err(|e| format!("Failed to create models dir: {}", e))?;
+
+    let model_path = model_dir.join(file_name);
+
+    if !model_path.exists() {
+        log::info!("Model not found. Downloading {} to {:?}", file_name, model_path);
+        let response = reqwest::get(url)
+            .await
+            .map_err(|e| format!("Download failed for {}: {}", file_name, e))?;
+
+        let bytes = response
+            .bytes()
+            .await
+            .map_err(|e| format!("Failed to read bytes for {}: {}", file_name, e))?;
+
+        std::fs::write(&model_path, bytes)
+            .map_err(|e| format!("Write failed for {}: {}", file_name, e))?;
+
+        log::info!("Model {} downloaded successfully.", file_name);
+    }
+
+    Ok(model_path)
+}
 
 pub struct OnnxModelManager {
     pub model_name: String,
@@ -26,7 +54,7 @@ impl OnnxModelManager {
     }
 
     pub async fn ensure_loaded(&self) -> Result<(), CliptzyError> {
-        let _ = crate::utils::ensure_model_downloaded(&self.model_name, &self.model_url)
+        let _ = ensure_model_downloaded(&self.model_name, &self.model_url)
             .await
             .map_err(|e| CliptzyError::Internal(e))?;
 

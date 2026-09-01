@@ -86,6 +86,8 @@ export interface AppConfig {
   watermark_image: string | null;
   video_frame: string | null;
   watermark_position: string;
+  burn_watermark: boolean;
+  burn_subtitle: boolean;
 
   output_ratio: string;
   out_width: number | null;
@@ -129,6 +131,8 @@ const defaultSettings: AppConfig = {
   watermark_image: null,
   video_frame: null,
   watermark_position: "center",
+  burn_watermark: true,
+  burn_subtitle: true,
 
   output_ratio: "9:16",
   out_width: 720,

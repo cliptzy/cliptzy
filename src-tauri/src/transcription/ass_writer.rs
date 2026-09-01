@@ -1,7 +1,96 @@
 use crate::error::CliptzyError;
 use crate::transcription::models::{SubtitleConfig, TranscriptionSegment};
+use serde::Deserialize;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+
+/// Builds a render-ready subtitle config from app settings and video dimensions.
+pub fn build_render_config(
+    app: &crate::config::models::SubtitleConfig,
+    video_height: u32,
+) -> SubtitleConfig {
+    let mut sub_config = SubtitleConfig::default();
+    if !app.font.is_empty() {
+        sub_config.font = app.font.clone();
+    }
+    if app.font_size > 0 {
+        sub_config.font_size = app.font_size;
+    }
+    if !app.color.is_empty() {
+        sub_config.primary_color = app.color.clone();
+    }
+    if !app.bg_color.is_empty() {
+        sub_config.back_color = app.bg_color.clone();
+    }
+    if app.border_style > 0 {
+        sub_config.border_style = app.border_style;
+    }
+    if !app.animation.is_empty() {
+        sub_config.animation = app.animation.clone();
+    }
+    if app.max_words > 0 {
+        sub_config.max_words_per_line = app.max_words as usize;
+    }
+    sub_config.alignment = match app.location.as_str() {
+        "top" => 8,
+        "center" => 5,
+        "bottom" => 2,
+        _ => 2,
+    };
+    sub_config.margin_v = (video_height as f32 * 0.12) as u32;
+    apply_brutalist_box_style(&mut sub_config);
+    sub_config
+}
+
+/// Applies the "Brutalist Box" preset when border_style == 3.
+pub fn apply_brutalist_box_style(config: &mut SubtitleConfig) {
+    if config.border_style == 3 {
+        config.font = "Courier New".to_string();
+        config.primary_color = "&H00FFFFFF".to_string();
+        config.outline_color = "&H002626DC".to_string();
+        config.back_color = "&H00000000".to_string();
+        config.outline = 4;
+        config.shadow = 4;
+    }
+}
+
+#[derive(Deserialize)]
+struct EmotionDebugCache {
+    segments: Vec<crate::analysis::AnalysisSegment>,
+}
+
+/// Generates a debug ASS overlay from cached emotion analysis, if available.
+pub async fn try_generate_emotion_debug_ass(
+    source_video: &Path,
+    emotion_cache_path: &Path,
+    output_ass_path: &Path,
+) -> Option<PathBuf> {
+    let json_str = std::fs::read_to_string(emotion_cache_path).ok()?;
+    let cached: EmotionDebugCache = serde_json::from_str(&json_str).ok()?;
+
+    let probe = crate::video::local::probe_local_video(source_video).await.ok()?;
+    let mut v_w = 1920u32;
+    let mut v_h = 1080u32;
+    for stream in probe.streams {
+        if stream.codec_type == Some("video".to_string()) {
+            if let Some(w) = stream.width {
+                v_w = w as u32;
+            }
+            if let Some(h) = stream.height {
+                v_h = h as u32;
+            }
+            break;
+        }
+    }
+
+    generate_debug_ass(&cached.segments, output_ass_path, v_w, v_h)
+        .map_err(|e| log::warn!("Gagal generate debug ASS: {}", e))
+        .ok()?;
+
+    log::info!("Debug ASS generated at {:?}", output_ass_path);
+    Some(output_ass_path.to_path_buf())
+}
+
 
 pub fn generate_ass_file(
     segments: &[TranscriptionSegment],
@@ -52,8 +141,8 @@ pub fn generate_ass_file(
             words.chunks(max_words).collect();
 
         for chunk in word_chunks {
-            let chunk_start_time = chunk.first().unwrap().start;
-            let chunk_end_time = chunk.last().unwrap().end;
+            let chunk_start_time = chunk.first().map(|w| w.start).unwrap_or(0.0);
+            let chunk_end_time = chunk.last().map(|w| w.end).unwrap_or(0.0);
 
             if config.animation == "hormozi" || config.animation == "karaoke" {
                 // For Karaoke or Hormozi, we generate a dialogue line per word

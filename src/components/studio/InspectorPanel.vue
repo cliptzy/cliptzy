@@ -130,66 +130,27 @@
         <h3 class="text-lg font-black text-[var(--color-text-main)] tracking-wide mb-2 flex items-center gap-2">
           <IconType class="w-5 h-5" /> Kustomisasi Subtitle
         </h3>
-        
-        <!-- Presets -->
-        <div class="grid grid-cols-2 gap-2">
-          <button @click="settings.config.subtitle.animation = 'hormozi'; settings.config.subtitle.border_style = 1" class="p-3 rounded-2xl transition-all text-center flex flex-col items-center justify-center gap-1 bg-white/50 dark:bg-black/30 hover:bg-white dark:hover:bg-black/50" :class="settings.config.subtitle.animation === 'hormozi' ? 'ring-2 ring-gray-500 shadow-sm' : ''">
-            <span class="font-black text-xs uppercase text-[var(--color-text-muted)]">Hormozi</span>
-          </button>
-          <button @click="settings.config.subtitle.animation = 'karaoke'; settings.config.subtitle.border_style = 1" class="p-3 rounded-2xl transition-all text-center flex flex-col items-center justify-center gap-1 bg-white/50 dark:bg-black/30 hover:bg-white dark:hover:bg-black/50" :class="settings.config.subtitle.animation === 'karaoke' ? 'ring-2 ring-gray-500 shadow-sm' : ''">
-            <span class="font-black text-xs text-[var(--color-text-muted)]">Karaoke</span>
-          </button>
-          <button @click="settings.config.subtitle.border_style = 3; settings.config.subtitle.animation = 'none'" class="p-3 rounded-2xl transition-all text-center flex flex-col items-center justify-center gap-1 col-span-2 bg-white/50 dark:bg-black/30 hover:bg-white dark:hover:bg-black/50" :class="settings.config.subtitle.border_style === 3 ? 'ring-2 ring-gray-500 shadow-sm' : ''">
-            <span class="font-mono text-xs uppercase tracking-widest text-white bg-red-600 px-2 py-0.5 font-bold">BRUTALIST BOX</span>
-          </button>
+
+        <div class="flex items-center justify-between">
+          <div class="flex flex-col">
+            <span class="text-sm font-bold text-[var(--color-text-main)]">Burn Subtitle</span>
+            <span class="text-[10px] text-[var(--color-text-muted)] font-medium">Tampilkan subtitle saat render</span>
+          </div>
+          <ToggleSwitch v-model="settings.config.burn_subtitle" />
+        </div>
+
+        <div :class="{ 'opacity-50 pointer-events-none': !settings.config.burn_subtitle }">
+          <SubtitleStyleControls variant="compact" />
         </div>
 
         <!-- Action Generate Subtitle -->
-        <div v-if="settings.config.subtitle.enabled" class="mt-2">
+        <div v-if="settings.config.subtitle.enabled" class="mt-1 border-t border-gray-300 dark:border-gray-800 pt-4">
           <button @click="handleGenerateSubtitle" :disabled="videoStore.isAnalyzing || !videoStore.metadata?.stream_url" class="w-full py-3 rounded-full text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm bg-indigo-600 text-white hover:bg-indigo-700">
             <span v-if="videoStore.isAnalyzing" class="flex items-center justify-center gap-2">
               <IconLoader class="w-4 h-4 animate-spin" /> Sedang Generate...
             </span>
             <span v-else>Generate Subtitle</span>
           </button>
-        </div>
-
-        <!-- Deep Subtitle Settings -->
-        <div class="flex flex-col gap-4 mt-2 border-t border-gray-300 dark:border-gray-800 pt-4">
-          <div class="grid grid-cols-2 gap-3">
-            <div class="flex flex-col gap-1">
-              <span class="text-[9px] text-[var(--color-text-muted)] uppercase font-bold">Font</span>
-              <select v-model="settings.config.subtitle.font" class="w-full bg-white/50 dark:bg-black/30 border-none rounded-xl p-2 text-[10px] font-bold text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-gray-500 cursor-pointer">
-                <option value="Arial">Arial</option>
-                <option value="Impact">Impact</option>
-                <option value="TheBoldFont">TheBoldFont</option>
-              </select>
-            </div>
-            <div class="flex flex-col gap-1">
-              <span class="text-[9px] text-[var(--color-text-muted)] uppercase font-bold">Warna</span>
-              <select v-model="settings.config.subtitle.color" class="w-full bg-white/50 dark:bg-black/30 border-none rounded-xl p-2 text-[10px] font-bold text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-gray-500 cursor-pointer">
-                <option value="&H0000FFFF">Kuning</option>
-                <option value="&H00FFFFFF">Putih</option>
-                <option value="&H0000FF00">Hijau</option>
-              </select>
-            </div>
-            <div class="flex flex-col gap-1">
-              <span class="text-[9px] text-[var(--color-text-muted)] uppercase font-bold">Posisi Y</span>
-              <select v-model="settings.config.subtitle.location" class="w-full bg-white/50 dark:bg-black/30 border-none rounded-xl p-2 text-[10px] font-bold text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-gray-500 cursor-pointer">
-                <option value="bottom">Bawah</option>
-                <option value="center">Tengah</option>
-                <option value="top">Atas</option>
-              </select>
-            </div>
-            <div class="flex flex-col gap-1">
-              <span class="text-[9px] text-[var(--color-text-muted)] uppercase font-bold">Maks Kata ({{ settings.config.subtitle.max_words }})</span>
-              <input type="range" min="1" max="10" v-model.number="settings.config.subtitle.max_words" class="w-full h-2 bg-gray-300 dark:bg-gray-800 rounded-lg appearance-none cursor-pointer mt-1.5 accent-[var(--color-accent)]" />
-            </div>
-          </div>
-          <div class="flex flex-col gap-1">
-            <span class="text-[9px] text-[var(--color-text-muted)] uppercase font-bold">Ukuran Font ({{ settings.config.subtitle.font_size }})</span>
-            <input type="range" min="20" max="150" v-model.number="settings.config.subtitle.font_size" class="w-full h-2 bg-gray-300 dark:bg-gray-800 rounded-lg appearance-none cursor-pointer mt-1 accent-[var(--color-accent)]" />
-          </div>
         </div>
       </BentoCard>
 
@@ -198,13 +159,22 @@
         <h3 class="text-lg font-black text-[var(--color-text-main)] tracking-wide mb-3 flex items-center gap-2">
           <IconImage class="w-5 h-5" /> Branding
         </h3>
-        <div class="flex flex-col gap-2">
-          <span class="text-[10px] text-[var(--color-text-muted)] uppercase font-bold">Posisi Watermark</span>
-          <select v-model="settings.config.watermark_position" class="w-full bg-white/50 dark:bg-black/30 border-none rounded-xl p-3 text-xs font-bold text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-gray-500 cursor-pointer">
-            <option value="top">Atas (Top)</option>
-            <option value="center">Tengah (Center)</option>
-            <option value="bottom">Bawah (Bottom)</option>
-          </select>
+        <div class="flex flex-col gap-4">
+          <div class="flex items-center justify-between">
+            <div class="flex flex-col">
+              <span class="text-sm font-bold text-[var(--color-text-main)]">Burn Watermark</span>
+              <span class="text-[10px] text-[var(--color-text-muted)] font-medium">Tampilkan watermark saat render</span>
+            </div>
+            <ToggleSwitch v-model="settings.config.burn_watermark" />
+          </div>
+          <div class="flex flex-col gap-2" :class="{ 'opacity-50 pointer-events-none': !settings.config.burn_watermark }">
+            <span class="text-[10px] text-[var(--color-text-muted)] uppercase font-bold">Posisi Watermark</span>
+            <select v-model="settings.config.watermark_position" class="w-full bg-white/50 dark:bg-black/30 border-none rounded-xl p-3 text-xs font-bold text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-gray-500 cursor-pointer">
+              <option value="top">Atas (Top)</option>
+              <option value="center">Tengah (Center)</option>
+              <option value="bottom">Bawah (Bottom)</option>
+            </select>
+          </div>
         </div>
       </BentoCard>
     </template>
@@ -360,6 +330,7 @@
 
 import BentoCard from '../BentoCard.vue';
 import ToggleSwitch from '../ToggleSwitch.vue';
+import SubtitleStyleControls from '../SubtitleStyleControls.vue';
 import { useSettingsStore } from '../../stores/settings';
 import { useVideoStore } from '../../stores/video';
 

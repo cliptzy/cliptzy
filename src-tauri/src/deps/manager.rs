@@ -1,8 +1,27 @@
 use crate::error::CliptzyError;
+use crate::utils::find_executable;
 use reqwest::Client;
 use serde::Serialize;
 use std::io::{Cursor, Write};
+use std::path::PathBuf;
 use tauri::{AppHandle, Emitter};
+
+#[derive(Clone, Debug)]
+pub struct AppDependencies {
+    pub ytdlp: PathBuf,
+    pub ffmpeg: PathBuf,
+}
+
+impl AppDependencies {
+    pub fn check() -> Result<Self, String> {
+        let ytdlp = find_executable("yt-dlp")
+            .ok_or_else(|| "Binary yt-dlp tidak ditemukan di PATH atau folder bin".to_string())?;
+        let ffmpeg = find_executable("ffmpeg")
+            .ok_or_else(|| "Binary ffmpeg tidak ditemukan di PATH atau folder bin".to_string())?;
+
+        Ok(Self { ytdlp, ffmpeg })
+    }
+}
 
 #[derive(Serialize, Clone)]
 pub struct DependencyProgress {
@@ -170,7 +189,13 @@ pub async fn install_dependencies(app: AppHandle) -> Result<(), CliptzyError> {
         ))
     })?;
     for i in 0..archive.len() {
-        let mut file = archive.by_index(i).unwrap();
+        let mut file = match archive.by_index(i) {
+            Ok(f) => f,
+            Err(e) => {
+                log::warn!("Gagal membaca entri arsip {}: {}", i, e);
+                continue;
+            }
+        };
         let outpath = match file.enclosed_name() {
             Some(path) => path.to_owned(),
             None => continue,
@@ -233,7 +258,13 @@ pub async fn install_dependencies(app: AppHandle) -> Result<(), CliptzyError> {
         })?;
 
         for i in 0..archive.len() {
-            let mut file = archive.by_index(i).unwrap();
+            let mut file = match archive.by_index(i) {
+                Ok(f) => f,
+                Err(e) => {
+                    log::warn!("Gagal membaca entri arsip {}: {}", i, e);
+                    continue;
+                }
+            };
             let outpath = match file.enclosed_name() {
                 Some(path) => path.to_owned(),
                 None => continue,

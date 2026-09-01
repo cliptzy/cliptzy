@@ -82,23 +82,26 @@
             </div>
 
             <!-- Watermark Overlay -->
-            <img
-                v-if="watermarkUrl"
-                :src="watermarkUrl"
-                class="absolute left-1/2 -translate-x-1/2 pointer-events-none opacity-50 object-contain w-24 h-24"
-                :class="{ 'top-8': settings.config.watermark_position === 'top', 'top-1/2 -translate-y-1/2': settings.config.watermark_position === 'center', 'bottom-32': settings.config.watermark_position === 'bottom' }"
-            />
-            <!-- Watermark Overlay Placeholder -->
-            <div
-                v-else
-                class="absolute left-1/2 -translate-x-1/2 pointer-events-none opacity-50 text-[var(--color-text-main)] font-bold text-sm bg-gray-50 dark:bg-black/30 px-2 py-1 rounded"
-                :class="{ 'top-8': settings.config.watermark_position === 'top', 'top-1/2 -translate-y-1/2': settings.config.watermark_position === 'center', 'bottom-32': settings.config.watermark_position === 'bottom' }"
-            >
-                @cliptzy
-            </div>
+            <template v-if="settings.config.burn_watermark">
+              <img
+                  v-if="watermarkUrl"
+                  :src="watermarkUrl"
+                  class="absolute left-1/2 -translate-x-1/2 pointer-events-none opacity-50 object-contain w-24 h-24"
+                  :class="{ 'top-8': settings.config.watermark_position === 'top', 'top-1/2 -translate-y-1/2': settings.config.watermark_position === 'center', 'bottom-32': settings.config.watermark_position === 'bottom' }"
+              />
+              <!-- Watermark Overlay Placeholder -->
+              <div
+                  v-else
+                  class="absolute left-1/2 -translate-x-1/2 pointer-events-none opacity-50 text-[var(--color-text-main)] font-bold text-sm bg-gray-50 dark:bg-black/30 px-2 py-1 rounded"
+                  :class="{ 'top-8': settings.config.watermark_position === 'top', 'top-1/2 -translate-y-1/2': settings.config.watermark_position === 'center', 'bottom-32': settings.config.watermark_position === 'bottom' }"
+              >
+                  @cliptzy
+              </div>
+            </template>
 
             <!-- Subtitle Overlay -->
             <div
+                v-if="settings.config.burn_subtitle"
                 class="absolute left-0 w-full text-center px-4 pointer-events-none flex flex-col items-center justify-center"
                 :class="{ 'top-24': settings.config.subtitle.location === 'top', 'top-1/2 -translate-y-1/2': settings.config.subtitle.location === 'center', 'bottom-24': settings.config.subtitle.location === 'bottom' }"
                 v-show="currentSubtitle || !videoStore.selectedSegment"
@@ -204,6 +207,7 @@ import { ref, watch, computed, onMounted, onUnmounted } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { useVideoStore } from "../../stores/video";
 import { useSettingsStore } from "../../stores/settings";
+import { assToHex, assToOpacity } from "../../constants/subtitle";
 import BentoCard from "../BentoCard.vue";
 
 const props = defineProps<{
@@ -253,17 +257,8 @@ const isYoutube = computed(() => {
 });
 
 const subtitleStyle = computed(() => {
-    let colorHex = '#FFFFFF';
-    const assColor = settings.config.subtitle.color;
-    if (assColor && assColor.length === 10 && assColor.startsWith('&H')) {
-        const b = assColor.substring(4, 6);
-        const g = assColor.substring(6, 8);
-        const r = assColor.substring(8, 10);
-        colorHex = `#${r}${g}${b}`;
-    }
-
-    let fontFamily = settings.config.subtitle.font || 'sans-serif';
-
+    const colorHex = assToHex(settings.config.subtitle.color);
+    const fontFamily = settings.config.subtitle.font || 'sans-serif';
     const scale = 568 / 1280;
     const fontSizePx = (settings.config.subtitle.font_size || 60) * scale;
 
@@ -276,16 +271,13 @@ const subtitleStyle = computed(() => {
 });
 
 const brutalistBgColor = computed(() => {
-    let colorHex = '#DC2626'; // bg-red-600 default
+    let colorHex = '#DC2626';
     const assColor = settings.config.subtitle.bg_color;
-    // &HAABBGGRR
     if (assColor && assColor.length === 10 && assColor.startsWith('&H')) {
-        const b = assColor.substring(4, 6);
-        const g = assColor.substring(6, 8);
-        const r = assColor.substring(8, 10);
-        // We ignore alpha for now or handle it if needed.
-        if (assColor !== '&H80000000') {
-            colorHex = `#${r}${g}${b}`;
+        colorHex = assToHex(assColor);
+        const opacity = assToOpacity(assColor);
+        if (opacity < 100) {
+            return `color-mix(in srgb, ${colorHex} ${opacity}%, transparent)`;
         }
     }
     return colorHex;

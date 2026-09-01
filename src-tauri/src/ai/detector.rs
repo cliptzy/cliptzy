@@ -6,6 +6,10 @@ use crate::orchestrator::pipeline::ProgressTx;
 use regex::Regex;
 use serde_json::{json, Value};
 use std::collections::HashMap;
+use std::sync::OnceLock;
+
+static RE_JSON_ARR: OnceLock<Regex> = OnceLock::new();
+static RE_JSON_OBJ: OnceLock<Regex> = OnceLock::new();
 
 pub struct AIHighlightDetector;
 
@@ -110,8 +114,8 @@ impl AIHighlightDetector {
     fn parse_json_highlights(&self, raw_text: &str) -> Vec<Value> {
         let mut json_str = raw_text.trim().to_string();
 
-        let re_arr = Regex::new(r"(?s)\[\s*\{.*\}\s*\]").unwrap();
-        let re_obj = Regex::new(r#"(?s)\{\s*".*"\s*:.*\s*\}"#).unwrap();
+        let re_arr = RE_JSON_ARR.get_or_init(|| Regex::new(r"(?s)\[\s*\{.*\}\s*\]").expect("Invalid regex pattern"));
+        let re_obj = RE_JSON_OBJ.get_or_init(|| Regex::new(r#"(?s)\{\s*".*"\s*:.*\s*\}"#).expect("Invalid regex pattern"));
 
         if let Some(mat) = re_arr.find(raw_text) {
             json_str = mat.as_str().to_string();
@@ -125,7 +129,7 @@ impl AIHighlightDetector {
                 val.get("segments")
                     .or(val.get("highlights"))
                     .or(val.get("clips"))
-                    .or(val.as_object().unwrap().values().next())
+                    .or_else(|| val.as_object().and_then(|obj| obj.values().next()))
                     .cloned()
             } else {
                 Some(val)

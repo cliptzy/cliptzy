@@ -100,6 +100,8 @@ pub struct AppConfig {
     pub watermark_image: Option<String>,
     pub video_frame: Option<String>,
     pub watermark_position: String,
+    pub burn_watermark: bool,
+    pub burn_subtitle: bool,
 
     pub output_ratio: String,
     pub out_width: Option<u32>,

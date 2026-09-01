@@ -6,5 +6,7 @@ pub mod compilation;
 pub mod job_cache;
 pub mod pipeline;
 pub mod render;
+pub mod restreamer_cache;
 pub mod scan;
+pub mod segment_audio;
 

@@ -20,7 +20,7 @@ pub async fn scan_video(
     cookies_path: Option<String>,
 ) -> Result<ScanResult, CliptzyError> {
     log::info!("Memulai scan video untuk URL: {}", url);
-    let deps = crate::utils::AppDependencies::check().map_err(|e| {
+    let deps = crate::deps::AppDependencies::check().map_err(|e| {
         log::error!("Dependency check gagal: {}", e);
         CliptzyError::Download(e)
     })?;

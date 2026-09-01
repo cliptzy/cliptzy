@@ -385,7 +385,7 @@ const handleRender = async () => {
                 start: seg.start,
                 end: seg.end,
                 crop_mode: settingsStore.config.crop_mode,
-                use_subtitle: true,
+                use_subtitle: settingsStore.config.burn_subtitle,
                 cookies_path: settingsStore.config.browser || null,
                 segment_index: originalIndex !== -1 ? originalIndex + 1 : 1,
             };

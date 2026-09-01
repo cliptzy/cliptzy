@@ -87,45 +87,6 @@ pub struct AudioMatchResult {
     pub method: String,
 }
 
-/// Decode mono f32 samples from a 16-bit PCM WAV file.
-pub fn decode_wav(path: &str) -> Result<(Vec<f32>, u32), String> {
-    let mut reader = hound::WavReader::open(path).map_err(|e| e.to_string())?;
-    let sample_rate = reader.spec().sample_rate;
-
-    let samples: Vec<f32> = reader
-        .samples::<i16>()
-        .map(|s| s.unwrap_or(0) as f32 / 32768.0)
-        .collect();
-
-    Ok((samples, sample_rate))
-}
-
-/// Write mono f32 samples to a 16-bit PCM WAV file.
-pub fn write_wav_segment(
-    path: &Path,
-    samples: &[f32],
-    sample_rate: u32,
-) -> Result<(), String> {
-    if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
-    }
-
-    let spec = hound::WavSpec {
-        channels: 1,
-        sample_rate,
-        bits_per_sample: 16,
-        sample_format: hound::SampleFormat::Int,
-    };
-
-    let mut writer = hound::WavWriter::create(path, spec).map_err(|e| e.to_string())?;
-    for &sample in samples {
-        let amplitude = (sample * 32767.0).clamp(-32768.0, 32767.0) as i16;
-        writer.write_sample(amplitude).map_err(|e| e.to_string())?;
-    }
-    writer.finalize().map_err(|e| e.to_string())?;
-    Ok(())
-}
-
 /// Build a reusable fingerprint database from long audio (call once per restreamer VOD).
 pub fn build_fingerprint_db(samples: &[f32]) -> AudioFingerprintDb {
     let preprocessed = preprocess_for_matching(samples);
@@ -158,7 +119,7 @@ pub fn build_or_load_fingerprint_db(
         "Cache fingerprint tidak tersedia, membangun database dari {:?}...",
         source_wav
     );
-    let (samples, _) = decode_wav(&source_wav.to_string_lossy())?;
+    let (samples, _) = crate::transcription::audio::decode_wav(&source_wav.to_string_lossy())?;
     let db = build_fingerprint_db(&samples);
     save_fingerprint_db(cache_path, &db, &source_fp)?;
     log::info!(

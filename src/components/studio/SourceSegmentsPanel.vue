@@ -22,10 +22,15 @@
                     />
                 </div>
                 <div
-                    v-if="mode === 'compilation' && !isReactionMode"
+                    v-if="mode === 'compilation'"
                     class="flex items-center bg-white/60 dark:bg-black/30 rounded-2xl focus-within:ring-2 focus-within:ring-gray-500 transition-all px-4 py-3"
                 >
-                    <input v-model="compilationKeyword" type="text" placeholder="Kata Kunci Pencarian Meme (opsional)"
+                    <input
+                        v-model="compilationKeyword"
+                        type="text"
+                        :placeholder="isReactionMode
+                            ? 'Kata kunci restreamer (misal: AE RRQ MPL S18)'
+                            : 'Kata Kunci Pencarian Meme (opsional)'"
                         class="w-full bg-transparent border-none text-[var(--color-text-main)] font-bold text-sm focus:ring-0 focus:outline-none placeholder-gray-700/60 dark:placeholder-emerald-400/50"
                     />
                 </div>

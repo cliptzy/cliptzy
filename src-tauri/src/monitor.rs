@@ -85,13 +85,15 @@ pub fn start_gpu_monitor() {
 }
 
 pub fn get_system_metrics() -> ProcessMetrics {
-    let mut sys = SYSTEM.lock().unwrap();
-    sys.refresh_all();
+    let mut sys = SYSTEM.lock().unwrap_or_else(|e| e.into_inner());
+    sys.refresh_cpu_all();
+    sys.refresh_memory();
+    sys.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
 
-    let mut net = NETWORKS.lock().unwrap();
+    let mut net = NETWORKS.lock().unwrap_or_else(|e| e.into_inner());
     net.refresh(true);
 
-    let mut last_refresh = LAST_REFRESH.lock().unwrap();
+    let mut last_refresh = LAST_REFRESH.lock().unwrap_or_else(|e| e.into_inner());
     let now = Instant::now();
     let elapsed = now.duration_since(*last_refresh).as_secs_f32();
     *last_refresh = now;
@@ -118,7 +120,7 @@ pub fn get_system_metrics() -> ProcessMetrics {
 
     start_gpu_monitor();
     let gpu_val = f32::from_bits(GPU_USAGE.load(std::sync::atomic::Ordering::Relaxed));
-    let has_gpu = gpu_val > 0.0 || !crate::utils::get_system_gpus().is_empty();
+    let has_gpu = gpu_val > 0.0 || !crate::system::get_system_gpus().is_empty();
 
     ProcessMetrics {
         cpu_usage: cpu,
@@ -143,8 +145,9 @@ pub struct SystemSpecsCheck {
 }
 
 pub fn check_system_specs() -> SystemSpecsCheck {
-    let mut sys = SYSTEM.lock().unwrap();
-    sys.refresh_all();
+    let mut sys = SYSTEM.lock().unwrap_or_else(|e| e.into_inner());
+    sys.refresh_cpu_all();
+    sys.refresh_memory();
 
     let total_memory_gb = sys.total_memory() as f64 / 1_073_741_824.0;
     let required_memory_gb = 7.0;

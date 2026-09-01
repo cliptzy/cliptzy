@@ -1,6 +1,6 @@
 use crate::error::CliptzyError;
-use std::fs;
 use std::path::{Path, PathBuf};
+use tempfile::Builder;
 
 pub struct StackerConfig {
     pub intro_path: Option<PathBuf>,
@@ -13,8 +13,12 @@ pub async fn stack_video(
     output_path: &Path,
     config: &StackerConfig,
 ) -> Result<(), CliptzyError> {
-    let temp_dir = std::env::temp_dir();
-    let concat_file_path = temp_dir.join(format!("cliptzy_concat_{}.txt", uuid::Uuid::new_v4()));
+    let concat_file = Builder::new()
+        .prefix("cliptzy_concat_")
+        .suffix(".txt")
+        .tempfile()
+        .map_err(CliptzyError::Io)?;
+    let concat_file_path = concat_file.path();
 
     let mut file_content = String::new();
 
@@ -37,7 +41,7 @@ pub async fn stack_video(
         ));
     }
 
-    fs::write(&concat_file_path, file_content).map_err(CliptzyError::Io)?;
+    std::fs::write(concat_file_path, file_content).map_err(CliptzyError::Io)?;
 
     let ffmpeg_bin = crate::utils::find_executable("ffmpeg").unwrap_or_else(|| std::path::PathBuf::from("ffmpeg"));
     let mut cmd = tokio::process::Command::new(&ffmpeg_bin);
@@ -47,7 +51,7 @@ pub async fn stack_video(
         .arg("-safe")
         .arg("0")
         .arg("-i")
-        .arg(&concat_file_path)
+        .arg(concat_file_path)
         .arg("-c")
         .arg("copy")
         .arg(output_path);
@@ -66,8 +70,6 @@ pub async fn stack_video(
             message: format!("Process failed: {}", err_msg),
         });
     }
-
-    let _ = fs::remove_file(concat_file_path);
 
     Ok(())
 }
