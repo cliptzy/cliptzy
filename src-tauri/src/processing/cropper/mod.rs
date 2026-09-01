@@ -3,6 +3,9 @@ mod default;
 mod full;
 mod full_face;
 mod passthrough;
+mod split_face;
+mod multi_face;
+mod split_broll;
 
 use crate::error::CliptzyError;
 use crate::face::models::FaceKeyframe;
@@ -16,12 +19,16 @@ pub use default::DefaultCrop;
 pub use full::FullCrop;
 pub use full_face::FullFaceCrop;
 pub use passthrough::PassthroughCrop;
+pub use split_face::SplitFaceCrop;
+pub use multi_face::MultiFaceCrop;
+pub use split_broll::SplitBrollCrop;
 
 pub struct OutputConfig {
     pub width: u32,
     pub height: u32,
     pub hw_accel: HwAccel,
     pub debug_ass_path: Option<String>,
+    pub broll_dir: String,
 }
 
 impl Default for OutputConfig {
@@ -31,6 +38,7 @@ impl Default for OutputConfig {
             height: 1920,
             hw_accel: HwAccel::Cpu,
             debug_ass_path: None,
+            broll_dir: "assets/broll".to_string(),
         }
     }
 }
@@ -54,6 +62,9 @@ pub fn create_crop_strategy(mode: &str) -> Box<dyn CropStrategy> {
         "full" => Box::new(FullCrop),
         "full_face" => Box::new(FullFaceCrop),
         "center_face" => Box::new(CenterFaceCrop),
+        "split_face" => Box::new(SplitFaceCrop),
+        "multi_face" => Box::new(MultiFaceCrop),
+        "split_broll" => Box::new(SplitBrollCrop),
         _ => Box::new(DefaultCrop),
     }
 }
@@ -93,12 +104,7 @@ pub(crate) fn finish_crop_builder(
     builder = builder
         .input_path(input.to_path_buf())
         .filter_complex(graph.to_string())
-        .raw_args(vec![
-            "-map".to_string(),
-            "[outv]".to_string(),
-            "-map".to_string(),
-            "0:a?".to_string(),
-        ])
+        .raw_args(vec!["-map".to_string(), "[outv]".to_string(), "-map".to_string(), "0:a?".to_string()])
         .raw_args(hw_accel.encode_args())
         .raw_args(vec!["-c:a".to_string(), "aac".to_string()])
         .output_path(output.to_path_buf());
@@ -123,14 +129,10 @@ pub(crate) fn generate_dynamic_crop_expr(
     if kfs.len() > 85 {
         for tol_idx in 1..100 {
             let tol = (tol_idx as f32) * 0.005;
-            let Some(first) = kfs.first() else {
-                break;
-            };
+            let Some(first) = kfs.first() else { break };
             let mut simplified = vec![first.clone()];
             for i in 1..kfs.len().saturating_sub(1) {
-                let Some(prev) = simplified.last() else {
-                    break;
-                };
+                let Some(prev) = simplified.last() else { break };
                 let curr = &kfs[i];
                 if (curr.cx - prev.cx).abs() < tol && (curr.cy - prev.cy).abs() < tol {
                     continue;
@@ -157,15 +159,9 @@ pub(crate) fn generate_dynamic_crop_expr(
 
     let offset_dynamic = |pos_expr: &str, is_x: bool| -> String {
         if is_x {
-            format!(
-                "max(0\\,min(iw*({})-({}/2)\\,iw-{}))",
-                pos_expr, crop_w, crop_w
-            )
+            format!("max(0\\,min(iw*({})-({}/2)\\,iw-{}))", pos_expr, crop_w, crop_w)
         } else {
-            format!(
-                "max(0\\,min(ih*({})-({}/2)\\,ih-{}))",
-                pos_expr, crop_h, crop_h
-            )
+            format!("max(0\\,min(ih*({})-({}/2)\\,ih-{}))", pos_expr, crop_h, crop_h)
         }
     };
 
@@ -179,35 +175,21 @@ pub(crate) fn generate_dynamic_crop_expr(
         let curr_pos = if is_x { curr.cx } else { curr.cy };
         let next_pos = if is_x { next.cx } else { next.cy };
 
-        let time_cond = format!(
-            "(gte(t\\,{:.3})*lt(t\\,{:.3}))",
-            curr.timestamp, next.timestamp
-        );
+        let time_cond = format!("(gte(t\\,{:.3})*lt(t\\,{:.3}))", curr.timestamp, next.timestamp);
 
         if next.mode == "cut" || (next_pos - curr_pos).abs() < 0.01 {
             terms.push(format!("({})*{}", offset(curr_pos, is_x), time_cond));
         } else {
             let dur = next.timestamp - curr.timestamp;
             let progress = format!("((t-{:.3})/{:.3})", curr.timestamp, dur);
-            let pos_expr = format!(
-                "({:.3}+({:.3}-{:.3})*{})",
-                curr_pos, next_pos, curr_pos, progress
-            );
-            terms.push(format!(
-                "({})*{}",
-                offset_dynamic(&pos_expr, is_x),
-                time_cond
-            ));
+            let pos_expr = format!("({:.3}+({:.3}-{:.3})*{})", curr_pos, next_pos, curr_pos, progress);
+            terms.push(format!("({})*{}", offset_dynamic(&pos_expr, is_x), time_cond));
         }
     }
 
     if let Some(last) = kfs.last() {
         let last_pos = if is_x { last.cx } else { last.cy };
-        terms.push(format!(
-            "({})*gte(t\\,{:.3})",
-            offset(last_pos, is_x),
-            last.timestamp
-        ));
+        terms.push(format!("({})*gte(t\\,{:.3})", offset(last_pos, is_x), last.timestamp));
     }
 
     terms.join("+")

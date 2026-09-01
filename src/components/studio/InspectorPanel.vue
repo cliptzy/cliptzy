@@ -22,34 +22,37 @@
           <!-- Crop Mode -->
           <div class="flex flex-col gap-3">
             <span class="text-[10px] text-[var(--color-text-muted)] uppercase font-bold">Tipe Tampilan (Layout)</span>
-            <label class="flex items-center gap-3 cursor-pointer group">
-              <input type="radio" name="cropMode" value="default" v-model="settings.config.crop_mode" class="hidden" />
-              <div class="w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors" :class="settings.config.crop_mode === 'default' ? 'border-gray-700 dark:border-gray-400' : 'border-gray-400 dark:border-gray-700'">
-                <div v-show="settings.config.crop_mode === 'default'" class="w-2 h-2 rounded-full bg-gray-700 dark:bg-gray-400"></div>
+            <label v-for="mode in CROP_MODES" :key="mode.value" class="flex items-center gap-3 cursor-pointer group" :title="mode.description">
+              <input type="radio" name="cropMode" :value="mode.value" v-model="settings.config.crop_mode" class="hidden" />
+              <div class="w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors" :class="settings.config.crop_mode === mode.value ? 'border-gray-700 dark:border-gray-400' : 'border-gray-400 dark:border-gray-700'">
+                <div v-show="settings.config.crop_mode === mode.value" class="w-2 h-2 rounded-full bg-gray-700 dark:bg-gray-400"></div>
               </div>
-              <span class="text-sm font-bold transition-colors" :class="settings.config.crop_mode === 'default' ? 'text-[var(--color-text-main)] ' : 'text-[var(--color-text-muted)] '">Center Crop (Default)</span>
+              <span class="text-sm font-bold transition-colors flex items-center gap-2" :class="settings.config.crop_mode === mode.value ? 'text-[var(--color-text-main)]' : 'text-[var(--color-text-muted)]'">
+                <span>{{ mode.icon }}</span>
+                <span>{{ mode.label }}</span>
+                <span v-if="mode.isBeta" class="text-[9px] px-1.5 py-0.5 rounded bg-orange-500 text-white font-black uppercase">Beta</span>
+              </span>
             </label>
-            <label class="flex items-center gap-3 cursor-pointer group">
-              <input type="radio" name="cropMode" value="center_face" v-model="settings.config.crop_mode" class="hidden" />
-              <div class="w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors" :class="settings.config.crop_mode === 'center_face' ? 'border-gray-700 dark:border-gray-400' : 'border-gray-400 dark:border-gray-700'">
-                <div v-show="settings.config.crop_mode === 'center_face'" class="w-2 h-2 rounded-full bg-gray-700 dark:bg-gray-400"></div>
-              </div>
-              <span class="text-sm font-bold transition-colors" :class="settings.config.crop_mode === 'center_face' ? 'text-[var(--color-text-main)] ' : 'text-[var(--color-text-muted)] '">Center Face (Track)</span>
-            </label>
-            <label class="flex items-center gap-3 cursor-pointer group">
-              <input type="radio" name="cropMode" value="full" v-model="settings.config.crop_mode" class="hidden" />
-              <div class="w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors" :class="settings.config.crop_mode === 'full' ? 'border-gray-700 dark:border-gray-400' : 'border-gray-400 dark:border-gray-700'">
-                <div v-show="settings.config.crop_mode === 'full'" class="w-2 h-2 rounded-full bg-gray-700 dark:bg-gray-400"></div>
-              </div>
-              <span class="text-sm font-bold transition-colors" :class="settings.config.crop_mode === 'full' ? 'text-[var(--color-text-main)] ' : 'text-[var(--color-text-muted)] '">Full + Blur Background</span>
-            </label>
-            <label class="flex items-center gap-3 cursor-pointer group">
-              <input type="radio" name="cropMode" value="full_face" v-model="settings.config.crop_mode" class="hidden" />
-              <div class="w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors" :class="settings.config.crop_mode === 'full_face' ? 'border-gray-700 dark:border-gray-400' : 'border-gray-400 dark:border-gray-700'">
-                <div v-show="settings.config.crop_mode === 'full_face'" class="w-2 h-2 rounded-full bg-gray-700 dark:bg-gray-400"></div>
-              </div>
-              <span class="text-sm font-bold transition-colors" :class="settings.config.crop_mode === 'full_face' ? 'text-[var(--color-text-main)] ' : 'text-[var(--color-text-muted)] '">Face Track + Full (Split)</span>
-            </label>
+          </div>
+
+          <!-- Conditional UI Hints -->
+          <div v-if="selectedCropModeInfo?.requiresFaces" class="flex items-start gap-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
+            <span class="text-blue-600 dark:text-blue-400 text-lg">ℹ️</span>
+            <span class="text-[10px] text-blue-700 dark:text-blue-300 font-medium leading-tight">
+              Mode ini membutuhkan face detection. Proses akan lebih lama karena AI tracking.
+            </span>
+          </div>
+
+          <div v-if="selectedCropModeInfo?.requiresBroll" class="flex items-start gap-2 bg-amber-50 dark:bg-amber-900/30 rounded-lg p-3 border border-amber-200 dark:border-amber-800">
+            <span class="text-amber-600 dark:text-amber-400 text-lg">ℹ️</span>
+            <div class="flex flex-col gap-1">
+              <span class="text-[10px] text-amber-700 dark:text-amber-300 font-medium leading-tight">
+                Pastikan folder B-roll memiliki minimal 1 video. Kelola di Settings > Assets.
+              </span>
+              <span class="text-[9px] text-amber-600 dark:text-amber-400 font-bold">
+                Path: {{ settings.config.broll_dir || 'assets/broll' }}
+              </span>
+            </div>
           </div>
 
           <!-- Face Tracking Mode -->
@@ -277,7 +280,7 @@
           <IconType class="w-5 h-5" /> Layout Kompilasi
         </h3>
         <div class="flex flex-col gap-4">
-          <div class="flex flex-col gap-1">
+                    <div class="flex flex-col gap-1">
             <span class="text-[10px] text-[var(--color-text-muted)] uppercase font-bold">Crop Mode</span>
             <select
               v-model="settings.config.compilation.crop_mode"
@@ -289,6 +292,12 @@
             </select>
             <span v-if="settings.config.compilation.crop_mode === 'none'" class="text-[9px] text-[var(--color-text-muted)] mt-0.5">
               Resolusi horizontal asli dipertahankan — hanya trim durasi.
+            </span>
+            <span v-else-if="settings.config.compilation.crop_mode === 'full_face' || settings.config.compilation.crop_mode === 'center_face' || settings.config.compilation.crop_mode === 'split_face' || settings.config.compilation.crop_mode === 'multi_face'" class="text-[9px] text-[var(--color-text-muted)] mt-0.5">
+              ℹ️ Membutuhkan face detection. Proses akan lebih lama.
+            </span>
+            <span v-else-if="settings.config.compilation.crop_mode === 'split_broll'" class="text-[9px] text-[var(--color-text-muted)] mt-0.5">
+              ℹ️ Pastikan folder B-roll memiliki minimal 1 video. Kelola di Settings > Assets.
             </span>
           </div>
           <div class="flex flex-col gap-1">
@@ -351,6 +360,7 @@ import {
   isReactionCompilation,
   type CompilationType,
 } from '../../constants/compilation';
+import { CROP_MODES, getCropModeInfo } from '../../constants/cropModes';
 
 const props = defineProps<{
   mode?: 'clipper' | 'compilation'
@@ -361,6 +371,10 @@ const videoStore = useVideoStore();
 
 const isReactionMode = computed(() =>
   isReactionCompilation(settings.config.compilation.compilation_type),
+);
+
+const selectedCropModeInfo = computed(() =>
+  getCropModeInfo(settings.config.crop_mode)
 );
 
 const onCompilationTypeChange = (type: CompilationType) => {

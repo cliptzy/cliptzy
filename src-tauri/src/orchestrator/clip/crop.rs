@@ -1,7 +1,7 @@
 use super::models::ClipPayload;
 use super::ClipVideoUseCase;
 use crate::error::CliptzyError;
-use crate::orchestrator::job_cache::cache_file;
+use crate::orchestrator::job_cache::{cache_file, write_json_cache};
 use crate::orchestrator::pipeline::{emit_progress, ProgressEvent};
 use crate::processing::cropper::{create_crop_strategy, OutputConfig};
 use std::path::{Path, PathBuf};
@@ -116,7 +116,9 @@ impl ClipVideoUseCase {
         payload: &ClipPayload,
         source_video: &Path,
     ) -> Option<Vec<crate::face::models::FaceKeyframe>> {
-        if payload.crop_mode != "full_face" && payload.crop_mode != "center_face" {
+        // Determine which crop modes need face tracking.
+        let needs_tracking = matches!(payload.crop_mode.as_str(), "full_face" | "center_face" | "multi_face");
+        if !needs_tracking {
             return None;
         }
 
@@ -132,20 +134,71 @@ impl ClipVideoUseCase {
         );
 
         let tracking_mode = self.ctx.config.face_tracking_mode.clone();
-        match crate::face::tracker::get_face_keyframes(
-            source_video,
-            1.0,
-            tracking_mode,
-            Some(self.ctx.app_handle.clone()),
-            self.ctx.cancel_token.clone(),
-            None,
-        )
-        .await
-        {
-            Ok((kfs, _)) => Some(kfs),
-            Err(e) => {
-                log::warn!("Face tracking failed: {}. Fallback to center.", e);
-                None
+
+        // Multi‑face mode uses the dedicated detector returning two sets of keyframes.
+            if payload.crop_mode == "multi_face" {
+                // Attempt to load cached multi‑face data first.
+                let cache_path = cache_file(
+                    &self.ctx.job_dir,
+                    &format!("multi_face_{}.json", payload.segment_index),
+                );
+
+                // If a cached file exists we will use it; otherwise we compute and cache.
+                if cache_path.exists() {
+                        match crate::orchestrator::job_cache::read_json_cache::<
+                            crate::face::models::MultiFaceData,
+                        >(&cache_path)
+                        {
+                            Some(cached) => {
+                                let mut combined = cached.face_1_keyframes;
+                                combined.extend(cached.face_2_keyframes);
+                                return Some(combined);
+                            }
+                            None => {
+                                // Cache miss – will compute below.
+                            }
+                        }
+                }
+
+                match crate::face::tracker::get_two_faces_normalized_centers(
+                    source_video,
+                    1.0,
+                    tracking_mode,
+                    Some(self.ctx.app_handle.clone()),
+                    self.ctx.cancel_token.clone(),
+                    None,
+                )
+                .await
+                {
+                    Ok((multi_data, _)) => {
+                        // Cache the multi‑face result for future runs.
+                        let _ = write_json_cache(&cache_path, &multi_data);
+                        let mut combined = multi_data.face_1_keyframes;
+                        combined.extend(multi_data.face_2_keyframes);
+                        Some(combined)
+                    }
+                    Err(e) => {
+                        log::warn!("Multi‑face tracking failed: {}. Fallback to center.", e);
+                        None
+                    }
+                }
+            } else {
+            // Existing single‑face path.
+            match crate::face::tracker::get_face_keyframes(
+                source_video,
+                1.0,
+                tracking_mode,
+                Some(self.ctx.app_handle.clone()),
+                self.ctx.cancel_token.clone(),
+                None,
+            )
+            .await
+            {
+                Ok((kfs, _)) => Some(kfs),
+                Err(e) => {
+                    log::warn!("Face tracking failed: {}. Fallback to center.", e);
+                    None
+                }
             }
         }
     }

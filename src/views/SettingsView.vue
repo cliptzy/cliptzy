@@ -8,6 +8,7 @@
       <MediaSection />
       <OutputSection />
       <CompilationSettingsSection />
+      <BrollAssetsSection />
       <UploadSection />
     </div>
   </div>
@@ -22,4 +23,5 @@ import MediaSection from '../components/settings/MediaSection.vue';
 import OutputSection from '../components/settings/OutputSection.vue';
 import CompilationSettingsSection from '../components/settings/CompilationSettingsSection.vue';
 import UploadSection from '../components/settings/UploadSection.vue';
+import BrollAssetsSection from '../components/settings/BrollAssetsSection.vue';
 </script>

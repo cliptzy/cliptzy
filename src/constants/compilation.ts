@@ -17,6 +17,9 @@ export const COMPILATION_CROP_MODES = [
   { value: "center_face", label: "Center Face" },
   { value: "full", label: "Full + Blur Background" },
   { value: "full_face", label: "Face Track + Full" },
+  { value: "split_face", label: "Split Face (Gameplay + Facecam)" },
+  { value: "multi_face", label: "Multi Face (Podcast 2 Orang)" },
+  { value: "split_broll", label: "Split B-roll (Main + B-roll)" },
 ] as const;
 
 export type CompilationType = (typeof COMPILATION_TYPES)[number]["value"];

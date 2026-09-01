@@ -112,6 +112,7 @@ pub struct AppConfig {
     pub face_tracking_mode: String,
     pub merge_clips: bool,
     pub ui_locked: bool,
+    pub broll_dir: String,
 
     pub upload_interval: f64,
     pub hw_accel: String,

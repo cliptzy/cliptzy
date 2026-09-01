@@ -9,7 +9,10 @@ use crate::orchestrator::pipeline::PipelineContext;
 use crate::orchestrator::segment_audio::{
     AnalyzeSegmentAudioUseCase, SegmentAudioAnalysisResult,
 };
+use crate::processing::broll_manager::BrollManager;
 use std::collections::HashMap;
+use std::fs;
+use std::path::Path;
 
 #[tauri::command]
 pub async fn analyze_video(
@@ -56,6 +59,73 @@ pub async fn analyze_segment_audio(
     _stream_url: Option<String>,
 ) -> Result<SegmentAudioAnalysisResult, CliptzyError> {
     AnalyzeSegmentAudioUseCase::execute(&url, start, end).await
+}
+
+#[tauri::command]
+pub async fn list_broll_assets() -> Result<Vec<String>, CliptzyError> {
+    let config = AppConfig::load()?;
+    let app_dir = crate::paths::app_data_dir();
+    let broll_dir = app_dir.join(&config.broll_dir);
+    
+    let manager = BrollManager::new(&broll_dir);
+    let files = manager.list_broll_files()?;
+    
+    // Return just the filenames for simplicity
+    let mut filenames = Vec::new();
+    for file in files {
+        if let Some(name) = file.file_name() {
+            filenames.push(name.to_string_lossy().to_string());
+        }
+    }
+    
+    Ok(filenames)
+}
+
+#[tauri::command]
+pub async fn import_broll_file(source_path: String) -> Result<String, CliptzyError> {
+    let config = AppConfig::load()?;
+    let app_dir = crate::paths::app_data_dir();
+    let broll_dir = app_dir.join(&config.broll_dir);
+    
+    // Ensure broll directory exists
+    fs::create_dir_all(&broll_dir)?;
+    
+    let source = Path::new(&source_path);
+    if !source.exists() {
+        return Err(CliptzyError::Config(format!(
+            "Source file does not exist: {}",
+            source_path
+        )));
+    }
+    
+    // Generate destination filename
+    let file_name = source.file_name()
+        .ok_or_else(|| CliptzyError::Config("Invalid source file path".to_string()))?;
+    let dest_path = broll_dir.join(file_name);
+    
+    // Copy the file
+    fs::copy(source, &dest_path)?;
+    
+    Ok(dest_path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+pub async fn delete_broll_file(filename: String) -> Result<(), CliptzyError> {
+    let config = AppConfig::load()?;
+    let app_dir = crate::paths::app_data_dir();
+    let broll_dir = app_dir.join(&config.broll_dir);
+    
+    let file_path = broll_dir.join(&filename);
+    if !file_path.exists() {
+        return Err(CliptzyError::Config(format!(
+            "B-roll file does not exist: {}",
+            filename
+        )));
+    }
+    
+    fs::remove_file(file_path)?;
+    
+    Ok(())
 }
 
 #[tauri::command]

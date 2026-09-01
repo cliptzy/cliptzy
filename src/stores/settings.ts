@@ -98,6 +98,7 @@ export interface AppConfig {
   face_tracking_mode: string;
   merge_clips: boolean;
   ui_locked: boolean;
+  broll_dir: string;
 
   upload_interval: number;
   hw_accel: string;
@@ -143,6 +144,7 @@ const defaultSettings: AppConfig = {
   face_tracking_mode: "cinematic",
   merge_clips: false,
   ui_locked: false,
+  broll_dir: "assets/broll",
 
   upload_interval: 0.0,
   hw_accel: "cpu",

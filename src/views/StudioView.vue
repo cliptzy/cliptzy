@@ -25,7 +25,6 @@ import { ref, computed } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
 import { useVideoStore } from '../stores/video';
 import { useSettingsStore } from '../stores/settings';
-import { isReactionCompilation } from '../constants/compilation';
 
 import InspectorPanel from '../components/studio/InspectorPanel.vue';
 import PreviewPanel from '../components/studio/PreviewPanel.vue';
@@ -47,10 +46,6 @@ const settingsStore = useSettingsStore();
 const videoUrl = ref('');
 const scanMode = ref('heatmap');
 const compilationKeyword = ref('');
-
-const isReactionCompilationMode = computed(() =>
-  isReactionCompilation(settingsStore.config.compilation.compilation_type),
-);
 
 const handleLoadVideo = async () => {
   if (!videoUrl.value) return;
@@ -75,7 +70,6 @@ const handleScanAI = async () => {
   videoStore.isScanningAI = true;
 
   try {
-    const settingsStore = (await import('../stores/settings')).useSettingsStore();
     const browserName = settingsStore.config?.browser || null;
 
     const result: any = await invoke('scan_video', {

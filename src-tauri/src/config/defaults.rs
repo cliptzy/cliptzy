@@ -121,6 +121,7 @@ impl Default for AppConfig {
             face_tracking_mode: "cinematic".to_string(),
             merge_clips: false,
             ui_locked: false,
+            broll_dir: "assets/broll".to_string(),
 
             upload_interval: 0.0,
             hw_accel: "cpu".to_string(),
