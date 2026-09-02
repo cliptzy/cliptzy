@@ -1,6 +1,6 @@
 <template>
   <div
-    class="bg-white dark:bg-[#18181b] rounded-[32px] transition-colors duration-300 ease-out overflow-hidden"
+    class="bg-base-200 rounded-[2rem] transition-colors duration-300 ease-out overflow-hidden"
   >
     <slot></slot>
   </div>

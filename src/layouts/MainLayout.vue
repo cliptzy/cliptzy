@@ -1,5 +1,5 @@
 <template>
-  <div class="h-screen w-full bg-[var(--color-base)] text-[var(--color-text-main)] flex flex-col font-sans overflow-hidden selection:bg-gray-200 dark:bg-gray-800 selection:text-black">
+  <div class="h-screen w-full bg-base-100 text-base-content flex flex-col font-sans overflow-hidden selection:bg-primary/20 selection:text-primary">
     <MacOsWindowsTitleBar />
     <TopNavbar />
     

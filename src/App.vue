@@ -41,13 +41,13 @@ const layout = computed(() => {
 <template>
     <div
         v-if="specs && !specs.meets_requirements"
-        class="fixed inset-0 z-[10000] bg-black/90 backdrop-blur-md flex items-center justify-center p-6"
+        class="fixed inset-0 z-[10000] bg-black/60 backdrop-blur-md flex items-center justify-center p-6"
     >
         <div
-            class="bg-[var(--color-surface)] border border-red-500/50 rounded-2xl p-8 max-w-md w-full shadow-[0_0_40px_rgba(239,68,68,0.2)]"
+            class="bg-base-200 rounded-[2rem] p-8 max-w-md w-full shadow-lg"
         >
             <div
-                class="flex items-center justify-center w-16 h-16 rounded-full bg-red-500/20 text-red-500 mb-6 mx-auto"
+                class="flex items-center justify-center w-16 h-16 rounded-[1.5rem] bg-error/10 text-error mb-6 mx-auto"
             >
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -68,25 +68,23 @@ const layout = computed(() => {
                 </svg>
             </div>
 
-            <h2 class="text-xl font-bold text-[var(--color-text-main)] text-center mb-2">
+            <h2 class="text-xl font-display font-bold text-base-content text-center mb-2">
                 Spesifikasi Minimal Tidak Terpenuhi
             </h2>
-            <p class="text-sm text-[var(--color-text-muted)] text-center mb-6">
-                Aplikasi tidak dapat dilanjutkan karena sistem Anda tidak
-                memenuhi spesifikasi minimal untuk menjalankan proses AI &
-                Rendering.
+            <p class="text-sm text-base-content/70 text-center mb-6">
+                Aplikasi ini membutuhkan spesifikasi tertentu untuk menjalankan proses AI secara optimal. Silakan periksa persyaratan sistem kami.
             </p>
 
             <div
-                class="bg-black/50 border border-[var(--color-subtle)] rounded-xl p-4 mb-6"
+                class="bg-base-100 rounded-2xl p-4 mb-6"
             >
                 <ul class="space-y-2">
                     <li
                         v-for="reason in specs.missing_reasons"
                         :key="reason"
-                        class="flex items-start gap-2 text-sm text-red-400"
+                        class="flex items-start gap-2 text-sm text-error"
                     >
-                        <span class="text-red-500 mt-0.5">•</span>
+                        <span class="text-error/80 mt-0.5">•</span>
                         <span>{{ reason }}</span>
                     </li>
                 </ul>
@@ -94,9 +92,9 @@ const layout = computed(() => {
 
             <button
                 @click="closeApp"
-                class="w-full py-3 bg-red-600 hover:bg-red-700 text-[var(--color-text-main)] font-medium rounded-xl transition-colors duration-200"
+                class="w-full py-3 bg-error hover:bg-error/80 text-error-content font-medium rounded-full transition-colors duration-300"
             >
-                Tutup Aplikasi
+                Keluar dari Aplikasi
             </button>
         </div>
     </div>

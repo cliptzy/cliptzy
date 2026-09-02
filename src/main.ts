@@ -2,7 +2,10 @@ import { createApp } from "vue";
 import { createPinia } from 'pinia';
 import App from "./App.vue";
 import router from './router';
-import '@fontsource/geist-sans';
+import '@fontsource/inter';
+import '@fontsource/plus-jakarta-sans/600.css';
+import '@fontsource/plus-jakarta-sans/700.css';
+import '@fontsource/plus-jakarta-sans/800.css';
 import './assets/styles/main.css';
 
 import BaseButton from './components/BaseButton.vue';

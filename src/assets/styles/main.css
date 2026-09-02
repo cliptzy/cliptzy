@@ -1,35 +1,83 @@
 @import "tailwindcss";
+@plugin "daisyui";
+
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  /* Default Light Theme (Pastel) */
-  --color-base: #FAF4F4; /* gray-100 to contrast with white bentos */
-  --color-surface: #FFFFFF;
-  --color-subtle: #F3F4F6;
-  --color-accent: #E87389;
-  --color-text-main: #1f2937;
-  --color-text-muted: #6b7280;
+  /* Dual Font System */
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
 
-  /* Additional Pastel Cards */
+  /* Additional Pastel Colors */
   --color-pastel-blue: #dbeafe;
   --color-pastel-green: #6ee7b7;
   --color-pastel-twitter: #93c5fd;
   --color-pastel-yellow: #fde68a;
 
-  --font-sans: "Inter", "Geist Sans", ui-sans-serif, system-ui, sans-serif;
+  /* Legacy Custom Variables Mapped to DaisyUI v5 */
+  --color-base: var(--color-base-100);
+  --color-surface: var(--color-base-200);
+  --color-subtle: var(--color-base-300);
+  --color-accent: var(--color-primary);
+  --color-text-main: var(--color-base-content);
+  --color-text-muted: color-mix(in srgb, var(--color-base-content) 60%, transparent);
+}
+
+/* DaisyUI v5 Custom Themes (Hybrid Approach) */
+@plugin "daisyui/theme" {
+  name: "light";
+  default: true;
+  color-scheme: light;
+  
+  /* Pastel Cream Background */
+  --color-base-100: #FAF4F4;
+  /* Surface White */
+  --color-base-200: #FFFFFF;
+  /* Subtle */
+  --color-base-300: #F3F4F6;
+  
+  /* Text */
+  --color-base-content: #1a1a1a;
+  
+  /* Accents */
+  --color-primary: #E87389;
+  
+  /* Geometry */
+  --radius-box: 2rem;
+  --radius-btn: 9999px;
+  
+  /* Borders */
+  --border: 0px;
+}
+
+@plugin "daisyui/theme" {
+  name: "dark";
+  color-scheme: dark;
+  
+  /* Slate 900 Background */
+  --color-base-100: #0F172A;
+  /* Slate 800 Surface */
+  --color-base-200: #1E293B;
+  /* Subtle */
+  --color-base-300: #334155;
+  
+  /* Text */
+  --color-base-content: #F8FAFC;
+  
+  /* Accents */
+  --color-primary: #f472b6;
+  
+  /* Geometry */
+  --radius-box: 2rem;
+  --radius-btn: 9999px;
+  
+  /* Borders */
+  --border: 0px;
 }
 
 @layer base {
   body {
-    @apply bg-[var(--color-base)] text-[var(--color-text-main)] transition-colors duration-300 antialiased;
-  }
-
-  .dark body {
-    --color-base: #0F172A;
-    --color-surface: #1E293B;
-    --color-subtle: #334155;
-    --color-text-main: #F8FAFC;
-    --color-text-muted: #94A3B8;
+    @apply bg-base-100 text-base-content transition-colors duration-300 antialiased;
   }
 }
 
@@ -45,21 +93,21 @@
     }
 
     ::-webkit-scrollbar-thumb {
-        background-color: var(--color-subtle);
+        background-color: var(--color-base-300);
         border-radius: 8px;
     }
 
     *:hover::-webkit-scrollbar-thumb {
-        background-color: var(--color-subtle);
+        background-color: var(--color-base-300);
     }
 
     ::-webkit-scrollbar-thumb:hover {
-        background-color: var(--color-text-muted) !important;
+        background-color: var(--color-base-content) !important;
     }
 
     /* Firefox */
     * {
         scrollbar-width: thin;
-        scrollbar-color: var(--color-subtle) transparent;
+        scrollbar-color: var(--color-base-300) transparent;
     }
 }
