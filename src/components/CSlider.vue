@@ -7,8 +7,8 @@
       :step="step"
       :value="modelValue"
       @input="$emit('update:modelValue', Number(($event.target as HTMLInputElement).value))"
-      class="w-full h-2 bg-[var(--color-subtle)] rounded-lg appearance-none cursor-pointer outline-none focus:ring-1 focus:ring-[var(--color-accent)] shadow-[inset_0_1px_2px_rgba(0,0,0,0.2)] transition-all"
-      :style="`background: linear-gradient(to right, var(--color-accent) ${progress}%, var(--color-subtle) ${progress}%)`"
+      class="w-full h-2 bg-neutral rounded-none appearance-none cursor-pointer outline-none focus:ring-1 focus:ring-primary transition-all"
+      :style="`background: linear-gradient(to right, var(--color-primary) ${progress}%, var(--color-neutral) ${progress}%)`"
     />
   </div>
 </template>
@@ -47,15 +47,16 @@ input[type="range"]::-webkit-slider-thumb {
   appearance: none;
   width: 16px;
   height: 16px;
-  border-radius: 50%;
-  background: white;
-  cursor: pointer;
-  box-shadow: 0 0 5px rgba(0,0,0,0.5);
-  border: 3px solid var(--color-accent);
+  border-radius: 0px;
+    background: var(--color-primary);
+  border: 3px solid var(--color-primary);
+  box-shadow: none;
   transition: transform 0.1s;
 }
 
 input[type="range"]:active::-webkit-slider-thumb {
-  transform: scale(1.2);
+  transform: scale(0.97);
 }
 </style>
+
+

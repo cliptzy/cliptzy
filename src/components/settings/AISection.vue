@@ -1,192 +1,190 @@
 <template>
-  <BentoCard
-    class="col-span-1 md:col-span-2 xl:col-span-4 row-span-2 h-full overflow-y-auto custom-scrollbar p-6 flex flex-col gap-5 !bg-fuchsia-100 dark:!bg-fuchsia-900/40"
-  >
-    <h2
-      class="text-lg font-black text-[var(--color-text-main)] tracking-wide flex items-center gap-2 shrink-0"
-    >
-      <IconSparkles class="w-5 h-5" /> AI Provider & Model
-    </h2>
+ <div
+ class="bg-base-100 "
+ >
+ <h2
+ class="text-lg font-black text-base-content tracking-wide flex items-center gap-2 shrink-0"
+ >
+ <IconSparkles class="w-5 h-5" /> AI Provider & Model
+ </h2>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-      <!-- Provider -->
-      <div class="flex flex-col gap-1.5">
-        <span class="text-[10px] text-[var(--color-text-muted)] uppercase font-bold tracking-widest">Provider AI</span>
-        <select
-          v-model="settings.config.ai.provider"
-          class="w-full bg-white/60 dark:bg-black/30 border-none rounded-2xl p-3 text-sm font-bold text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] cursor-pointer shadow-sm"
-        >
-          <option v-for="p in AI_PROVIDERS" :key="p.value" :value="p.value">{{ p.label }}</option>
-        </select>
-      </div>
+ <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+ <!-- Provider -->
+ <div class="flex flex-col gap-1.5">
+ <span class="text-[10px] text-secondary uppercase font-bold tracking-widest">Provider AI</span>
+ <select
+ v-model="settings.config.ai.provider"
+ class="w-full bg-base-200 border border-neutral rounded-none p-3 text-sm font-bold text-base-content focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer "
+ >
+ <option v-for="p in AI_PROVIDERS" :key="p.value" :value="p.value">{{ p.label }}</option>
+ </select>
+ </div>
 
-      <!-- Ollama -->
-      <template v-if="settings.config.ai.provider === 'ollama'">
-        <div class="flex flex-col gap-1.5">
-          <span class="text-[10px] text-[var(--color-text-muted)] uppercase font-bold tracking-widest">Ollama Host</span>
-          <input
-            v-model="settings.config.ai.ollama_host"
-            type="text"
-            placeholder="http://localhost:11434"
-            class="w-full bg-white/60 dark:bg-black/30 border-none rounded-2xl p-3 text-sm font-bold text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] shadow-sm"
-          />
-        </div>
-        <div class="flex flex-col gap-1.5">
-          <span class="text-[10px] text-[var(--color-text-muted)] uppercase font-bold tracking-widest">Model Ollama</span>
-          <select
-            v-model="settings.config.ai.ollama_model"
-            class="w-full bg-white/60 dark:bg-black/30 border-none rounded-2xl p-3 text-sm font-bold text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] cursor-pointer shadow-sm"
-          >
-            <option v-for="m in OLLAMA_MODELS" :key="m" :value="m">{{ m }}</option>
-            <option v-if="!OLLAMA_MODELS.includes(settings.config.ai.ollama_model as any)" :value="settings.config.ai.ollama_model">
-              {{ settings.config.ai.ollama_model }} (kustom)
-            </option>
-          </select>
-          <input
-            v-model="settings.config.ai.ollama_model"
-            type="text"
-            placeholder="atau ketik model kustom..."
-            class="w-full bg-white/40 dark:bg-black/20 border-none rounded-xl p-2 text-xs font-bold text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
-          />
-        </div>
-      </template>
+ <!-- Ollama -->
+ <template v-if="settings.config.ai.provider === 'ollama'">
+ <div class="flex flex-col gap-1.5">
+ <span class="text-[10px] text-secondary uppercase font-bold tracking-widest">Ollama Host</span>
+ <input
+ v-model="settings.config.ai.ollama_host"
+ type="text"
+ placeholder="http://localhost:11434"
+ class="w-full bg-base-200 border border-neutral rounded-none p-3 text-sm font-bold text-base-content focus:outline-none focus:ring-2 focus:ring-primary "
+ />
+ </div>
+ <div class="flex flex-col gap-1.5">
+ <span class="text-[10px] text-secondary uppercase font-bold tracking-widest">Model Ollama</span>
+ <select
+ v-model="settings.config.ai.ollama_model"
+ class="w-full bg-base-200 border border-neutral rounded-none p-3 text-sm font-bold text-base-content focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer "
+ >
+ <option v-for="m in OLLAMA_MODELS" :key="m" :value="m">{{ m }}</option>
+ <option v-if="!OLLAMA_MODELS.includes(settings.config.ai.ollama_model as any)" :value="settings.config.ai.ollama_model">
+ {{ settings.config.ai.ollama_model }} (kustom)
+ </option>
+ </select>
+ <input
+ v-model="settings.config.ai.ollama_model"
+ type="text"
+ placeholder="atau ketik model kustom..."
+ class="w-full bg-base-200/50 border border-neutral rounded-none p-2 text-xs font-bold text-base-content focus:outline-none focus:ring-2 focus:ring-primary"
+ />
+ </div>
+ </template>
 
-      <!-- Gemini -->
-      <template v-if="settings.config.ai.provider === 'gemini'">
-        <div class="flex flex-col gap-1.5">
-          <span class="text-[10px] text-[var(--color-text-muted)] uppercase font-bold tracking-widest">Gemini API Key</span>
-          <input
-            v-model="settings.config.ai.gemini_key"
-            type="password"
-            placeholder="AIza..."
-            class="w-full bg-white/60 dark:bg-black/30 border-none rounded-2xl p-3 text-sm font-bold text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] shadow-sm"
-          />
-        </div>
-        <div class="flex flex-col gap-1.5">
-          <span class="text-[10px] text-[var(--color-text-muted)] uppercase font-bold tracking-widest">Model Gemini</span>
-          <select
-            v-model="settings.config.ai.gemini_model"
-            class="w-full bg-white/60 dark:bg-black/30 border-none rounded-2xl p-3 text-sm font-bold text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] cursor-pointer shadow-sm"
-          >
-            <option v-for="m in GEMINI_MODELS" :key="m" :value="m">{{ m }}</option>
-            <option v-if="!GEMINI_MODELS.includes(settings.config.ai.gemini_model as any)" :value="settings.config.ai.gemini_model">
-              {{ settings.config.ai.gemini_model }} (kustom)
-            </option>
-          </select>
-        </div>
-      </template>
+ <!-- Gemini -->
+ <template v-if="settings.config.ai.provider === 'gemini'">
+ <div class="flex flex-col gap-1.5">
+ <span class="text-[10px] text-secondary uppercase font-bold tracking-widest">Gemini API Key</span>
+ <input
+ v-model="settings.config.ai.gemini_key"
+ type="password"
+ placeholder="AIza..."
+ class="w-full bg-base-200 border border-neutral rounded-none p-3 text-sm font-bold text-base-content focus:outline-none focus:ring-2 focus:ring-primary "
+ />
+ </div>
+ <div class="flex flex-col gap-1.5">
+ <span class="text-[10px] text-secondary uppercase font-bold tracking-widest">Model Gemini</span>
+ <select
+ v-model="settings.config.ai.gemini_model"
+ class="w-full bg-base-200 border border-neutral rounded-none p-3 text-sm font-bold text-base-content focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer "
+ >
+ <option v-for="m in GEMINI_MODELS" :key="m" :value="m">{{ m }}</option>
+ <option v-if="!GEMINI_MODELS.includes(settings.config.ai.gemini_model as any)" :value="settings.config.ai.gemini_model">
+ {{ settings.config.ai.gemini_model }} (kustom)
+ </option>
+ </select>
+ </div>
+ </template>
 
-      <!-- OpenAI -->
-      <template v-if="settings.config.ai.provider === 'openai'">
-        <div class="flex flex-col gap-1.5">
-          <span class="text-[10px] text-[var(--color-text-muted)] uppercase font-bold tracking-widest">OpenAI API Key</span>
-          <input
-            v-model="settings.config.ai.openai_key"
-            type="password"
-            placeholder="sk-..."
-            class="w-full bg-white/60 dark:bg-black/30 border-none rounded-2xl p-3 text-sm font-bold text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] shadow-sm"
-          />
-        </div>
-        <div class="flex flex-col gap-1.5">
-          <span class="text-[10px] text-[var(--color-text-muted)] uppercase font-bold tracking-widest">Base URL</span>
-          <input
-            v-model="settings.config.ai.openai_base_url"
-            type="text"
-            placeholder="https://api.openai.com"
-            class="w-full bg-white/60 dark:bg-black/30 border-none rounded-2xl p-3 text-sm font-bold text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] shadow-sm"
-          />
-        </div>
-        <div class="flex flex-col gap-1.5">
-          <span class="text-[10px] text-[var(--color-text-muted)] uppercase font-bold tracking-widest">Model</span>
-          <div class="flex items-end gap-2">
-            <select
-              v-model="settings.config.ai.openai_model"
-              :disabled="!openaiModelsLoaded || isLoadingOpenaiModels"
-              class="flex-1 bg-white/60 dark:bg-black/30 border-none rounded-2xl p-3 text-sm font-bold text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] cursor-pointer shadow-sm disabled:opacity-50"
-            >
-              <option v-if="isLoadingOpenaiModels" value="" disabled>Loading models...</option>
-              <option v-else-if="!openaiModelsLoaded" value="" disabled>Enter key + refresh to load</option>
-              <option v-else-if="openaiModelsLoaded && openaiModels.length === 0" value="" disabled>No models found</option>
-              <option v-for="m in openaiModels" :key="m" :value="m">{{ m }}</option>
-              <option v-if="openaiModelsLoaded && !openaiModels.includes(settings.config.ai.openai_model)" :value="settings.config.ai.openai_model">{{ settings.config.ai.openai_model }} (kustom)</option>
-            </select>
-            <button
-              @click="loadOpenaiModels"
-              :disabled="isLoadingOpenaiModels || !settings.config.ai.openai_key || !settings.config.ai.openai_base_url"
-              class="shrink-0 px-3 py-2 bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/20 rounded-xl text-xs font-bold text-[var(--color-accent)] hover:bg-[var(--color-accent)]/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Refresh models from API"
-            >
-              <svg v-if="isLoadingOpenaiModels" class="animate-spin h-4 w-4 inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              <span v-else>Refresh</span>
-            </button>
-          </div>
-          <div v-if="openaiModelsError" class="mt-1 text-[10px] text-red-400">
-            {{ openaiModelsError }}
-          </div>
-        </div>
-      </template>
-    </div>
+ <!-- OpenAI -->
+ <template v-if="settings.config.ai.provider === 'openai'">
+ <div class="flex flex-col gap-1.5">
+ <span class="text-[10px] text-secondary uppercase font-bold tracking-widest">OpenAI API Key</span>
+ <input
+ v-model="settings.config.ai.openai_key"
+ type="password"
+ placeholder="sk-..."
+ class="w-full bg-base-200 border border-neutral rounded-none p-3 text-sm font-bold text-base-content focus:outline-none focus:ring-2 focus:ring-primary "
+ />
+ </div>
+ <div class="flex flex-col gap-1.5">
+ <span class="text-[10px] text-secondary uppercase font-bold tracking-widest">Base URL</span>
+ <input
+ v-model="settings.config.ai.openai_base_url"
+ type="text"
+ placeholder="https://api.openai.com"
+ class="w-full bg-base-200 border border-neutral rounded-none p-3 text-sm font-bold text-base-content focus:outline-none focus:ring-2 focus:ring-primary "
+ />
+ </div>
+ <div class="flex flex-col gap-1.5">
+ <span class="text-[10px] text-secondary uppercase font-bold tracking-widest">Model</span>
+ <div class="flex items-end gap-2">
+ <select
+ v-model="settings.config.ai.openai_model"
+ :disabled="!openaiModelsLoaded || isLoadingOpenaiModels"
+ class="flex-1 bg-base-200 border border-neutral rounded-none p-3 text-sm font-bold text-base-content focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer  disabled:opacity-50"
+ >
+ <option v-if="isLoadingOpenaiModels" value="" disabled>Loading models...</option>
+ <option v-else-if="!openaiModelsLoaded" value="" disabled>Enter key + refresh to load</option>
+ <option v-else-if="openaiModelsLoaded && openaiModels.length === 0" value="" disabled>No models found</option>
+ <option v-for="m in openaiModels" :key="m" :value="m">{{ m }}</option>
+ <option v-if="openaiModelsLoaded && !openaiModels.includes(settings.config.ai.openai_model)" :value="settings.config.ai.openai_model">{{ settings.config.ai.openai_model }} (kustom)</option>
+ </select>
+ <button
+ @click="loadOpenaiModels"
+ :disabled="isLoadingOpenaiModels || !settings.config.ai.openai_key || !settings.config.ai.openai_base_url"
+ class="shrink-0 px-3 py-2 bg-primary/10 border border-primary/20 rounded-none text-xs font-bold text-primary hover:bg-primary/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+ title="Refresh models from API"
+ >
+ <svg v-if="isLoadingOpenaiModels" class="animate-spin h-4 w-4 inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+ <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+ <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+ </svg>
+ <span v-else>Refresh</span>
+ </button>
+ </div>
+ <div v-if="openaiModelsError" class="mt-1 text-[10px] text-red-400">
+ {{ openaiModelsError }}
+ </div>
+ </div>
+ </template>
+ </div>
 
-    <!-- Fallback keys when not active provider -->
-    <div
-      v-if="settings.config.ai.provider !== 'openai' && settings.config.ai.provider !== 'gemini'"
-      class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-fuchsia-200 dark:border-fuchsia-800/50"
-    >
-      <div class="flex flex-col gap-1.5">
-        <span class="text-[10px] text-[var(--color-text-muted)] uppercase font-bold">Gemini Key (cadangan)</span>
-        <input v-model="settings.config.ai.gemini_key" type="password" placeholder="AIza..." class="w-full bg-white/60 dark:bg-black/30 border-none rounded-2xl p-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]" />
-      </div>
-      <div class="flex flex-col gap-1.5">
-        <span class="text-[10px] text-[var(--color-text-muted)] uppercase font-bold">OpenAI Key (cadangan)</span>
-        <input v-model="settings.config.ai.openai_key" type="password" placeholder="sk-..." class="w-full bg-white/60 dark:bg-black/30 border-none rounded-2xl p-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]" />
-      </div>
-    </div>
+ <!-- Fallback keys when not active provider -->
+ <div
+ v-if="settings.config.ai.provider !== 'openai' && settings.config.ai.provider !== 'gemini'"
+ class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-neutral dark:border-neutral"
+ >
+ <div class="flex flex-col gap-1.5">
+ <span class="text-[10px] text-secondary uppercase font-bold">Gemini Key (cadangan)</span>
+ <input v-model="settings.config.ai.gemini_key" type="password" placeholder="AIza..." class="w-full bg-base-200 border border-neutral rounded-none p-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-primary" />
+ </div>
+ <div class="flex flex-col gap-1.5">
+ <span class="text-[10px] text-secondary uppercase font-bold">OpenAI Key (cadangan)</span>
+ <input v-model="settings.config.ai.openai_key" type="password" placeholder="sk-..." class="w-full bg-base-200 border border-neutral rounded-none p-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-primary" />
+ </div>
+ </div>
 
-    <!-- AI Feature Toggles -->
-    <div class="pt-3 border-t border-fuchsia-200 dark:border-fuchsia-800/50">
-      <span class="text-[10px] text-[var(--color-text-muted)] uppercase font-bold tracking-widest">Fitur AI Analitik</span>
-      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 mt-3">
-        <label class="flex items-center justify-between bg-white/50 dark:bg-black/30 p-3 rounded-2xl cursor-pointer">
-          <div class="flex flex-col pr-2"><span class="text-sm font-bold">AI Highlight</span><span class="text-[10px] text-[var(--color-text-muted)]">Deteksi momen viral</span></div>
-          <ToggleSwitch v-model="settings.config.ai.use_highlight" />
-        </label>
-        <label class="flex items-center justify-between bg-white/50 dark:bg-black/30 p-3 rounded-2xl cursor-pointer">
-          <div class="flex flex-col pr-2"><span class="text-sm font-bold">Generate Intro</span><span class="text-[10px] text-[var(--color-text-muted)]">Intro teks via AI</span></div>
-          <ToggleSwitch v-model="settings.config.ai.use_generate_intro" />
-        </label>
-        <label class="flex items-center justify-between bg-white/50 dark:bg-black/30 p-3 rounded-2xl cursor-pointer">
-          <div class="flex flex-col pr-2"><span class="text-sm font-bold">Visual Emotion</span><span class="text-[10px] text-[var(--color-text-muted)]">Emosi wajah (ONNX)</span></div>
-          <ToggleSwitch v-model="settings.config.ai.use_emotion_detection" />
-        </label>
-        <label class="flex items-center justify-between bg-white/50 dark:bg-black/30 p-3 rounded-2xl cursor-pointer">
-          <div class="flex flex-col pr-2"><span class="text-sm font-bold">Voice Tone</span><span class="text-[10px] text-[var(--color-text-muted)]">Intonasi vokal</span></div>
-          <ToggleSwitch v-model="settings.config.ai.use_voice_analysis" />
-        </label>
-        <label class="flex items-center justify-between bg-white/50 dark:bg-black/30 p-3 rounded-2xl cursor-pointer">
-          <div class="flex flex-col pr-2"><span class="text-sm font-bold">Audio Event</span><span class="text-[10px] text-[var(--color-text-muted)]">Tawa, teriak, dll</span></div>
-          <ToggleSwitch v-model="settings.config.ai.use_audio_analysis" />
-        </label>
-        <label class="flex items-center justify-between bg-white/50 dark:bg-black/30 p-3 rounded-2xl cursor-pointer">
-          <div class="flex flex-col pr-2"><span class="text-sm font-bold">Text Sentiment</span><span class="text-[10px] text-[var(--color-text-muted)]">NLP transkrip</span></div>
-          <ToggleSwitch v-model="settings.config.ai.use_text_analysis" />
-        </label>
-        <label class="flex items-center justify-between bg-white/50 dark:bg-black/30 p-3 rounded-2xl cursor-pointer">
-          <div class="flex flex-col pr-2"><span class="text-sm font-bold">Auto B-Roll</span><span class="text-[10px] text-[var(--color-text-muted)]">Overlay meme/b-roll</span></div>
-          <ToggleSwitch v-model="settings.config.ai.use_add_meme" />
-        </label>
-      </div>
-    </div>
-  </BentoCard>
+ <!-- AI Feature Toggles -->
+ <div class="pt-3 border-t border-neutral dark:border-neutral">
+ <span class="text-[10px] text-secondary uppercase font-bold tracking-widest">Fitur AI Analitik</span>
+ <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 mt-3">
+ <label class="flex items-center justify-between bg-base-200/50 p-3 rounded-none cursor-pointer">
+ <div class="flex flex-col pr-2"><span class="text-sm font-bold">AI Highlight</span><span class="text-[10px] text-secondary">Deteksi momen viral</span></div>
+ <CToggle v-model="settings.config.ai.use_highlight" />
+ </label>
+ <label class="flex items-center justify-between bg-base-200/50 p-3 rounded-none cursor-pointer">
+ <div class="flex flex-col pr-2"><span class="text-sm font-bold">Generate Intro</span><span class="text-[10px] text-secondary">Intro teks via AI</span></div>
+ <CToggle v-model="settings.config.ai.use_generate_intro" />
+ </label>
+ <label class="flex items-center justify-between bg-base-200/50 p-3 rounded-none cursor-pointer">
+ <div class="flex flex-col pr-2"><span class="text-sm font-bold">Visual Emotion</span><span class="text-[10px] text-secondary">Emosi wajah (ONNX)</span></div>
+ <CToggle v-model="settings.config.ai.use_emotion_detection" />
+ </label>
+ <label class="flex items-center justify-between bg-base-200/50 p-3 rounded-none cursor-pointer">
+ <div class="flex flex-col pr-2"><span class="text-sm font-bold">Voice Tone</span><span class="text-[10px] text-secondary">Intonasi vokal</span></div>
+ <CToggle v-model="settings.config.ai.use_voice_analysis" />
+ </label>
+ <label class="flex items-center justify-between bg-base-200/50 p-3 rounded-none cursor-pointer">
+ <div class="flex flex-col pr-2"><span class="text-sm font-bold">Audio Event</span><span class="text-[10px] text-secondary">Tawa, teriak, dll</span></div>
+ <CToggle v-model="settings.config.ai.use_audio_analysis" />
+ </label>
+ <label class="flex items-center justify-between bg-base-200/50 p-3 rounded-none cursor-pointer">
+ <div class="flex flex-col pr-2"><span class="text-sm font-bold">Text Sentiment</span><span class="text-[10px] text-secondary">NLP transkrip</span></div>
+ <CToggle v-model="settings.config.ai.use_text_analysis" />
+ </label>
+ <label class="flex items-center justify-between bg-base-200/50 p-3 rounded-none cursor-pointer">
+ <div class="flex flex-col pr-2"><span class="text-sm font-bold">Auto B-Roll</span><span class="text-[10px] text-secondary">Overlay meme/b-roll</span></div>
+ <CToggle v-model="settings.config.ai.use_add_meme" />
+ </label>
+ </div>
+ </div>
+ </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
-import BentoCard from "../BentoCard.vue";
-import ToggleSwitch from "../ToggleSwitch.vue";
 import { useSettingsStore } from "../../stores/settings";
 import { AI_PROVIDERS, GEMINI_MODELS, OLLAMA_MODELS } from "../../constants/aiModels";
 import IconSparkles from "~icons/lucide/sparkles";
@@ -199,24 +197,26 @@ const openaiModelsLoaded = ref(false);
 const openaiModelsError = ref<string | null>(null);
 
 const loadOpenaiModels = async () => {
-  if (!settings.config.ai.openai_key || !settings.config.ai.openai_base_url) {
-    openaiModelsError.value = "Masukkan API key dan base URL terlebih dahulu.";
-    return;
-  }
-  isLoadingOpenaiModels.value = true;
-  openaiModelsError.value = null;
-  openaiModelsLoaded.value = false;
-  try {
-        const models: string[] = await invoke('fetch_openai_models', {
-      baseUrl: settings.config.ai.openai_base_url,
-      apiKey: settings.config.ai.openai_key,
-    });
-    openaiModels.value = models;
-    openaiModelsLoaded.value = true;
-  } catch (e: any) {
-    openaiModelsError.value = String(e) || "Gagal memuat model.";
-  } finally {
-    isLoadingOpenaiModels.value = false;
-  }
+ if (!settings.config.ai.openai_key || !settings.config.ai.openai_base_url) {
+ openaiModelsError.value = "Masukkan API key dan base URL terlebih dahulu.";
+ return;
+ }
+ isLoadingOpenaiModels.value = true;
+ openaiModelsError.value = null;
+ openaiModelsLoaded.value = false;
+ try {
+ const models: string[] = await invoke('fetch_openai_models', {
+ baseUrl: settings.config.ai.openai_base_url,
+ apiKey: settings.config.ai.openai_key,
+ });
+ openaiModels.value = models;
+ openaiModelsLoaded.value = true;
+ } catch (e: any) {
+ openaiModelsError.value = String(e) || "Gagal memuat model.";
+ } finally {
+ isLoadingOpenaiModels.value = false;
+ }
 };
 </script>
+
+

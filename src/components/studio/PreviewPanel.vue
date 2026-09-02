@@ -1,15 +1,15 @@
 <template>
-    <BentoCard
-        class="flex-1 flex flex-col items-center justify-center !bg-black relative overflow-hidden group p-4 h-full min-h-0 xl:min-h-[400px]"
+    <CCard
+        class="flex-1 flex flex-col items-center justify-center bg-base-100 relative border-r border-neutral overflow-hidden group p-4 h-full min-h-0 xl:min-h-[400px]"
     >
         <h3
-            class="absolute top-4 left-4 text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider z-10 flex items-center gap-2"
+            class="absolute top-4 left-4 text-xs font-bold text-secondary uppercase tracking-wider z-10 flex items-center gap-2"
         >
             <IconMonitorPlay class="w-4 h-4" /> Preview
         </h3>
 
         <div
-            class="relative w-full bg-gray-900 rounded-lg overflow-hidden border border-gray-800 shadow-2xl transition-all duration-300"
+            class="relative w-full bg-base-100 rounded-none overflow-hidden border border-neutral  transition-all duration-300"
             :class="props.mode === 'compilation' ? 'aspect-video max-w-[640px]' : { 'max-w-[320px]': true, 'aspect-[9/16]': settings.config.output_ratio === '9:16', 'aspect-square': settings.config.output_ratio === '1:1', 'aspect-video': settings.config.output_ratio === '16:9', 'aspect-auto': settings.config.output_ratio === 'original' }"
         >
             <!-- Iframe Container to crop YouTube to output ratio -->
@@ -64,18 +64,18 @@
                 <div
                     class="absolute right-2 bottom-32 flex flex-col gap-4 opacity-70"
                 >
-                    <div class="w-10 h-10 rounded-full bg-white/30 backdrop-blur-sm border border-white/20"></div>
-                    <div class="w-10 h-10 rounded-full bg-white/30 backdrop-blur-sm border border-white/20"></div>
-                    <div class="w-10 h-10 rounded-full bg-white/30 backdrop-blur-sm border border-white/20"></div>
-                    <div class="w-10 h-10 rounded-full bg-white/30 backdrop-blur-sm border border-white/20"></div>
+                    <div class="w-10 h-10 rounded-none bg-base-200/30 backdrop-blur-sm border border-white/20"></div>
+                    <div class="w-10 h-10 rounded-none bg-base-200/30 backdrop-blur-sm border border-white/20"></div>
+                    <div class="w-10 h-10 rounded-none bg-base-200/30 backdrop-blur-sm border border-white/20"></div>
+                    <div class="w-10 h-10 rounded-none bg-base-200/30 backdrop-blur-sm border border-white/20"></div>
                 </div>
 
-                <!-- Safe Zone Rectangle -->
+                                <!-- Safe Zone Rectangle -->
                 <div
-                    class="absolute left-2 right-14 top-16 bottom-32 border border-gray-400/40 rounded-lg shadow-[inset_0_0_20px_rgba(250,204,21,0.1)] transition-opacity duration-300 border-dashed"
+                    class="absolute left-2 right-14 top-16 bottom-32 border border-[var(--color-neutral)]/40 rounded-none shadow-[inset_0_0_20px_rgba(250,204,21,0.1)] transition-opacity duration-300 border-dashed"
                 >
                     <span
-                        class="absolute top-2 left-2 text-[8px] font-mono text-gray-400/90 font-bold"
+                        class="absolute top-2 left-2 text-[8px] font-mono text-[var(--color-neutral)]/90 font-bold"
                         >SAFE ZONE</span
                     >
                 </div>
@@ -92,7 +92,7 @@
               <!-- Watermark Overlay Placeholder -->
               <div
                   v-else
-                  class="absolute left-1/2 -translate-x-1/2 pointer-events-none opacity-50 text-[var(--color-text-main)] font-bold text-sm bg-gray-50 dark:bg-black/30 px-2 py-1 rounded"
+                  class="absolute left-1/2 -translate-x-1/2 pointer-events-none opacity-50 text-base-content font-bold text-sm bg-base-200 px-2 py-1 rounded"
                   :class="{ 'top-8': settings.config.watermark_position === 'top', 'top-1/2 -translate-y-1/2': settings.config.watermark_position === 'center', 'bottom-32': settings.config.watermark_position === 'bottom' }"
               >
                   @cliptzy
@@ -118,20 +118,20 @@
                 <span
                     v-else-if="settings.config.subtitle.animation === 'karaoke'"
                     key="karaoke"
-                    class="font-bold drop-shadow-md flex justify-center flex-wrap gap-x-1.5"
+                    class="font-bold drop- flex justify-center flex-wrap gap-x-1.5"
                     :style="{ fontFamily: subtitleStyle.fontFamily, fontSize: subtitleStyle.fontSize }"
                 >
-                    <span
+                                        <span
                         v-if="currentSubtitle"
                         v-for="(w, idx) in currentSubtitle.words"
                         :key="idx"
                         class="transition-transform"
                         :class="w.active ? 'scale-110' : ''"
-                        :style="w.active ? { color: subtitleStyle.color } : { color: '#D1D5DB' }"
+                        :style="w.active ? { color: subtitleStyle.color } : { color: 'var(--color-secondary)' }"
                     >
                         {{ w.text.trim() }}
                     </span>
-                    <span v-else class="text-gray-300">
+                    <span v-else class="text-[var(--color-secondary)]">
                         <span class="scale-110 inline-block transition-transform" :style="{ color: subtitleStyle.color }">Ini</span>
                         sangat penting!
                     </span>
@@ -152,7 +152,7 @@
                 <span
                     v-else
                     key="plain"
-                    class="font-bold drop-shadow-md"
+                    class="font-bold drop-"
                     :style="subtitleStyle"
                 >
                     {{ currentSubtitle?.text || 'Ini sangat penting!' }}
@@ -162,16 +162,16 @@
 
         <!-- Floating Play Controls -->
         <div
-            class="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-black/60 backdrop-blur-xl px-6 py-2 rounded-full border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10"
+            class="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-base-100/90 backdrop-blur-xl px-6 py-2 rounded-none border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10"
         >
-            <button class="text-[var(--color-text-main)] hover:text-[var(--color-text-main)] transition-colors" @click="seekRelative(-5)" >
+            <button class="text-base-content hover:text-base-content transition-colors" @click="seekRelative(-5)" >
                 <IconSkipBack class="w-5 h-5" />
             </button>
-            <button @click="togglePlay" class="w-10 h-10 bg-white text-[var(--color-text-main)] rounded-full flex items-center justify-center hover:scale-105 transition-transform shadow-[0_0_15px_rgba(255,255,255,0.3)]" >
+            <button @click="togglePlay" class="w-10 h-10 bg-base-200text-base-content rounded-none flex items-center justify-center  transition-transform shadow-[0_0_15px_rgba(255,255,255,0.3)]" >
                 <IconPause v-if="isPlaying" class="w-5 h-5" />
                 <IconPlay v-else class="w-5 h-5 ml-1" />
             </button>
-            <button class="text-[var(--color-text-main)] hover:text-[var(--color-text-main)] transition-colors" @click="seekRelative(5)" >
+            <button class="text-base-content hover:text-base-content transition-colors" @click="seekRelative(5)" >
                 <IconSkipForward class="w-5 h-5" />
             </button>
 
@@ -179,7 +179,7 @@
 
             <!-- Volume Control -->
             <div class="flex items-center gap-2 group/volume w-24">
-                <button @click="toggleMute" class="text-[var(--color-text-main)] hover:text-[var(--color-text-main)] transition-colors shrink-0">
+                <button @click="toggleMute" class="text-base-content hover:text-base-content transition-colors shrink-0">
                     <IconVolumeX v-if="isMuted || volume === 0" class="w-5 h-5" />
                     <IconVolume2 v-else class="w-5 h-5" />
                 </button>
@@ -188,18 +188,18 @@
                     v-model="volume"
                     min="0"
                     max="100"
-                    class="w-full h-1 bg-white/30 rounded-lg appearance-none cursor-pointer accent-[var(--color-accent)] outline-none"
+                    class="w-full h-1 bg-base-200/30 rounded-none appearance-none cursor-pointer accent-[var(--color-accent)] outline-none"
                     @input="handleVolumeChange"
                 />
             </div>
 
             <div class="w-px h-6 bg-white/20 mx-2"></div>
 
-            <button class="text-[var(--color-text-main)] hover:text-[var(--color-text-main)] transition-colors" @click="showSafeZone = !showSafeZone" :class="{ 'text-[var(--color-text-main)] ': showSafeZone }" title="Toggle UI Safe Zones" >
+            <button class="text-base-content hover:text-base-content transition-colors" @click="showSafeZone = !showSafeZone" :class="{ 'text-base-content ': showSafeZone }" title="Toggle UI Safe Zones" >
                 <IconLayoutTemplate class="w-5 h-5" />
             </button>
         </div>
-    </BentoCard>
+    </CCard>
 </template>
 
 <script setup lang="ts">
@@ -208,8 +208,6 @@ import { invoke } from "@tauri-apps/api/core";
 import { useVideoStore } from "../../stores/video";
 import { useSettingsStore } from "../../stores/settings";
 import { assToHex, assToOpacity } from "../../constants/subtitle";
-import BentoCard from "../BentoCard.vue";
-
 const props = defineProps<{
     mode?: 'clipper' | 'compilation'
 }>();
@@ -534,3 +532,5 @@ watch(() => videoStore.currentTime, (time) => {
     }
 });
 </script>
+
+

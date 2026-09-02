@@ -96,7 +96,13 @@ pub async fn burn_video_effects(
             format!("[{}]", final_a),
         ])
         .raw_args(hw_accel.encode_args())
-        .raw_args(vec!["-c:a".to_string(), "aac".to_string()])
+        .raw_args(vec![
+            "-pix_fmt".to_string(), "yuv420p".to_string(),
+            "-movflags".to_string(), "+faststart".to_string(),
+            "-c:a".to_string(), "aac".to_string(),
+            "-b:a".to_string(), "192k".to_string(),
+        ])
+        .overwrite()
         .output_path(output_path.to_path_buf());
 
     log::info!("FFmpeg Burn Command: {:?}", builder);

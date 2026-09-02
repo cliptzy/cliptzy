@@ -22,7 +22,6 @@ pub async fn clip_and_label_restreamers(
 
     let mut output_paths = Vec::new();
     let hwaccel = crate::processing::ffmpeg::hwaccel::HwAccel::detect(Some(&ctx.config.hw_accel));
-    let encoder = hwaccel.encoder();
     let encode_args = hwaccel.encode_args();
 
     for (i, clip) in clips.iter().enumerate() {
@@ -127,11 +126,14 @@ pub async fn clip_and_label_restreamers(
         ff_cmd.arg("-i").arg(raw_mp4.to_string_lossy().to_string());
 
         ff_cmd.arg("-vf").arg(&filter_str);
-        ff_cmd.arg("-c:v").arg(encoder);
         for arg in encode_args.iter() {
             ff_cmd.arg(arg);
         }
-        ff_cmd.arg("-c:a").arg("aac");
+        ff_cmd
+            .arg("-pix_fmt").arg("yuv420p")
+            .arg("-movflags").arg("+faststart")
+            .arg("-c:a").arg("aac")
+            .arg("-b:a").arg("192k");
         ff_cmd.arg("-y");
         ff_cmd.arg(output_mp4.to_string_lossy().to_string());
 

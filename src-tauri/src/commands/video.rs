@@ -16,12 +16,24 @@ use std::path::Path;
 
 #[tauri::command]
 pub async fn analyze_video(
+    app: tauri::AppHandle,
     url: String,
     cookies_path: Option<String>,
 ) -> Result<serde_json::Value, String> {
     let deps = AppDependencies::check()?;
     let result =
         crate::video::youtube::analyze_youtube_video(&url, cookies_path, &deps.ytdlp).await?;
+
+    let _ = upsert_job_history(
+        &app,
+        &result.video_id,
+        Some(&result.title),
+        Some(&result.video_url),
+        Some(&result.thumbnail),
+        Some("clipper"),
+        "Draft",
+    ).await;
+
     Ok(serde_json::to_value(result).unwrap_or(serde_json::json!({})))
 }
 
@@ -31,10 +43,22 @@ pub async fn clip_video(
     state: tauri::State<'_, crate::AppState>,
     payload: ClipPayload,
 ) -> Result<ClipResult, CliptzyError> {
+    let video_id = payload.video_id.clone();
     log::info!(
         "Menerima permintaan clip_video untuk Video ID: {}",
-        payload.video_id
+        video_id
     );
+
+    let _ = upsert_job_history(
+        &app,
+        &video_id,
+        None,
+        None,
+        None,
+        None,
+        "Processing",
+    ).await;
+
     let cancel_token = tokio_util::sync::CancellationToken::new();
     *state.cancel_token.lock().await = Some(cancel_token.clone());
     let (progress_tx, _) = tokio::sync::broadcast::channel(100);
@@ -43,12 +67,24 @@ pub async fn clip_video(
         app.clone(),
         cancel_token,
         progress_tx,
-        payload.video_id.clone(),
+        video_id.clone(),
     )
     .await?;
 
     let mut use_case = ClipVideoUseCase::new(ctx);
-    use_case.execute(payload).await
+    let result = use_case.execute(payload).await;
+
+    let _ = upsert_job_history(
+        &app,
+        &video_id,
+        None,
+        None,
+        None,
+        None,
+        if result.is_ok() { "Completed" } else { "Failed" },
+    ).await;
+
+    result
 }
 
 #[tauri::command]
@@ -149,7 +185,7 @@ pub async fn prepare_compilation(
         .await?;
 
     let mut use_case = PrepareCompilationUseCase::new(ctx);
-    use_case
+    let result = use_case
         .execute(video_url, search_keywords)
         .await
         .map_err(|e| {
@@ -159,7 +195,21 @@ pub async fn prepare_compilation(
                 e
             );
             e
-        })
+        });
+        
+    if let Ok(res) = &result {
+        let _ = upsert_job_history(
+            &app,
+            &video_id,
+            Some(&res.video_info.title),
+            Some(&res.video_info.video_url),
+            Some(&res.video_info.thumbnail),
+            Some("compilation"),
+            "Draft",
+        ).await;
+    }
+    
+    result
 }
 
 #[tauri::command]
@@ -177,6 +227,16 @@ pub async fn execute_compilation(
         video_id
     );
 
+    let _ = upsert_job_history(
+        &app,
+        &video_id,
+        None,
+        None,
+        None,
+        None,
+        "Processing",
+    ).await;
+
     let cancel_token = tokio_util::sync::CancellationToken::new();
     *state.cancel_token.lock().await = Some(cancel_token.clone());
     let (progress_tx, _) = tokio::sync::broadcast::channel(100);
@@ -185,7 +245,7 @@ pub async fn execute_compilation(
         .await?;
 
     let mut use_case = ExecuteCompilationUseCase::new(ctx);
-    use_case
+    let result = use_case
         .execute(
             main_audio_path,
             restreamer_urls,
@@ -200,7 +260,19 @@ pub async fn execute_compilation(
                 e
             );
             e
-        })
+        });
+
+    let _ = upsert_job_history(
+        &app,
+        &video_id,
+        None,
+        None,
+        None,
+        None,
+        if result.is_ok() { "Completed" } else { "Failed" },
+    ).await;
+
+    result
 }
 
 async fn build_pipeline_context(
@@ -224,3 +296,42 @@ async fn build_pipeline_context(
         deps,
     })
 }
+
+pub async fn upsert_job_history(
+    app: &tauri::AppHandle, 
+    video_id: &str, 
+    title: Option<&str>,
+    url: Option<&str>,
+    thumbnail: Option<&str>,
+    mode: Option<&str>, // "clipper" | "compilation"
+    status: &str // "Draft" | "Processing" | "Completed" | "Failed"
+) -> Result<(), crate::error::CliptzyError> {
+    use serde_json::json;
+    use tauri_plugin_store::StoreExt;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    let store = app.store("history.json")
+        .map_err(|e| crate::error::CliptzyError::Internal(e.to_string()))?;
+    
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+
+    let mut job_data = store.get(video_id).unwrap_or(json!({}));
+
+    if let Some(t) = title { job_data["title"] = json!(t); }
+    if let Some(u) = url { job_data["url"] = json!(u); }
+    if let Some(th) = thumbnail { job_data["thumbnail"] = json!(th); }
+    if let Some(m) = mode { job_data["mode"] = json!(m); }
+    
+    job_data["video_id"] = json!(video_id);
+    job_data["status"] = json!(status);
+    job_data["updated_at"] = json!(now);
+
+    store.set(video_id, job_data);
+    store.save().map_err(|e| crate::error::CliptzyError::Internal(e.to_string()))?;
+
+    Ok(())
+}
+

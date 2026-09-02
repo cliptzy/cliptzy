@@ -1,11 +1,11 @@
 <template>
     <div
         @click="$emit('select')"
-        class="flex items-start gap-3 p-3 rounded-lg border transition-colors cursor-pointer group"
+        class="flex items-start gap-3 p-3 rounded-none border transition-colors cursor-pointer group"
         :class="[
             active
-                ? 'border-[var(--color-accent)] bg-black/40 shadow-sm'
-                : 'border-[var(--color-subtle)] bg-black/20 hover:bg-black/40'
+                ? 'border-[var(--color-accent)] bg-base-100/40 '
+                : 'border-[var(--color-subtle)] bg-base-300/20 hover:bg-base-100/40'
         ]"
     >
         <div class="pt-0.5">
@@ -19,8 +19,8 @@
                     class="w-4 h-4 border-2 rounded transition-all flex items-center justify-center"
                     :class="[
                         segment.selectedForRender
-                            ? 'bg-gray-200 dark:bg-gray-800 border-[var(--color-accent)]'
-                            : 'border-gray-500'
+                            ? 'bg-base-300 border-[var(--color-accent)]'
+                            : 'border-neutral'
                     ]"
                 >
                     <IconCheck
@@ -38,7 +38,7 @@
                 >
                     {{ type === 'ai' ? 'AI Klip' : 'Klip' }} #{{ index + 1 }}
                 </span>
-                <span class="text-[10px] font-mono text-[var(--color-text-muted)] bg-white/5 px-1.5 rounded border border-white/10">
+                <span class="text-[10px] font-mono text-[var(--color-text-muted)] bg-base-200/5 px-1.5 rounded border border-white/10">
                     {{ formatDuration(segment.start) }} - {{ formatDuration(segment.end) }}
                 </span>
             </div>
@@ -51,7 +51,7 @@
                     Durasi: {{ Math.round(segment.end - segment.start) }}s
                 </span>
                 <div class="flex items-center gap-1">
-                    <ProgressBar
+                    <CProgress
                         class="w-16"
                         :progress="(segment.score || 0.5) * 100"
                     />
@@ -63,7 +63,7 @@
 
 <script setup lang="ts">
 import IconCheck from "~icons/lucide/check";
-import ProgressBar from "../ProgressBar.vue";
+import CProgress from "../CProgress.vue";
 
 const props = defineProps({
     segment: {
@@ -96,3 +96,5 @@ const formatDuration = (seconds: number) => {
     return `${m}:${s.toString().padStart(2, "0")}`;
 };
 </script>
+
+

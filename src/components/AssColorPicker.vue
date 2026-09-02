@@ -1,9 +1,10 @@
 <template>
   <div class="flex flex-col gap-1.5 min-w-0 w-full">
-    <span v-if="label" class="text-[10px] text-[var(--color-text-muted)] uppercase font-bold">{{ label }}</span>
+    <span v-if="label" class="text-[10px] text-secondary uppercase font-bold">{{ label }}</span>
     <div class="flex items-center gap-2 min-w-0">
       <label
-        class="relative shrink-0 w-10 h-10 rounded-xl overflow-hidden cursor-pointer ring-1 ring-black/10 dark:ring-white/10 shadow-sm"
+        class="relative shrink-0 w-10 h-10 rounded-none overflow-hidden cursor-pointer border transition-colors duration-150"
+        :class="['border-neutral', 'hover:border-primary']"
         :title="label || 'Pilih warna'"
       >
         <input
@@ -21,20 +22,20 @@
         type="text"
         :value="hexValue"
         readonly
-        class="flex-1 min-w-0 bg-white/60 dark:bg-black/30 border-none rounded-xl px-3 py-2 text-xs font-mono font-bold text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] shadow-sm uppercase"
+        class="flex-1 min-w-0 bg-base-200 border border-neutral rounded-none px-3 py-2 text-xs font-mono font-bold text-base-content focus:outline-none focus:ring-2 focus:ring-primary shadow-sm uppercase transition-shadow duration-150"
       />
     </div>
     <div v-if="showOpacity" class="flex flex-col gap-1 mt-0.5 min-w-0 w-full">
       <div class="flex items-center justify-between gap-2">
-        <span class="text-[9px] text-[var(--color-text-muted)] uppercase font-bold">Opasitas</span>
-        <span class="text-[9px] font-bold text-[var(--color-text-muted)]">{{ opacity }}%</span>
+        <span class="text-[9px] text-secondary uppercase font-bold">Opasitas</span>
+        <span class="text-[9px] font-bold text-secondary font-mono">{{ opacity }}%</span>
       </div>
       <input
         type="range"
         min="0"
         max="100"
         :value="opacity"
-        class="w-full min-w-0 h-1.5 bg-gray-300 dark:bg-gray-800 rounded-lg appearance-none cursor-pointer accent-[var(--color-accent)]"
+        class="w-full min-w-0 h-1.5 bg-neutral rounded-none appearance-none cursor-pointer accent-primary"
         @input="onOpacityInput"
       />
     </div>
@@ -84,3 +85,5 @@ const onOpacityInput = (e: Event) => {
   emitAss(hexValue.value, op);
 };
 </script>
+
+

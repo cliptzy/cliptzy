@@ -59,6 +59,7 @@ tauri-plugin-log = "2.9.0"
 log = "0.4.34"
 ndarray = "0.17.2"
 rayon = "1.11.0"
+tauri-plugin-store = "2.4.4"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 ort = { version = "2.0.0-rc.13", features = ["directml"] }

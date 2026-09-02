@@ -71,6 +71,7 @@ Seluruh sistem sekarang terdiri dari dua lapisan saja (Frontend dan Native Backe
 
 1. **DILARANG menggunakan fetch() ke localhost** — Semua komunikasi dengan logic AI/backend **HARUS** melalui `invoke()` dari `@tauri-apps/api/core`.
 2. **State Management** — Hanya gunakan Pinia.
+3. **Desain Sistem (STRICT)** — WAJIB mematuhi `UI_DESIGN.md`. **DILARANG** menggunakan radius melengkung (`rounded-md`, `rounded-lg`, `rounded-full`), semua komponen antarmuka harus tajam (`rounded-none`). **DILARANG** menggunakan palet warna sembarangan (seperti `bg-blue-500`, `text-red-400`); selalu gunakan semantic tokens dari daisyUI (`base-200`, `primary`, `secondary`, `accent`, `error`). **DILARANG** menggunakan animasi transisi ukuran berlebihan (`hover:scale-110`).
 
 ### 2.3 Larangan Rust (Tauri Backend)
 
@@ -159,18 +160,18 @@ Sebelum menulis kode, AI Model WAJIB menjawab pertanyaan berikut:
   - Untuk _CPU Encoder_ (`libx264`): Menggunakan `-crf 26` dipadukan dengan limitasi maksimum `-maxrate 4000k` dan `-bufsize 8000k`.
   - Untuk _Hardware Encoder_ (NVENC, QSV, AMF): Secara paksa menggunakan target `-b:v 3000k` dengan `-maxrate 4000k`. Ini akan menekan ukuran file tetap kecil (cocok untuk distribusi Shorts/Reels) tanpa kompromi kualitas yang tampak.
 
-### 4.12. Penyatuan Sistem Warna Teks (Dual Theme)
+### 4.12. Penyatuan Sistem Warna dan Estetika Terminal (Dark-First)
 
-- **Problem**: Warna teks sering menyatu dengan _background_ (tidak kontras) karena penggunaan kelas Tailwind yang di-_hardcode_ secara statis (seperti `text-gray-900` dan `dark:text-white`) di puluhan komponen Vue.
-- **Solusi**: Mengganti seluruh kelas _hardcoded_ dengan CSS variable semantik (`text-[var(--color-text-main)]` dan `text-[var(--color-text-muted)]`) menggunakan _script_ Node otomatis. Ini menjamin kontras warna yang nyaman untuk dilihat (_Spatial Bento Box_) baik di mode Light Pastel maupun Slate Dark secara dinamis.
+- **Problem**: Inkonsistensi warna dan gaya membulat (_rounded_ / _bento_) di banyak komponen sebelumnya menyulitkan perombakan desain secara merata, serta kurang mencerminkan nuansa aplikasi teknis profesional.
+- **Solusi**: Mengadopsi pedoman desain `UI_DESIGN.md` yang ketat (Terminal-tool aesthetic). Mengganti seluruh kelas _hardcoded_ dengan sistem token bawaan daisyUI (`base-100`, `base-content`, `accent`, dll). Seluruh _primitive components_ kini mengimplementasikan ujung tajam absolut (`rounded-none` / 0px radius) dan menghilangkan warna _vivid_ agar tidak mendistraksi mata (kecuali pada elemen kritis).
 
-### 4.13. Standarisasi Komponen Primitif UI (Menolak Nuxt UI)
+### 4.13. Standarisasi Komponen Primitif UI (Pure Vue + Tailwind)
 
-- **Problem**: Ketidakkonsistenan elemen antarmuka mentah (seperti _hover scale_ pada tombol yang berbeda-beda) memicu wacana untuk bermigrasi secara masif ke _framework_ eksternal seperti Nuxt UI yang akan mencederai _ground rules_ (tanpa _library_ tambahan).
+- **Problem**: Kebutuhan komponen yang solid sempat memicu wacana penggunaan _framework_ eksternal seperti Nuxt UI atau penggunaan variabel CSS manual yang berantakan.
 - **Solusi**:
-  1. Membuat komponen **`BaseButton.vue`** yang kokoh dengan dukungan _loading state_, _variants_ (primary, secondary, danger, ghost), dan transisi _scale hover_ yang seragam.
-  2. Mendaftarkan `BaseButton`, `SpatialInput`, dan `RangeSlider` secara global di `main.ts` agar bisa dipakai tanpa instruksi impor berulang.
-  3. Memperbaiki _hardcoded background_ pada `SpatialInput.vue` dan `RangeSlider.vue` agar mematuhi aturan _Dual Theme_.
+  1. Menolak penggunaan library komponen eksternal sepenuhnya.
+  2. Merancang primitif kustom (`CButton.vue`, `CInput.vue`, `CCard.vue`, `CSlider.vue`, dsb.) yang membungkus token daisyUI secara efisien.
+  3. Mendaftarkan komponen-komponen utama secara global di `main.ts` agar dapat diakses bersih tanpa impor berulang di seluruh _view_.
 
 ### 4.14. Ekstraksi Komponen ScanResultCard & Perbaikan peer-checked
 

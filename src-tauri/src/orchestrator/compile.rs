@@ -76,6 +76,7 @@ impl CompileVideoUseCase {
             .arg("-safe").arg("0")
             .arg("-i").arg(&concat_input)
             .arg("-c").arg("copy")
+            .arg("-movflags").arg("+faststart")
             .arg("-y")
             .arg(output_mp4.to_string_lossy().to_string());
 
@@ -84,20 +85,21 @@ impl CompileVideoUseCase {
         if stage.execute(cancel_token.clone()).await.is_err() {
             log::warn!("Stream copy gagal, mencoba fallback re-encode...");
             
-            let encoder = self.hwaccel.encoder();
             let encode_args = self.hwaccel.encode_args();
 
             let mut fallback_cmd = tokio::process::Command::new(&self.deps.ffmpeg);
             fallback_cmd
                 .arg("-f").arg("concat")
                 .arg("-safe").arg("0")
-                .arg("-i").arg(&concat_input)
-                .arg("-c:v").arg(encoder);
+                .arg("-i").arg(&concat_input);
             for arg in &encode_args {
                 fallback_cmd.arg(arg);
             }
             fallback_cmd
+                .arg("-pix_fmt").arg("yuv420p")
+                .arg("-movflags").arg("+faststart")
                 .arg("-c:a").arg("aac")
+                .arg("-b:a").arg("192k")
                 .arg("-y")
                 .arg(output_mp4.to_string_lossy().to_string());
             

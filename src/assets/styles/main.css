@@ -5,14 +5,9 @@
 
 @theme {
   /* Dual Font System */
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
-
-  /* Additional Pastel Colors */
-  --color-pastel-blue: #dbeafe;
-  --color-pastel-green: #6ee7b7;
-  --color-pastel-twitter: #93c5fd;
-  --color-pastel-yellow: #fde68a;
+  --font-sans: "Geist Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Geist Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, monospace;
 
   /* Legacy Custom Variables Mapped to DaisyUI v5 */
   --color-base: var(--color-base-100);
@@ -21,57 +16,88 @@
   --color-accent: var(--color-primary);
   --color-text-main: var(--color-base-content);
   --color-text-muted: color-mix(in srgb, var(--color-base-content) 60%, transparent);
+
+  /* Geometry Tokens from UI_DESIGN */
+  --radius-panel: 0px;
+  --radius-input: 0px;
+  --radius-btn: 0px;
+  --radius-badge: 0px;
+  
+  --border-subtle: 1px solid color-mix(in srgb, var(--color-base-content) 8%, transparent);
+  --border-active: 1px solid var(--color-primary);
+  
+  --shadow-panel: none;
+
+  /* Spacing Tokens from UI_DESIGN */
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-6: 24px;
+  --spacing-8: 32px;
+  --spacing-12: 48px;
 }
 
 /* DaisyUI v5 Custom Themes (Hybrid Approach) */
 @plugin "daisyui/theme" {
   name: "light";
-  default: true;
+  default: false;
   color-scheme: light;
   
-  /* Pastel Cream Background */
-  --color-base-100: #FAF4F4;
-  /* Surface White */
-  --color-base-200: #FFFFFF;
-  /* Subtle */
-  --color-base-300: #F3F4F6;
+  /* Background / Surfaces */
+  --color-base-100: #FAFAF8;
+  --color-base-200: #F2F1EE;
+  --color-base-300: #E8E6E2;
   
   /* Text */
-  --color-base-content: #1a1a1a;
+  --color-base-content: #1C1917;
   
-  /* Accents */
-  --color-primary: #E87389;
+  /* Accents & Status */
+  --color-primary: #C06830;
+  --color-primary-content: #FFFFFF;
+  --color-secondary: #78716C;
+  --color-accent: #4A909E;
+  --color-error: #DC2626;
+  --color-error-content: #FFFFFF;
+  --color-success: #16A34A;
+  --color-warning: #CA8A04;
+  --color-neutral: #D6D3CE;
   
-  /* Geometry */
-  --radius-box: 2rem;
-  --radius-btn: 9999px;
+  /* Geometry overrides for daisyUI */
+  --radius-box: 0px;
+  --radius-btn: 0px;
   
-  /* Borders */
   --border: 0px;
 }
 
 @plugin "daisyui/theme" {
   name: "dark";
+  default: true;
   color-scheme: dark;
   
-  /* Slate 900 Background */
-  --color-base-100: #0F172A;
-  /* Slate 800 Surface */
-  --color-base-200: #1E293B;
-  /* Subtle */
-  --color-base-300: #334155;
+  /* Background / Surfaces */
+  --color-base-100: #1A1816;
+  --color-base-200: #242220;
+  --color-base-300: #302D2A;
   
   /* Text */
-  --color-base-content: #F8FAFC;
+  --color-base-content: #E8E4DF;
   
-  /* Accents */
-  --color-primary: #f472b6;
+  /* Accents & Status */
+  --color-primary: #D4845A;
+  --color-primary-content: #1A1816;
+  --color-secondary: #8B8685;
+  --color-accent: #7AADBA;
+  --color-error: #E06C6C;
+  --color-error-content: #1A1816;
+  --color-success: #6BBF6B;
+  --color-warning: #E0B84A;
+  --color-neutral: #3A3734;
   
-  /* Geometry */
-  --radius-box: 2rem;
-  --radius-btn: 9999px;
+  /* Geometry overrides for daisyUI */
+  --radius-box: 0px;
+  --radius-btn: 0px;
   
-  /* Borders */
   --border: 0px;
 }
 
@@ -79,10 +105,38 @@
   body {
     @apply bg-base-100 text-base-content transition-colors duration-300 antialiased;
   }
+
+  /* Page transition animations - 150ms opacity + translateY(4px) fade-up */
+  .page-enter-active,
+  .page-leave-active {
+    transition: opacity 150ms ease, transform 150ms ease;
+  }
+
+  .page-enter-from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  .page-leave-to {
+    opacity: 0;
+  }
+
+  /* Respect reduced motion preference */
+  @media (prefers-reduced-motion: reduce) {
+    .page-enter-active,
+    .page-leave-active {
+      transition: opacity 100ms ease;
+    }
+
+    .page-enter-from,
+    .page-leave-to {
+      transform: none;
+    }
+  }
 }
 
 @layer utilities {
-    /* Custom Thin Scrollbar */
+    /* Custom Thin Scrollbar - Updated for new palette */
     ::-webkit-scrollbar {
         width: 6px;
         height: 6px;
@@ -93,21 +147,33 @@
     }
 
     ::-webkit-scrollbar-thumb {
-        background-color: var(--color-base-300);
-        border-radius: 8px;
+        background-color: var(--color-neutral);
+        border-radius: 0px;
+        transition: background-color 150ms ease;
     }
 
     *:hover::-webkit-scrollbar-thumb {
-        background-color: var(--color-base-300);
+        background-color: var(--color-secondary);
     }
 
     ::-webkit-scrollbar-thumb:hover {
-        background-color: var(--color-base-content) !important;
+        background-color: var(--color-primary) !important;
     }
 
     /* Firefox */
     * {
         scrollbar-width: thin;
-        scrollbar-color: var(--color-base-300) transparent;
+        scrollbar-color: var(--color-neutral) transparent;
+    }
+
+    /* Text Selection - warm accent */
+    ::selection {
+        background-color: color-mix(in srgb, var(--color-primary) 20%, transparent);
+        color: var(--color-primary);
+    }
+
+    ::-moz-selection {
+        background-color: color-mix(in srgb, var(--color-primary) 20%, transparent);
+        color: var(--color-primary);
     }
 }

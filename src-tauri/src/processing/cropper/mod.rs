@@ -106,7 +106,13 @@ pub(crate) fn finish_crop_builder(
         .filter_complex(graph.to_string())
         .raw_args(vec!["-map".to_string(), "[outv]".to_string(), "-map".to_string(), "0:a?".to_string()])
         .raw_args(hw_accel.encode_args())
-        .raw_args(vec!["-c:a".to_string(), "aac".to_string()])
+        .raw_args(vec![
+            "-pix_fmt".to_string(), "yuv420p".to_string(),
+            "-movflags".to_string(), "+faststart".to_string(),
+            "-c:a".to_string(), "aac".to_string(),
+            "-b:a".to_string(), "192k".to_string(),
+        ])
+        .overwrite()
         .output_path(output.to_path_buf());
 
     Ok(builder)

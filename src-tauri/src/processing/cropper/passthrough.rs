@@ -30,7 +30,10 @@ impl CropStrategy for PassthroughCrop {
                 "copy".to_string(),
                 "-c:a".to_string(),
                 "copy".to_string(),
+                "-movflags".to_string(),
+                "+faststart".to_string(),
             ])
+            .overwrite()
             .output_path(output.to_path_buf());
 
         log::info!("FFmpeg passthrough tanpa crop: {:?}", builder);

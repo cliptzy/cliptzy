@@ -1,20 +1,20 @@
 <template>
-    <div class="flex flex-col xl:flex-row gap-4 h-[240px] shrink-0">
+    <div class="flex flex-col xl:flex-row gap-0 h-[240px] shrink-0 border-t border-neutral">
         <!-- Timeline Sequence -->
-        <BentoCard
-            class="flex-1 p-6 flex flex-col justify-between !bg-cyan-200 dark:!bg-cyan-900/40"
+        <div
+            class="flex-1 p-6 flex flex-col justify-between bg-base-100 border-r border-neutral"
         >
             <div class="flex items-center justify-between mb-4">
                 <h3
-                    class="text-lg font-black text-[var(--color-text-main)] tracking-wide flex items-center gap-2"
+                    class="text-lg font-black text-base-content tracking-wide flex items-center gap-2"
                 >
                     <IconListVideo class="w-5 h-5" /> Sequence Editor
                 </h3>
                 <span
-                    class="text-xs text-[var(--color-text-main)] font-mono font-bold tracking-widest bg-white/50 dark:bg-black/30 px-3 py-1 rounded-full"
+                    class="text-xs text-base-content font-mono font-bold tracking-widest bg-base-200/50 px-3 py-1 rounded-none"
                 >
                     {{ formatTime(videoStore.currentTime) }}
-                    <span class="text-[var(--color-text-muted)]"
+                    <span class="text-secondary"
                         >/
                         {{
                             formatTime(
@@ -31,22 +31,22 @@
             <div
                 ref="timelineTrack"
                 @click="handleTimelineClick"
-                class="flex-1 bg-white/50 dark:bg-black/30 rounded-2xl border-none relative overflow-hidden flex items-center cursor-pointer shadow-inner"
+                class="flex-1 bg-base-200/50 rounded-none border-none relative overflow-hidden flex items-center cursor-pointer "
             >
                 <!-- Dynamic Playhead -->
                 <div
                     v-show="videoStore.metadata"
-                    class="absolute top-0 bottom-0 w-1 bg-gray-600 dark:bg-gray-400 z-30 shadow-[0_0_10px_rgba(8,145,178,0.5)] transition-all duration-75 pointer-events-none"
+                    class="absolute top-0 bottom-0 w-1 bg-base-300 z-30 shadow-[0_0_10px_rgba(8,145,178,0.5)] transition-all duration-75 pointer-events-none"
                     :style="{ left: `${progressPercentage}%` }"
                 >
                     <div
-                        class="absolute -top-1 -left-1 w-3 h-3 rotate-45 bg-gray-600 dark:bg-gray-400"
+                        class="absolute -top-1 -left-1 w-3 h-3 rotate-45 bg-base-300"
                     ></div>
                 </div>
 
                 <div
                     v-if="!videoStore.metadata"
-                    class="w-full text-center text-xs text-[var(--color-text-muted)] font-black uppercase tracking-widest"
+                    class="w-full text-center text-xs text-secondary font-black uppercase tracking-widest"
                 >
                     TIDAK ADA MEDIA
                 </div>
@@ -59,11 +59,11 @@
                     <template v-if="videoStore.selectedSegment">
                         <!-- Subtitle Track -->
                         <div
-                            class="h-8 w-full relative flex items-center justify-center bg-gray-100/50 dark:bg-gray-950/50 rounded-lg"
+                            class="h-8 w-full relative flex items-center justify-center bg-base-200/50 rounded-none"
                         >
                             <span
                                 v-if="videoStore.isAnalyzing"
-                                class="text-[10px] text-[var(--color-text-muted)] font-bold uppercase animate-pulse flex items-center gap-1"
+                                class="text-[10px] text-secondary font-bold uppercase animate-pulse flex items-center gap-1"
                             >
                                 <IconLoader class="w-4 h-4 animate-spin" />
                                 Transcribing Audio...
@@ -72,14 +72,14 @@
                                 <div
                                     v-for="(word, i) in segmentTranscript"
                                     :key="i"
-                                    class="absolute top-0 bottom-0 bg-gray-500/30 border border-gray-400/50 rounded-md flex items-center overflow-hidden"
+                                    class="absolute top-0 bottom-0 bg-base-300/30 border border-neutral/50 rounded-none flex items-center overflow-hidden"
                                     :style="{
                                         left: `${(word.start / (videoStore.selectedSegment.end - videoStore.selectedSegment.start)) * 100}%`,
                                         width: `${((word.end - word.start) / (videoStore.selectedSegment.end - videoStore.selectedSegment.start)) * 100}%`,
                                     }"
                                 >
                                     <span
-                                        class="text-[9px] text-[var(--color-text-main)] font-bold px-1 truncate w-full text-center"
+                                        class="text-[9px] text-base-content font-bold px-1 truncate w-full text-center"
                                         >{{ word.text }}</span
                                     >
                                 </div>
@@ -88,10 +88,10 @@
 
                         <!-- Main Video Track -->
                         <div
-                            class="h-12 w-full bg-gray-500/20 border border-gray-500/30 rounded-xl flex flex-col justify-center px-4 relative overflow-hidden"
+                            class="h-12 w-full bg-base-100/30 border border-neutral/30 rounded-none flex flex-col justify-center px-4 relative overflow-hidden"
                         >
                             <span
-                                class="text-[10px] font-black text-[var(--color-text-main)] uppercase px-2 z-10"
+                                class="text-[10px] font-black text-base-content uppercase px-2 z-10"
                             >
                                 KLIP TERPILIH ({{
                                     (
@@ -102,7 +102,7 @@
                             </span>
                             <!-- Inner progress bar for the selected segment -->
                             <div
-                                class="absolute bottom-0 left-0 h-1.5 bg-gray-500 z-20 pointer-events-none transition-all duration-75"
+                                class="absolute bottom-0 left-0 h-1.5 bg-primary z-20 pointer-events-none transition-all duration-75"
                                 :style="{ width: `${progressPercentage}%` }"
                             ></div>
                         </div>
@@ -112,38 +112,38 @@
                     <template v-else-if="videoStore.metadata.segments?.length || props.mode === 'compilation'">
                         <div v-if="props.mode === 'compilation'" class="flex flex-col gap-1 w-full relative">
                             <!-- Reaksi Track (atas) -->
-                            <div class="w-full h-6 relative bg-gray-100/50 dark:bg-gray-950/50 rounded flex items-center px-2">
-                                <span class="text-[8px] text-[var(--color-text-muted)] absolute left-2 uppercase font-black z-10">Reaksi</span>
+                            <div class="w-full h-6 relative bg-base-200/50 rounded flex items-center px-2">
+                                <span class="text-[8px] text-secondary absolute left-2 uppercase font-black z-10">Reaksi</span>
                                 <!-- Mock items -->
-                                <div class="absolute top-1 bottom-1 bg-fuchsia-500/50 border border-fuchsia-400/50 rounded left-[15%] w-[10%]"></div>
-                                <div class="absolute top-1 bottom-1 bg-fuchsia-500/50 border border-fuchsia-400/50 rounded left-[40%] w-[15%]"></div>
-                                <div class="absolute top-1 bottom-1 bg-fuchsia-500/50 border border-fuchsia-400/50 rounded left-[75%] w-[12%]"></div>
+                                <div class="absolute top-1 bottom-1 bg-primary/50 border border-fuchsia-400/50 rounded left-[15%] w-[10%]"></div>
+                                <div class="absolute top-1 bottom-1 bg-primary/50 border border-fuchsia-400/50 rounded left-[40%] w-[15%]"></div>
+                                <div class="absolute top-1 bottom-1 bg-primary/50 border border-fuchsia-400/50 rounded left-[75%] w-[12%]"></div>
                             </div>
                             <!-- Momen Track (bawah) -->
-                            <div class="w-full h-6 relative bg-gray-100/50 dark:bg-gray-950/50 rounded flex items-center px-2">
-                                <span class="text-[8px] text-[var(--color-text-muted)] absolute left-2 uppercase font-black z-10">Momen Utama</span>
+                            <div class="w-full h-6 relative bg-base-200/50 rounded flex items-center px-2">
+                                <span class="text-[8px] text-secondary absolute left-2 uppercase font-black z-10">Momen Utama</span>
                                 <!-- Mock items -->
-                                <div class="absolute top-1 bottom-1 bg-sky-500/50 border border-sky-400/50 rounded left-[10%] w-[20%]"></div>
-                                <div class="absolute top-1 bottom-1 bg-sky-500/50 border border-sky-400/50 rounded left-[35%] w-[25%]"></div>
-                                <div class="absolute top-1 bottom-1 bg-sky-500/50 border border-sky-400/50 rounded left-[70%] w-[20%]"></div>
+                                <div class="absolute top-1 bottom-1 bg-primary/30 border border-primary/50 rounded-none left-[10%] w-[20%]"></div>
+                                <div class="absolute top-1 bottom-1 bg-primary/30 border border-primary/50 rounded-none left-[35%] w-[25%]"></div>
+                                <div class="absolute top-1 bottom-1 bg-primary/30 border border-primary/50 rounded-none left-[70%] w-[20%]"></div>
                             </div>
                         </div>
                         <div
                             v-else
-                            class="w-full h-12 relative bg-gray-100/50 dark:bg-gray-950/50 rounded-xl"
+                            class="w-full h-12 relative bg-base-200/50 rounded-none"
                         >
                             <div
                                 v-for="(seg, idx) in videoStore.metadata
                                     .segments"
                                 :key="idx"
-                                class="absolute top-0 bottom-0 bg-gray-500/30 border border-gray-500/50 rounded-xl flex flex-col justify-center px-2 group transition-colors"
+                                class="absolute top-0 bottom-0 bg-base-100/50 border border-neutral/50 rounded-none flex flex-col justify-center px-2 group transition-colors"
                                 :style="{
                                     left: `${(seg.start / videoStore.metadata.duration) * 100}%`,
                                     width: `${((seg.end - seg.start) / videoStore.metadata.duration) * 100}%`,
                                 }"
                             >
                                 <span
-                                    class="text-[9px] font-black text-[var(--color-text-main)] uppercase truncate"
+                                    class="text-[9px] font-black text-base-content uppercase truncate"
                                     v-if="
                                         (seg.end - seg.start) /
                                             videoStore.metadata.duration >
@@ -159,36 +159,36 @@
                     <!-- Fallback if no segments -->
                     <template v-else>
                         <div
-                            class="h-12 w-full bg-gray-500/20 border border-gray-500/30 rounded-xl flex flex-col justify-center px-4 relative"
+                            class="h-12 w-full bg-base-100/30 border border-neutral/30 rounded-none flex flex-col justify-center px-4 relative"
                         >
                             <span
-                                class="text-[10px] font-black text-[var(--color-text-main)] uppercase"
+                                class="text-[10px] font-black text-base-content uppercase"
                                 >RAW VIDEO</span
                             >
                         </div>
                     </template>
                 </div>
             </div>
-        </BentoCard>
+        </div>
 
         <!-- Action / Generate -->
-        <BentoCard
-            class="w-full xl:w-[380px] p-8 flex flex-col justify-center items-center text-center gap-4 relative overflow-hidden group shrink-0 !bg-rose-200 dark:!bg-rose-900/40"
+        <div
+            class="w-full xl:w-[380px] p-8 flex flex-col justify-center items-center text-center gap-4 relative overflow-hidden group shrink-0 bg-base-100 border-r border-neutral"
         >
             <IconWand2
-                class="w-12 h-12 text-[var(--color-text-muted)] group-hover:scale-110 transition-transform duration-500"
+                class="w-12 h-12 text-secondary  transition-transform duration-500"
             />
             <div class="flex flex-col gap-1 z-10">
-                <h3 class="text-2xl font-black text-[var(--color-text-main)]">
+                <h3 class="text-2xl font-black text-base-content">
                     Generate {{ props.mode === 'compilation' ? 'Kompilasi' : selectedSegmentsCount + ' Shorts' }}
                 </h3>
-                <p class="text-sm font-bold text-[var(--color-text-muted)]">
+                <p class="text-sm font-bold text-secondary">
                     Total estimasi: {{ compilationEstimate }}
                 </p>
             </div>
 
             <button
-                class="w-full py-4 text-base font-black mt-2 rounded-full transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg z-10 bg-[var(--color-accent)] text-white hover:bg-rose-500"
+                class="w-full py-4 text-base-content mt-2 rounded-none transition-all disabled:opacity-50 disabled:cursor-not-allowed  hover:shadow-lg z-10 bg-[var(--color-accent)] text-[var(--color-primary-content)] hover:bg-primary/90"
                 :disabled="(props.mode !== 'compilation' && selectedSegmentsCount === 0) || (props.mode === 'compilation' && !canRenderCompilation) || isRendering"
                 @click="handleRender"
             >
@@ -200,7 +200,7 @@
                 </span>
                 <span v-else>Mulai Rendering</span>
             </button>
-        </BentoCard>
+        </div>
     </div>
 </template>
 
@@ -210,7 +210,7 @@ import { useVideoStore } from "../../stores/video";
 import { useAppStore } from "../../stores/app";
 import { useSettingsStore } from "../../stores/settings";
 import { invoke } from "@tauri-apps/api/core";
-import BentoCard from "../BentoCard.vue";
+import CCard from "../CCard.vue";
 
 const props = defineProps<{
     mode?: 'clipper' | 'compilation'
@@ -406,6 +406,8 @@ const handleRender = async () => {
     }
 };
 </script>
+
+
 
 
 

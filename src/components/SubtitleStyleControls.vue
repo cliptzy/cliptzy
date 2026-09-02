@@ -9,23 +9,23 @@
           :key="preset.id"
           type="button"
           @click="selectPreset(preset.id)"
-          class="p-3 rounded-2xl transition-all text-left flex flex-col gap-0.5 bg-white/50 dark:bg-black/30 hover:bg-white dark:hover:bg-black/50"
-          :class="activePreset === preset.id ? 'ring-2 ring-[var(--color-accent)] shadow-sm' : ''"
+          class="p-3 rounded-none transition-all duration-150 text-left flex flex-col gap-0.5 bg-base-200 border hover:border-primary"
+          :class="activePreset === preset.id ? 'border-primary shadow-sm' : 'border-neutral'"
         >
           <span
-            class="font-black text-xs text-[var(--color-text-main)]"
+            class="font-black text-xs text-base-content"
             :class="preset.id === 'brutalist' ? 'font-mono uppercase tracking-wider' : ''"
           >
             {{ preset.label }}
           </span>
-          <span class="text-[9px] text-[var(--color-text-muted)] leading-tight font-medium">
+          <span class="text-[9px] text-secondary leading-tight font-medium">
             {{ preset.description }}
           </span>
         </button>
       </div>
       <p
         v-if="activePreset === 'brutalist'"
-        class="text-[9px] text-[var(--color-text-muted)] font-medium leading-tight"
+        class="text-[9px] text-secondary font-medium leading-tight"
       >
         Preset Brutalist meng-override font & warna saat render (sesuai engine ASS).
       </p>
@@ -38,6 +38,7 @@
         <select
           v-model="settings.config.subtitle.font"
           :class="selectClass"
+          class="bg-base-200 border border-neutral rounded-none transition-all duration-150 focus:border-primary focus:ring-2 focus:ring-primary/20"
         >
           <option v-for="f in SUBTITLE_FONTS" :key="f.value" :value="f.value">
             {{ f.label }}
@@ -50,6 +51,7 @@
         <select
           v-model="settings.config.subtitle.location"
           :class="selectClass"
+          class="bg-base-200 border border-neutral rounded-none transition-all duration-150 focus:border-primary focus:ring-2 focus:ring-primary/20"
         >
           <option v-for="loc in SUBTITLE_LOCATIONS" :key="loc.value" :value="loc.value">
             {{ loc.label }}
@@ -80,7 +82,7 @@
           min="1"
           max="10"
           v-model.number="settings.config.subtitle.max_words"
-          class="w-full h-2 bg-gray-300 dark:bg-gray-800 rounded-lg appearance-none cursor-pointer accent-[var(--color-accent)]"
+          class="w-full h-2 bg-neutral rounded-none appearance-none cursor-pointer accent-primary"
           :class="variant === 'compact' ? 'mt-1.5' : 'mt-2'"
         />
       </div>
@@ -93,7 +95,7 @@
           max="5"
           step="0.1"
           v-model.number="settings.config.subtitle.delay"
-          class="w-full h-2 bg-gray-300 dark:bg-gray-800 rounded-lg appearance-none cursor-pointer mt-2 accent-[var(--color-accent)]"
+          class="w-full h-2 bg-neutral rounded-none appearance-none cursor-pointer mt-2 accent-primary"
         />
       </div>
     </div>
@@ -107,7 +109,7 @@
         min="20"
         max="150"
         v-model.number="settings.config.subtitle.font_size"
-        class="w-full h-2 bg-gray-300 dark:bg-gray-800 rounded-lg appearance-none cursor-pointer accent-[var(--color-accent)]"
+        class="w-full h-2 bg-neutral rounded-none appearance-none cursor-pointer accent-primary"
         :class="variant === 'compact' ? 'mt-1' : 'mt-2'"
       />
     </div>
@@ -118,7 +120,7 @@
         v-model="settings.config.subtitle.fonts_dir"
         type="text"
         placeholder="Kosongkan untuk default"
-        class="w-full bg-white/60 dark:bg-black/30 border-none rounded-2xl p-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] shadow-sm text-[var(--color-text-main)]"
+        class="w-full bg-base-200 border border-neutral rounded-none p-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-primary shadow-sm text-base-content transition-all duration-150"
       />
     </div>
   </div>
@@ -161,14 +163,14 @@ const selectPreset = (preset: SubtitlePresetId) => {
 
 const labelClass = computed(() =>
   props.variant === "compact"
-    ? "text-[9px] text-[var(--color-text-muted)] uppercase font-bold"
-    : "text-[10px] text-[var(--color-text-muted)] uppercase font-bold",
+    ? "text-[9px] text-secondary uppercase font-bold"
+    : "text-[10px] text-secondary uppercase font-bold",
 );
 
 const selectClass = computed(() =>
   props.variant === "compact"
-    ? "w-full bg-white/50 dark:bg-black/30 border-none rounded-xl p-2 text-[10px] font-bold text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-gray-500 cursor-pointer"
-    : "w-full bg-white/60 dark:bg-black/30 border-none rounded-2xl p-3 text-sm font-bold text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] cursor-pointer shadow-sm",
+    ? "w-full p-2 text-[10px] font-bold text-base-content cursor-pointer"
+    : "w-full p-3 text-sm font-bold text-base-content cursor-pointer shadow-sm",
 );
 
 const gridClass = computed(() =>
@@ -177,3 +179,5 @@ const gridClass = computed(() =>
     : "grid grid-cols-1 md:grid-cols-2 gap-4",
 );
 </script>
+
+

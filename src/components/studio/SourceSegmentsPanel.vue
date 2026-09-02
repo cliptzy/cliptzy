@@ -1,29 +1,27 @@
 <template>
-    <div
-        class="w-full xl:w-[380px] flex flex-col gap-4 h-full min-h-0 shrink-0 overflow-y-auto overflow-x-hidden custom-scrollbar"
-    >
+    <div class="w-full xl:w-[380px] flex flex-col gap-0 h-full min-h-0 shrink-0 overflow-y-auto overflow-x-hidden custom-scrollbar border-l border-neutral border-r">
         <!-- URL Input -->
-        <BentoCard class="p-6 shrink-0">
+        <div class="p-6 shrink-0 bg-base-100 border-b border-neutral">
             <div class="flex flex-col gap-4">
                 <h3
-                    class="text-lg font-black text-[var(--color-text-main)] tracking-wide mb-1 flex items-center gap-2"
+                    class="text-lg font-black text-base-content tracking-wide mb-1 flex items-center gap-2"
                 >
                     <IconYoutube class="w-5 h-5 text-red-500" /> {{ mode === 'compilation' ? 'Video Utama (MPL / VOD)' : 'Sumber Video' }}
                 </h3>
                 <div
-                    class="flex items-center bg-white/60 dark:bg-black/30 rounded-2xl focus-within:ring-2 focus-within:ring-gray-500 transition-all px-4 py-3"
+                    class="flex items-center bg-base-200 rounded-none focus-within:ring-2 focus-within:ring-primary border border-neutral transition-all px-4 py-3"
                 >
                     <input
                         v-model="videoUrl"
                         @keydown.enter="handleLoadVideo"
                         type="text"
                         :placeholder="mode === 'compilation' ? 'URL Video Utama (Misal MPL ID)' : 'URL YouTube / Path Lokal'"
-                        class="w-full bg-transparent border-none text-[var(--color-text-main)] font-bold text-sm focus:ring-0 focus:outline-none placeholder-gray-700/60 dark:placeholder-emerald-400/50"
+                        class="w-full bg-transparent border-none text-base-content font-bold text-sm focus:ring-0 focus:outline-none placeholder-neutral-700/60 dark:placeholder-emerald-400/50"
                     />
                 </div>
                 <div
                     v-if="mode === 'compilation'"
-                    class="flex items-center bg-white/60 dark:bg-black/30 rounded-2xl focus-within:ring-2 focus-within:ring-gray-500 transition-all px-4 py-3"
+                    class="flex items-center bg-base-200 rounded-none focus-within:ring-2 focus-within:ring-primary border border-neutral transition-all px-4 py-3"
                 >
                     <input
                         v-model="compilationKeyword"
@@ -31,13 +29,13 @@
                         :placeholder="isReactionMode
                             ? 'Kata kunci restreamer (misal: AE RRQ MPL S18)'
                             : 'Kata Kunci Pencarian Meme (opsional)'"
-                        class="w-full bg-transparent border-none text-[var(--color-text-main)] font-bold text-sm focus:ring-0 focus:outline-none placeholder-gray-700/60 dark:placeholder-emerald-400/50"
+                        class="w-full bg-transparent border-none text-base-content font-bold text-sm focus:ring-0 focus:outline-none placeholder-neutral-700/60 dark:placeholder-emerald-400/50"
                     />
                 </div>
                 <button
                     @click="handleLoadVideo"
                     :disabled="videoStore.isLoading || videoStore.isPreparingCompilation || !videoUrl"
-                    class="w-full py-3 rounded-full text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm bg-indigo-600 text-white hover:bg-indigo-700"
+                    class="w-full py-3 rounded-none text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm bg-primary text-primary-content hover:bg-primary/90"
                 >
                     <span
                         v-if="videoStore.isLoading || videoStore.isPreparingCompilation"
@@ -49,7 +47,7 @@
                     <span v-else>{{ mode === 'compilation' ? 'Siapkan Kompilasi' : 'Load Video' }}</span>
                 </button>
             </div>
-        </BentoCard>
+        </div>
 
         <!-- Video Metadata -->
         <Transition
@@ -57,33 +55,33 @@
             enter-from-class="opacity-0 -translate-y-4"
             enter-to-class="opacity-100 translate-y-0"
         >
-            <BentoCard
+            <div
                 v-if="videoStore.metadata"
-                class="p-4 shrink-0 !bg-slate-200 dark:!bg-slate-900/40"
+                class="p-4 shrink-0 bg-base-100 border-b border-neutral"
             >
                 <div class="flex items-start gap-4">
                     <div
-                        class="w-32 aspect-video bg-slate-300 dark:bg-slate-800 rounded-xl overflow-hidden shrink-0 relative group"
+                        class="w-32 aspect-video bg-base-200 rounded-none overflow-hidden shrink-0 relative group"
                     >
                         <img
                             :src="videoStore.metadata.thumbnail_url"
-                            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            class="w-full h-full object-cover  transition-transform duration-500"
                         />
                         <div
-                            class="absolute bottom-1 right-1 bg-black/80 text-white text-[10px] font-mono font-bold px-1.5 rounded"
+                            class="absolute bottom-1 right-1 bg-base-100/70 text-base-content text-[10px] font-mono font-bold px-1.5 rounded"
                         >
                             {{ formatDuration(videoStore.metadata.duration) }}
                         </div>
                     </div>
                     <div class="flex flex-col flex-1 min-w-0">
                         <h3
-                            class="font-bold text-sm text-[var(--color-text-main)] line-clamp-2 leading-tight mb-1"
+                            class="font-bold text-sm text-base-content line-clamp-2 leading-tight mb-1"
                             :title="videoStore.metadata.title"
                         >
                             {{ videoStore.metadata.title }}
                         </h3>
                         <span
-                            class="text-xs font-bold text-[var(--color-text-muted)] dark:text-slate-400 mb-2"
+                            class="text-xs font-bold text-secondary dark:text-slate-400 mb-2"
                             >{{
                                 videoStore.metadata.uploader || "YouTube Video"
                             }}</span
@@ -91,7 +89,7 @@
 
                         <div class="flex flex-wrap gap-2 mt-auto">
                             <span
-                                class="text-[10px] font-bold bg-white/60 dark:bg-black/30 text-[var(--color-text-main)] px-2 py-0.5 rounded-full shadow-sm"
+                                class="text-[10px] font-bold bg-base-200/60 text-base-content px-2 py-0.5 rounded-none shadow-sm"
                                 >{{
                                     (
                                         videoStore.metadata.view_count || 0
@@ -102,73 +100,73 @@
                         </div>
                     </div>
                 </div>
-            </BentoCard>
+            </div>
         </Transition>
 
                 <!-- Compilation Restreamers -->
-        <BentoCard v-if="mode === 'compilation' && isReactionMode && videoStore.compilationData?.epic_moments?.length" class="p-4 shrink-0 !bg-sky-200 dark:!bg-sky-900/40">
-            <h3 class="text-sm font-black text-[var(--color-text-main)] tracking-wide mb-3 flex items-center gap-2">
+        <div v-if="mode === 'compilation' && isReactionMode && videoStore.compilationData?.epic_moments?.length" class="p-4 shrink-0 bg-base-100 border-b border-neutral">
+            <h3 class="text-sm font-black text-base-content tracking-wide mb-3 flex items-center gap-2">
                 <IconSparkles class="w-4 h-4" /> Momen Epik Terdeteksi
             </h3>
             <div class="flex flex-col gap-2 max-h-32 overflow-y-auto custom-scrollbar">
                 <div
                     v-for="(moment, idx) in videoStore.compilationData.epic_moments"
                     :key="idx"
-                    class="flex items-center justify-between p-2 bg-white/60 dark:bg-black/40 rounded-xl text-xs"
+                    class="flex items-center justify-between p-2 bg-base-200 rounded-none text-xs"
                 >
-                    <span class="font-bold text-[var(--color-text-main)] truncate flex-1 mr-2">{{ moment.description }}</span>
-                    <span class="font-mono text-[var(--color-text-muted)] shrink-0">
+                    <span class="font-bold text-base-content truncate flex-1 mr-2">{{ moment.description }}</span>
+                    <span class="font-mono text-secondary shrink-0">
                         {{ formatTime(moment.start) }}–{{ formatTime(moment.end) }}
                     </span>
                 </div>
             </div>
-        </BentoCard>
+        </div>
 
-        <BentoCard v-if="mode === 'compilation'" class="p-6 shrink-0 flex flex-col !bg-amber-200 dark:!bg-amber-900/40">
+        <div v-if="mode === 'compilation'" class="p-6 shrink-0 flex flex-col bg-base-100 border-b border-neutral">
             <div class="flex items-center justify-between mb-1 gap-2">
-                <h3 class="text-lg font-black text-[var(--color-text-main)] tracking-wide flex items-center gap-2 whitespace-nowrap">
+                <h3 class="text-lg font-black text-base-content tracking-wide flex items-center gap-2 whitespace-nowrap">
                     <IconList class="w-5 h-5" /> {{ isReactionMode ? 'Restreamer Tersinkronisasi' : 'Target Restreamer' }}
                 </h3>
                 <button
                     v-if="videoStore.compilationData?.restreamers?.length"
                     @click="toggleSelectAllRestreamers"
-                    class="text-[10px] text-[var(--color-text-main)] hover:opacity-80 transition-opacity whitespace-nowrap shrink-0"
+                    class="text-[10px] text-base-content hover:opacity-80 transition-opacity whitespace-nowrap shrink-0"
                 >
                     Toggle Select All
                 </button>
             </div>
-            <p v-if="isReactionMode" class="text-[10px] text-[var(--color-text-muted)] mb-3 leading-tight">
+            <p v-if="isReactionMode" class="text-[10px] text-secondary mb-3 leading-tight">
                 Ditemukan otomatis via pencocokan audio. Uncheck untuk mengecualikan dari kompilasi.
             </p>
             
             <div class="flex flex-col relative">
-                <div v-if="videoStore.isPreparingCompilation" class="absolute inset-0 z-10 bg-[var(--color-surface)]/80 backdrop-blur-sm flex flex-col items-center justify-center min-h-[120px] rounded-xl">
+                <div v-if="videoStore.isPreparingCompilation" class="absolute inset-0 z-10 bg-[var(--color-surface)]/80 backdrop-blur-sm flex flex-col items-center justify-center min-h-[120px] rounded-none">
                     <IconLoader class="w-10 h-10 animate-spin text-[var(--color-accent)] mb-3" />
-                    <span class="text-xs font-bold uppercase tracking-widest text-[var(--color-text-muted)] animate-pulse">Menyiapkan Kompilasi...</span>
+                    <span class="text-xs font-bold uppercase tracking-widest text-secondary animate-pulse">Menyiapkan Kompilasi...</span>
                 </div>
                 
                 <div class="flex flex-col gap-2 relative max-h-80 overflow-y-auto custom-scrollbar">
                     <div v-if="videoStore.compilationData?.restreamers?.length" class="flex flex-col gap-2">
                         <div class="flex justify-between items-center px-1 mb-1">
-                            <span class="text-[10px] text-[var(--color-text-muted)] font-bold uppercase">
+                            <span class="text-[10px] text-secondary font-bold uppercase">
                                 {{ videoStore.compilationData.restreamers.length }} Restreamer Ditemukan
                             </span>
-                            <span class="text-[10px] text-[var(--color-text-muted)] font-bold">
+                            <span class="text-[10px] text-secondary font-bold">
                                 {{ videoStore.selectedRestreamers.length }} dipilih
                             </span>
                         </div>
                         <label
                             v-for="restreamer in videoStore.compilationData.restreamers"
                             :key="restreamer.video_id"
-                            class="flex items-start gap-3 p-3 bg-white/60 dark:bg-black/40 rounded-xl cursor-pointer hover:bg-white dark:hover:bg-black/60 transition-colors border border-transparent hover:border-gray-200 dark:hover:border-gray-700"
+                            class="flex items-start gap-3 p-3 bg-base-200 rounded-none cursor-pointer hover:bg-base-300 transition-colors border border-transparent hover:border-neutral"
                         >
                             <input
                                 type="checkbox"
                                 :value="restreamer.video_url"
                                 v-model="videoStore.selectedRestreamers"
-                                class="w-4 h-4 mt-1 text-indigo-600 rounded focus:ring-indigo-500 bg-gray-100 border-gray-300 shrink-0"
+                                class="w-4 h-4 mt-1 text-primary rounded focus:ring-primary bg-base-200 border-neutral shrink-0"
                             />
-                            <div class="w-24 aspect-video bg-slate-300 dark:bg-slate-800 rounded-lg overflow-hidden shrink-0 relative">
+                            <div class="w-24 aspect-video bg-base-200 rounded-none overflow-hidden shrink-0 relative">
                                 <img
                                     :src="restreamer.thumbnail"
                                     :alt="restreamer.title"
@@ -176,31 +174,31 @@
                                 />
                                 <div
                                     v-if="restreamer.duration"
-                                    class="absolute bottom-0.5 right-0.5 bg-black/80 text-white text-[9px] font-mono font-bold px-1 rounded"
+                                    class="absolute bottom-0.5 right-0.5 bg-base-100/70 text-base-content text-[9px] font-mono font-bold px-1 rounded"
                                 >
                                     {{ formatDuration(restreamer.duration) }}
                                 </div>
                             </div>
                             <div class="flex flex-col flex-1 min-w-0">
                                 <h4
-                                    class="font-bold text-xs text-[var(--color-text-main)] line-clamp-2 leading-tight mb-0.5"
+                                    class="font-bold text-xs text-base-content line-clamp-2 leading-tight mb-0.5"
                                     :title="restreamer.title"
                                 >
                                     {{ restreamer.title }}
                                 </h4>
-                                <span class="text-[10px] font-bold text-[var(--color-text-muted)] dark:text-slate-400 truncate mb-1">
+                                <span class="text-[10px] font-bold text-secondary dark:text-slate-400 truncate mb-1">
                                     {{ restreamer.uploader || 'YouTube Channel' }}
                                 </span>
                                 <div class="flex flex-wrap gap-1.5">
                                     <span
                                         v-if="restreamer.view_count"
-                                        class="text-[9px] font-bold bg-white/60 dark:bg-black/30 text-[var(--color-text-main)] px-1.5 py-0.5 rounded-full"
+                                        class="text-[9px] font-bold bg-base-200/60 text-base-content px-1.5 py-0.5 rounded-none"
                                     >
                                         {{ restreamer.view_count.toLocaleString() }} views
                                     </span>
                                     <span
                                         v-if="restreamer.upload_date"
-                                        class="text-[9px] font-bold bg-white/60 dark:bg-black/30 text-[var(--color-text-muted)] px-1.5 py-0.5 rounded-full"
+                                        class="text-[9px] font-bold bg-base-200/60 text-secondary px-1.5 py-0.5 rounded-none"
                                     >
                                         {{ formatUploadDate(restreamer.upload_date) }}
                                     </span>
@@ -208,7 +206,7 @@
                             </div>
                         </label>
                     </div>
-                    <div v-else-if="videoStore.metadata" class="h-full flex flex-col items-center justify-center text-[var(--color-text-muted)] opacity-50 py-6">
+                    <div v-else-if="videoStore.metadata" class="h-full flex flex-col items-center justify-center text-secondary opacity-50 py-6">
                         <IconList class="w-10 h-10 mb-2 opacity-50" />
                         <span class="text-xs font-bold uppercase tracking-widest text-center">
                             {{ isReactionMode ? 'SIAPKAN KOMPILASI UNTUK MENEMUKAN RESTREAMER' : 'TIDAK ADA RESTREAMER DITEMUKAN' }}
@@ -216,24 +214,24 @@
                     </div>
                 </div>
             </div>
-        </BentoCard>
+        </div>
 
         <!-- Segment List & Scan Controls -->
-        <BentoCard v-if="mode === 'clipper'" class="p-6 flex-1 flex flex-col min-h-0 !bg-amber-200 dark:!bg-amber-900/40">
+        <div v-if="mode === 'clipper'" class="p-6 flex-1 flex flex-col min-h-0 bg-base-100 border-b border-neutral">
             <div class="flex items-center justify-between mb-4 gap-2">
                 <h3
-                    class="text-lg font-black text-[var(--color-text-main)] tracking-wide flex items-center gap-2 whitespace-nowrap"
+                    class="text-lg font-black text-base-content tracking-wide flex items-center gap-2 whitespace-nowrap"
                 >
                     <IconList class="w-5 h-5" /> Segmen
                 </h3>
 
                 <!-- Scan Mode Tabs -->
                 <div
-                    class="flex bg-white/50 dark:bg-black/30 p-1 rounded-xl shrink-0 overflow-x-auto custom-scrollbar shadow-sm gap-1"
+                    class="flex bg-base-200 p-1 rounded-none border border-neutral shrink-0 overflow-x-auto custom-scrollbar shadow-sm gap-1"
                 >
                     <button
                         @click="scanMode = 'heatmap'"
-                        class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-black text-white dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200"
+                        class="px-3 py-1.5 rounded-none text-xs font-bold transition-all bg-base-200 border border-neutral text-base-content hover:bg-base-300"
                         :class="
                             scanMode === 'heatmap'
                                 ? 'shadow-sm'
@@ -244,7 +242,7 @@
                     </button>
                     <button
                         @click="scanMode = 'ai'"
-                        class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-black text-white dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200"
+                        class="px-3 py-1.5 rounded-none text-xs font-bold transition-all bg-base-200 border border-neutral text-base-content hover:bg-base-300"
                         :class="
                             scanMode === 'ai'
                                 ? 'shadow-sm'
@@ -255,7 +253,7 @@
                     </button>
                     <button
                         @click="scanMode = 'custom'"
-                        class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-black text-white dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200"
+                        class="px-3 py-1.5 rounded-none text-xs font-bold transition-all bg-base-200 border border-neutral text-base-content hover:bg-base-300"
                         :class="
                             scanMode === 'custom'
                                 ? 'shadow-sm'
@@ -272,35 +270,35 @@
                 v-if="scanMode === 'custom'"
                 class="flex-1 flex flex-col gap-3"
             >
-                <div class="text-xs text-[var(--color-text-muted)] mb-2">
+                <div class="text-xs text-secondary mb-2">
                     Tentukan waktu mulai dan selesai secara manual.
                 </div>
                 <div class="flex gap-2">
                     <div class="flex-1">
                         <label
-                            class="text-[10px] uppercase text-[var(--color-text-muted)] font-bold ml-1"
+                            class="text-[10px] uppercase text-secondary font-bold ml-1"
                             >Mulai</label
                         >
                         <input
                             type="text"
                             placeholder="00:00"
-                            class="w-full bg-gray-50 dark:bg-black/30 border border-[var(--color-subtle)] rounded-lg p-2 text-sm text-center focus:border-[var(--color-accent)] focus:outline-none"
+                            class="w-full bg-base-200 border border-neutral rounded-none p-2 text-sm text-center focus:border-[var(--color-accent)] focus:outline-none"
                         />
                     </div>
                     <div class="flex-1">
                         <label
-                            class="text-[10px] uppercase text-[var(--color-text-muted)] font-bold ml-1"
+                            class="text-[10px] uppercase text-secondary font-bold ml-1"
                             >Selesai</label
                         >
                         <input
                             type="text"
                             placeholder="01:00"
-                            class="w-full bg-gray-50 dark:bg-black/30 border border-[var(--color-subtle)] rounded-lg p-2 text-sm text-center focus:border-[var(--color-accent)] focus:outline-none"
+                            class="w-full bg-base-200 border border-neutral rounded-none p-2 text-sm text-center focus:border-[var(--color-accent)] focus:outline-none"
                         />
                     </div>
                 </div>
-                <GlowButton class="w-full py-1.5 mt-2 text-xs"
-                    >Tambahkan Segmen</GlowButton
+                <CButton variant="primary" class="w-full py-1.5 mt-2 text-xs"
+                    >Tambahkan Segmen</CButton
                 >
             </div>
 
@@ -314,9 +312,9 @@
                     class="absolute inset-0 z-10 bg-[var(--color-surface)]/80 backdrop-blur-sm flex flex-col items-center justify-center"
                 >
                     <IconLoader
-                        class="w-6 h-6 animate-spin text-[var(--color-text-main)] mb-2"
+                        class="w-6 h-6 animate-spin text-base-content mb-2"
                     />
-                    <span class="text-xs text-[var(--color-text-muted)]"
+                    <span class="text-xs text-secondary"
                         >Menganalisis AI...</span
                     >
                 </div>
@@ -326,18 +324,18 @@
                         !videoStore.metadata?.ai_segments ||
                         videoStore.metadata.ai_segments.length === 0
                     "
-                    class="flex-1 flex flex-col items-center justify-center text-center gap-3 opacity-80 py-6 text-[var(--color-text-muted)]"
+                    class="flex-1 flex flex-col items-center justify-center text-center gap-3 opacity-80 py-6 text-secondary"
                 >
                     <IconSparkles class="w-8 h-8" />
                     <p class="text-xs px-4">
                         Klik <b>Scan AI</b> untuk membiarkan LLM mencari momen
                         viral (butuh waktu lebih lama).
                     </p>
-                    <GlowButton
+                    <CButton variant="primary" 
                         @click="handleScanAI"
                         :disabled="!videoStore.metadata"
                         class="py-1 px-4 text-xs"
-                        >Jalankan AI Scan</GlowButton
+                        >Jalankan AI Scan</CButton
                     >
                 </div>
 
@@ -347,13 +345,13 @@
                 >
                     <div class="flex justify-between items-center mb-1 px-1">
                         <span
-                            class="text-[10px] text-[var(--color-text-muted)] font-bold uppercase"
+                            class="text-[10px] text-secondary font-bold uppercase"
                             >{{ videoStore.metadata.ai_segments.length }} Klip
                             Ditemukan</span
                         >
                         <button
                             @click="toggleSelectAll('ai')"
-                            class="text-[10px] text-[var(--color-text-main)] hover:text-[var(--color-text-main)] transition-colors"
+                            class="text-[10px] text-base-content hover:text-base-content transition-colors"
                         >
                             Toggle Select All
                         </button>
@@ -366,7 +364,7 @@
                             videoStore.currentTime = segment.start;
                             videoStore.selectedSegment = segment;
                         "
-                        class="flex items-start gap-3 p-3 rounded-lg border border-[var(--color-subtle)] bg-black/20 hover:bg-black/40 cursor-pointer group transition-colors"
+                        class="flex items-start gap-3 p-3 rounded-none border border-[var(--color-subtle)] bg-base-300/20 hover:bg-base-300/40 cursor-pointer group transition-colors"
                     >
                         <div class="pt-0.5">
                             <label
@@ -379,7 +377,7 @@
                                     class="peer sr-only"
                                 />
                                 <div
-                                    class="w-4 h-4 border-2 border-gray-500 rounded peer-checked:bg-gray-200 dark:bg-gray-800 peer-checked:border-[var(--color-accent)] transition-all flex items-center justify-center"
+                                    class="w-4 h-4 border-2 border-gray-500 rounded peer-checked:bg-base-300 peer-checked:border-[var(--color-accent)] transition-all flex items-center justify-center"
                                 >
                                     <IconCheck
                                         :class="
@@ -387,7 +385,7 @@
                                                 ? 'opacity-100'
                                                 : 'opacity-0'
                                         "
-                                        class="w-3 h-3 text-black"
+                                        class="w-3 h-3 text-base-content"
                                     />
                                 </div>
                             </label>
@@ -395,18 +393,18 @@
                         <div class="flex-1 min-w-0">
                             <div class="flex justify-between items-center mb-1">
                                 <span
-                                    class="text-xs font-bold text-[var(--color-text-main)] group-hover:text-[var(--color-text-muted)] transition-colors"
+                                    class="text-xs font-bold text-base-content group-hover:text-secondary transition-colors"
                                     >AI Klip #{{ idx + 1 }}</span
                                 >
                                 <span
-                                    class="text-[10px] font-mono text-[var(--color-text-muted)] bg-white/5 px-1.5 rounded border border-white/10"
+                                    class="text-[10px] font-mono text-secondary bg-base-100/10 px-1.5 rounded border border-neutral/20"
                                 >
                                     {{ formatDuration(segment.start) }} -
                                     {{ formatDuration(segment.end) }}
                                 </span>
                             </div>
                             <div
-                                class="text-[10px] text-[var(--color-text-muted)] line-clamp-2"
+                                class="text-[10px] text-secondary line-clamp-2"
                             >
                                 {{ segment.reason || "Momen menarik" }}
                             </div>
@@ -422,9 +420,9 @@
                     class="absolute inset-0 z-10 bg-[var(--color-surface)]/80 backdrop-blur-sm flex flex-col items-center justify-center"
                 >
                     <IconLoader
-                        class="w-6 h-6 animate-spin text-[var(--color-text-main)] mb-2"
+                        class="w-6 h-6 animate-spin text-base-content mb-2"
                     />
-                    <span class="text-xs text-[var(--color-text-muted)]"
+                    <span class="text-xs text-secondary"
                         >Mencari momen...</span
                     >
                 </div>
@@ -434,18 +432,18 @@
                         !videoStore.metadata?.segments ||
                         videoStore.metadata.segments.length === 0
                     "
-                    class="flex-1 flex flex-col items-center justify-center text-center gap-3 opacity-80 py-6 text-[var(--color-text-muted)]"
+                    class="flex-1 flex flex-col items-center justify-center text-center gap-3 opacity-80 py-6 text-secondary"
                 >
                     <IconTrending class="w-8 h-8" />
                     <p class="text-xs">
                         Klik <b>Scan Heatmap</b> untuk menganalisis retensi
                         penonton dan mendapatkan klip terbaik.
                     </p>
-                    <GlowButton
+                    <CButton variant="primary" 
                         @click="handleScanHeatmap"
                         :disabled="!videoStore.metadata"
                         class="py-1 px-4 text-xs"
-                        >Jalankan Scan Heatmap</GlowButton
+                        >Jalankan Scan Heatmap</CButton
                     >
                 </div>
 
@@ -455,13 +453,13 @@
                 >
                     <div class="flex justify-between items-center mb-1 px-1">
                         <span
-                            class="text-[10px] text-[var(--color-text-muted)] font-bold uppercase"
+                            class="text-[10px] text-secondary font-bold uppercase"
                             >{{ videoStore.metadata.segments.length }} Klip
                             Ditemukan</span
                         >
                         <button
                             @click="toggleSelectAll('heatmap')"
-                            class="text-[10px] text-[var(--color-text-main)] hover:text-[var(--color-text-main)] transition-colors"
+                            class="text-[10px] text-base-content hover:text-base-content transition-colors"
                         >
                             Toggle Select All
                         </button>
@@ -480,7 +478,7 @@
                     />
                 </div>
             </div>
-        </BentoCard>
+        </div>
     </div>
 </template>
 
@@ -489,8 +487,8 @@ import { onMounted, computed } from "vue";
 import { useVideoStore } from "../../stores/video";
 import { useSettingsStore } from "../../stores/settings";
 import { isReactionCompilation } from "../../constants/compilation";
-import BentoCard from "../BentoCard.vue";
-import GlowButton from "../GlowButton.vue";
+import CCard from "../CCard.vue";
+
 import ScanResultCard from "./ScanResultCard.vue";
 
 defineProps<{
@@ -604,5 +602,7 @@ const formatUploadDate = (yyyymmdd: string) => {
     background: rgba(255, 255, 255, 0.2);
 }
 </style>
+
+
 
 

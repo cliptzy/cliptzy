@@ -3,7 +3,7 @@ import { computed, ref, onMounted } from "vue";
 import { useRoute } from "vue-router";
 
 import { invoke } from "@tauri-apps/api/core";
-import MainLayout from "./layouts/MainLayout.vue";
+import AppShell from "./components/AppShell.vue";
 import BlankLayout from "./layouts/BlankLayout.vue";
 
 const route = useRoute();
@@ -34,20 +34,20 @@ const closeApp = async () => {
 };
 
 const layout = computed(() => {
-    return route.name === "login" ? BlankLayout : MainLayout;
+    return route.name === "login" ? BlankLayout : AppShell;
 });
 </script>
 
 <template>
     <div
         v-if="specs && !specs.meets_requirements"
-        class="fixed inset-0 z-[10000] bg-black/60 backdrop-blur-md flex items-center justify-center p-6"
+        class="fixed inset-0 z-[10000] bg-base-100/90 backdrop-blur-md flex items-center justify-center p-6"
     >
         <div
-            class="bg-base-200 rounded-[2rem] p-8 max-w-md w-full shadow-lg"
+            class="bg-base-200 rounded-none p-8 max-w-md w-full shadow-lg"
         >
             <div
-                class="flex items-center justify-center w-16 h-16 rounded-[1.5rem] bg-error/10 text-error mb-6 mx-auto"
+                class="flex items-center justify-center w-16 h-16 rounded-none bg-error/10 text-error mb-6 mx-auto"
             >
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -76,7 +76,7 @@ const layout = computed(() => {
             </p>
 
             <div
-                class="bg-base-100 rounded-2xl p-4 mb-6"
+                class="bg-base-100 rounded-none p-4 mb-6 border border-neutral"
             >
                 <ul class="space-y-2">
                     <li
@@ -92,7 +92,7 @@ const layout = computed(() => {
 
             <button
                 @click="closeApp"
-                class="w-full py-3 bg-error hover:bg-error/80 text-error-content font-medium rounded-full transition-colors duration-300"
+                class="w-full py-3 bg-error hover:bg-error/80 text-error-content font-medium rounded-none transition-colors duration-150 active:scale-[0.97]"
             >
                 Keluar dari Aplikasi
             </button>
@@ -103,3 +103,5 @@ const layout = computed(() => {
         <component :is="layout" />
     </div>
 </template>
+
+

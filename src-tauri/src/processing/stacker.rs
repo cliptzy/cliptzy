@@ -54,6 +54,8 @@ pub async fn stack_video(
         .arg(concat_file_path)
         .arg("-c")
         .arg("copy")
+        .arg("-movflags")
+        .arg("+faststart")
         .arg(output_path);
         
     log::info!("FFmpeg Stacker Command: {:?}", cmd);

@@ -1,5 +1,5 @@
 <template>
-  <div class="h-full flex flex-col gap-6 w-full max-w-7xl mx-auto">
+  <div class="h-full flex flex-col w-full mx-auto border-l border-neutral">
     <!-- Header / Stats -->
     <StatsOverview />
 
@@ -12,3 +12,5 @@
 import StatsOverview from '../components/dashboard/StatsOverview.vue';
 import ActivityGrid from '../components/dashboard/ActivityGrid.vue';
 </script>
+
+
