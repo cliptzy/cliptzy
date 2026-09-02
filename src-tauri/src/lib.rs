@@ -100,6 +100,7 @@ pub fn run() {
             commands::video::list_broll_assets,
             commands::video::import_broll_file,
             commands::video::delete_broll_file,
+            commands::ai::fetch_openai_models,
             commands::auth::login_with_google,
             commands::auth::logout,
             commands::auth::get_user_id,

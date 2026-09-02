@@ -648,7 +648,7 @@ impl From<CliptzyError> for String {
   }
   ```
 
-- [ ] Implementasi per crop mode (dalam urutan prioritas): *(Catatan: Saat ini baru DefaultCrop dan FullCrop yang diimplementasikan)*
+- [x] Implementasi per crop mode (dalam urutan prioritas): *(Catatan: Semua mode utama telah diimplementasikan dalam bentuk strategi modular di folder `cropper/`)*
 
   1. **`DefaultCrop`** — Scale to cover + center crop
      - [x] Paling simpel, test pertama kali
@@ -666,25 +666,32 @@ impl From<CliptzyError> for String {
      - [x] Keyframe simplification (max 85 terms untuk AST limit FFmpeg)
 
   5. **`SplitFaceCrop`** — Top center + bottom dynamic face
-     - [ ] Kombinasi split + face tracking
+     - [x] Kombinasi split + face tracking
 
   6. **`FullFaceCrop`** — Top gameplay + bottom face + blurred bg
-     - [ ] Paling advanced split mode
+     - [x] Paling advanced split mode
 
   7. **`MultiFaceCrop`** — Podcast layout (2 faces + full)
-     - [ ] Butuh `get_two_faces_normalized_centers()`
+     - [x] Butuh `get_two_faces_normalized_centers()` (diimplementasikan di `tracker.rs`)
 
   8. **`SplitBrollCrop`** — Top main + bottom random B-roll
-     - [ ] Butuh asset manager untuk B-roll files
+     - [x] Butuh asset manager untuk B-roll files (diimplementasikan di `broll_manager.rs`)
 
-- [ ] Factory function: *(Catatan: Sudah ada tapi hanya mendukung 'default' dan 'full')*
+  9. **`PassthroughCrop`** — No crop
+     - [x] Mempertahankan resolusi asli video tanpa crop.
+
+- [x] Factory function: *(Catatan: Sudah diperbarui untuk mendukung seluruh mode secara dinamis)*
   ```rust
   pub fn create_crop_strategy(mode: &str) -> Box<dyn CropStrategy> {
       match mode {
+          "none" => Box::new(PassthroughCrop),
           "default" => Box::new(DefaultCrop),
           "center_face" => Box::new(CenterFaceCrop),
-          "split_left" => Box::new(SplitLeftCrop),
-          // ...
+          "split_face" => Box::new(SplitFaceCrop),
+          "multi_face" => Box::new(MultiFaceCrop),
+          "split_broll" => Box::new(SplitBrollCrop),
+          "full" => Box::new(FullCrop),
+          "full_face" => Box::new(FullFaceCrop),
           _ => Box::new(DefaultCrop),
       }
   }

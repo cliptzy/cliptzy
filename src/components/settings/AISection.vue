@@ -88,25 +88,44 @@
           />
         </div>
         <div class="flex flex-col gap-1.5">
-          <span class="text-[10px] text-[var(--color-text-muted)] uppercase font-bold tracking-widest">Base URL (opsional)</span>
+          <span class="text-[10px] text-[var(--color-text-muted)] uppercase font-bold tracking-widest">Base URL</span>
           <input
             v-model="settings.config.ai.openai_base_url"
             type="text"
-            placeholder="https://api.openai.com/v1"
+            placeholder="https://api.openai.com"
             class="w-full bg-white/60 dark:bg-black/30 border-none rounded-2xl p-3 text-sm font-bold text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] shadow-sm"
           />
         </div>
         <div class="flex flex-col gap-1.5">
-          <span class="text-[10px] text-[var(--color-text-muted)] uppercase font-bold tracking-widest">Model OpenAI</span>
-          <select
-            v-model="settings.config.ai.openai_model"
-            class="w-full bg-white/60 dark:bg-black/30 border-none rounded-2xl p-3 text-sm font-bold text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] cursor-pointer shadow-sm"
-          >
-            <option v-for="m in OPENAI_MODELS" :key="m" :value="m">{{ m }}</option>
-            <option v-if="!OPENAI_MODELS.includes(settings.config.ai.openai_model as any)" :value="settings.config.ai.openai_model">
-              {{ settings.config.ai.openai_model }} (kustom)
-            </option>
-          </select>
+          <span class="text-[10px] text-[var(--color-text-muted)] uppercase font-bold tracking-widest">Model</span>
+          <div class="flex items-end gap-2">
+            <select
+              v-model="settings.config.ai.openai_model"
+              :disabled="!openaiModelsLoaded || isLoadingOpenaiModels"
+              class="flex-1 bg-white/60 dark:bg-black/30 border-none rounded-2xl p-3 text-sm font-bold text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] cursor-pointer shadow-sm disabled:opacity-50"
+            >
+              <option v-if="isLoadingOpenaiModels" value="" disabled>Loading models...</option>
+              <option v-else-if="!openaiModelsLoaded" value="" disabled>Enter key + refresh to load</option>
+              <option v-else-if="openaiModelsLoaded && openaiModels.length === 0" value="" disabled>No models found</option>
+              <option v-for="m in openaiModels" :key="m" :value="m">{{ m }}</option>
+              <option v-if="openaiModelsLoaded && !openaiModels.includes(settings.config.ai.openai_model)" :value="settings.config.ai.openai_model">{{ settings.config.ai.openai_model }} (kustom)</option>
+            </select>
+            <button
+              @click="loadOpenaiModels"
+              :disabled="isLoadingOpenaiModels || !settings.config.ai.openai_key || !settings.config.ai.openai_base_url"
+              class="shrink-0 px-3 py-2 bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/20 rounded-xl text-xs font-bold text-[var(--color-accent)] hover:bg-[var(--color-accent)]/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Refresh models from API"
+            >
+              <svg v-if="isLoadingOpenaiModels" class="animate-spin h-4 w-4 inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span v-else>Refresh</span>
+            </button>
+          </div>
+          <div v-if="openaiModelsError" class="mt-1 text-[10px] text-red-400">
+            {{ openaiModelsError }}
+          </div>
         </div>
       </template>
     </div>
@@ -164,11 +183,40 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue';
+import { invoke } from '@tauri-apps/api/core';
 import BentoCard from "../BentoCard.vue";
 import ToggleSwitch from "../ToggleSwitch.vue";
 import { useSettingsStore } from "../../stores/settings";
-import { AI_PROVIDERS, GEMINI_MODELS, OPENAI_MODELS, OLLAMA_MODELS } from "../../constants/aiModels";
+import { AI_PROVIDERS, GEMINI_MODELS, OLLAMA_MODELS } from "../../constants/aiModels";
 import IconSparkles from "~icons/lucide/sparkles";
 
 const settings = useSettingsStore();
+
+const openaiModels = ref<string[]>([]);
+const isLoadingOpenaiModels = ref(false);
+const openaiModelsLoaded = ref(false);
+const openaiModelsError = ref<string | null>(null);
+
+const loadOpenaiModels = async () => {
+  if (!settings.config.ai.openai_key || !settings.config.ai.openai_base_url) {
+    openaiModelsError.value = "Masukkan API key dan base URL terlebih dahulu.";
+    return;
+  }
+  isLoadingOpenaiModels.value = true;
+  openaiModelsError.value = null;
+  openaiModelsLoaded.value = false;
+  try {
+        const models: string[] = await invoke('fetch_openai_models', {
+      baseUrl: settings.config.ai.openai_base_url,
+      apiKey: settings.config.ai.openai_key,
+    });
+    openaiModels.value = models;
+    openaiModelsLoaded.value = true;
+  } catch (e: any) {
+    openaiModelsError.value = String(e) || "Gagal memuat model.";
+  } finally {
+    isLoadingOpenaiModels.value = false;
+  }
+};
 </script>

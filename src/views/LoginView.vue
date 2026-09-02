@@ -15,6 +15,17 @@ const handleLogin = async () => {
     router.push('/');
   }
 };
+
+const handleOfflineLogin = () => {
+  auth.$patch({
+    isLoggedIn: true,
+    email: 'offline@cliptzy.com',
+    displayName: 'Offline User',
+    avatarUrl: null,
+    loginError: null
+  });
+  router.push('/');
+};
 </script>
 
 <template>
@@ -68,6 +79,10 @@ const handleLogin = async () => {
           </svg>
           <span class="text-[var(--color-text-main)]">Establishing Connection...</span>
         </template>
+      </button>
+
+      <button @click="handleOfflineLogin" :disabled="isLoggingIn" class="w-full mt-4 relative flex justify-center items-center gap-3 py-4 px-6 border border-[var(--color-border-subtle)] rounded-xl text-sm font-semibold bg-[var(--color-base)] hover:border-[var(--color-accent)] hover:text-[var(--color-text-main)] text-[var(--color-text-muted)] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed group overflow-hidden">
+        Continue in Offline Mode
       </button>
 
       <!-- Error State -->

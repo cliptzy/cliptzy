@@ -349,3 +349,15 @@ Sebelum menulis kode, AI Model WAJIB menjawab pertanyaan berikut:
   3. Payload `clip_video` dari `TimelinePanel.vue` (snake_case) cocok dengan `ClipPayload` Rust.
   4. Tauri v2 otomatis memetakan camelCase JS ↔ snake_case Rust untuk argumen command (`videoUrl` → `video_url`, dll.).
   5. Event `clip-progress` didengarkan `GlobalStatusBar.vue` — progres render real-time tetap berfungsi.
+
+### 4.31. Implementasi Lanjutan Strategy Cropper & B-Roll UI
+
+- **Konteks**: Telah dilakukan penambahan berbagai mode pemotongan video (*crop modes*) tingkat lanjut seperti `SplitFaceCrop`, `FullFaceCrop`, `MultiFaceCrop`, `SplitBrollCrop`, dan `PassthroughCrop` tanpa ada pembaharuan dokumentasi yang memadai sebelumnya.
+- **Backend**:
+  1. Penambahan file logika modul di `processing/cropper/` dan abstraksi factory `create_crop_strategy`.
+  2. Implementasi `broll_manager.rs` untuk memilih klip stok latar secara acak dari direktori B-roll.
+  3. Modifikasi fungsi `get_two_faces_normalized_centers` pada `face/tracker.rs` khusus untuk memfasilitasi kebutuhan podcast dua arah (`MultiFaceCrop`).
+- **Frontend**:
+  1. Pembuatan `BrollAssetsSection.vue` dalam layar *Settings* (disinkronisasi ke PINIA `broll_dir`).
+  2. Ekstraksi spesifikasi metadata *crop mode* (`requiresFaces`, `requiresBroll`, icon, deskripsi) ke `src/constants/cropModes.ts`.
+  3. Modifikasi `InspectorPanel.vue` guna memunculkan pesan peringatan UI dinamis tergantung syarat tiap mode.

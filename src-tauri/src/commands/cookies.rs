@@ -4,10 +4,16 @@ use std::time::{SystemTime, UNIX_EPOCH};
 pub async fn copy_cookies_file(source_path: String) -> Result<String, String> {
     let app_dir = crate::paths::app_data_dir();
     let cred_dir = app_dir.join("cred");
-    std::fs::create_dir_all(&cred_dir).map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(&cred_dir).map_err(|e| {
+        log::error!("Gagal membuat folder cred: {}", e);
+        e.to_string()
+    })?;
 
     let dest_path = cred_dir.join("cookies.txt");
-    std::fs::copy(&source_path, &dest_path).map_err(|e| e.to_string())?;
+    std::fs::copy(&source_path, &dest_path).map_err(|e| {
+        log::error!("Gagal menyalin cookies.txt: {}", e);
+        e.to_string()
+    })?;
 
     Ok(dest_path.to_string_lossy().to_string())
 }
@@ -31,11 +37,17 @@ pub async fn validate_cookies_file(cookies_path: String) -> Result<serde_json::V
 
     // Check 2 & 3: Read and parse cookies
     let content =
-        std::fs::read_to_string(path).map_err(|e| format!("Gagal membaca file cookies: {}", e))?;
+        std::fs::read_to_string(path).map_err(|e| {
+            log::error!("Gagal membaca file cookies: {}", e);
+            format!("Gagal membaca file cookies: {}", e)
+        })?;
 
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .map_err(|e| e.to_string())?
+        .map_err(|e| {
+            log::error!("System time error: {}", e);
+            e.to_string()
+        })?
         .as_secs();
 
     let youtube_domains = [".youtube.com", ".google.com", "youtube.com", "google.com"];
@@ -152,7 +164,10 @@ pub async fn test_youtube_cookies(browser_name: String) -> Result<serde_json::Va
     let output = cmd
         .output()
         .await
-        .map_err(|e| format!("Gagal menjalankan yt-dlp: {}", e))?;
+        .map_err(|e| {
+            log::error!("Gagal menjalankan yt-dlp: {}", e);
+            format!("Gagal menjalankan yt-dlp: {}", e)
+        })?;
 
     if output.status.success() {
         Ok(serde_json::json!({

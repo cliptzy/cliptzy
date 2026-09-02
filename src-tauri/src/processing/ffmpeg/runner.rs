@@ -10,6 +10,7 @@ pub struct PipelineStage {
 impl PipelineStage {
     pub fn new(name: &str, mut cmd: tokio::process::Command) -> Self {
         cmd.stdin(Stdio::null());
+        cmd.stderr(Stdio::piped());
         Self {
             name: name.to_string(),
             cmd,
@@ -22,6 +23,23 @@ impl PipelineStage {
             message: format!("Gagal spawn proses {}: {}", self.name, e),
         })?;
 
+        let stderr = child.stderr.take();
+        let stderr_handle = if let Some(stderr) = stderr {
+            tokio::spawn(async move {
+                use tokio::io::AsyncReadExt;
+                let mut buffer = Vec::new();
+                let mut reader = tokio::io::BufReader::new(stderr);
+                let _ = reader.read_to_end(&mut buffer).await;
+                let mut s = String::from_utf8_lossy(&buffer).into_owned();
+                if s.len() > 4000 {
+                    s = s[s.len() - 4000..].to_string();
+                }
+                s
+            })
+        } else {
+            tokio::spawn(async { String::new() })
+        };
+
         tokio::select! {
             status = child.wait() => {
                 let exit_status = status.map_err(|e| CliptzyError::FFmpeg {
@@ -29,10 +47,12 @@ impl PipelineStage {
                     message: format!("Gagal wait proses {}: {}", self.name, e),
                 })?;
                 
+                let stderr_output = stderr_handle.await.unwrap_or_default();
+
                 if !exit_status.success() {
                     return Err(CliptzyError::FFmpeg {
                         code: exit_status.code().unwrap_or(-1),
-                        message: format!("Proses {} gagal", self.name),
+                        message: format!("Proses {} gagal: {}", self.name, stderr_output),
                     });
                 }
                 Ok(())

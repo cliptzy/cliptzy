@@ -83,7 +83,7 @@ Halaman masuk yang memukau dan berorientasi langsung pada aksi.
 Antarmuka inti yang dirancang seperti software NLE Nodal, namun disederhanakan.
 
 - [x] **Layout Studio (3-Pane Spatial Split)**
-  - **Kiri (Inspector)**: Pengaturan Cepat (Mode Crop, AI Process, Style Teks).
+  - **Kiri (Inspector)**: Pengaturan Cepat (Mode Crop, AI Process, Style Teks). Termasuk peringatan dinamis saat mode yang dipilih membutuhkan aset B-Roll atau Face Tracking.
   - **Tengah (Stage)**: Video Player / Preview Area interaktif dengan orientasi potret.
   - **Kanan (Source & Segments)**: Input URL, Scan Heatmap/AI, dan Daftar Segmen Terpilih.
   - **Bawah (Timeline)**: Track visual untuk video, highlight AI, dan subtitle.
@@ -109,6 +109,8 @@ Tampilan pengaturan yang bersih bak panel kontrol spacecraft.
 - [x] **Storage & Cache Manager**
   - Visualisasi sisa penyimpanan dalam bentuk *circular progress*.
   - Tombol satu klik untuk membersihkan temporary files FFmpeg.
+- [x] **B-Roll & Assets Manager**
+  - Tampilan manajemen path khusus untuk folder stok video B-Roll (`BrollAssetsSection.vue`).
 
 ---
 

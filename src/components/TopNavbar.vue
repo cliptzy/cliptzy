@@ -128,8 +128,8 @@ const toggleDarkMode = () => {
 };
 
 const onClickOutside = (e: MouseEvent) => {
-  const el = studioMenuRef.value as unknown as HTMLElement;
-  if (el && !el.contains(e.target as Node)) {
+  const el = studioMenuRef.value;
+  if (el instanceof HTMLElement && !el.contains(e.target as Node)) {
     studioMenuOpen.value = false;
   }
 };

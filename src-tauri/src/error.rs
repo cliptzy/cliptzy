@@ -43,9 +43,9 @@ pub enum CliptzyError {
     SerdeJson(#[from] serde_json::Error),
 }
 
-// Untuk Tauri commands, convert ke String
 impl From<CliptzyError> for String {
     fn from(e: CliptzyError) -> String {
+        log::error!("Error converted to String: {:?}", e);
         e.to_string()
     }
 }
@@ -55,6 +55,7 @@ impl serde::Serialize for CliptzyError {
     where
         S: serde::Serializer,
     {
+        log::error!("Command Error: {:?}", self);
         serializer.serialize_str(&self.to_string())
     }
 }

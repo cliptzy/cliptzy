@@ -78,7 +78,10 @@ pub async fn get_output_folder_size() -> Result<f64, String> {
             let gb = size as f64 / (1024.0 * 1024.0 * 1024.0);
             Ok(gb)
         }
-        Err(e) => Err(e.to_string()),
+        Err(e) => {
+            log::error!("Gagal menghitung ukuran folder output: {}", e);
+            Err(e.to_string())
+        }
     }
 }
 
@@ -88,12 +91,16 @@ pub async fn clean_output_folder() -> Result<(), String> {
 
     if output_dir.exists() {
         if let Err(e) = std::fs::remove_dir_all(&output_dir) {
-            return Err(format!("Gagal membersihkan folder output: {}", e));
+            let msg = format!("Gagal membersihkan folder output: {}", e);
+            log::error!("{}", msg);
+            return Err(msg);
         }
     }
 
     if let Err(e) = std::fs::create_dir_all(&output_dir) {
-        return Err(format!("Gagal membuat ulang folder output: {}", e));
+        let msg = format!("Gagal membuat ulang folder output: {}", e);
+        log::error!("{}", msg);
+        return Err(msg);
     }
 
     Ok(())
