@@ -50,6 +50,7 @@ impl ClipVideoUseCase {
         let crop_out_config = OutputConfig {
             hw_accel: hw_accel.clone(),
             debug_ass_path,
+            broll_dir: self.ctx.config.broll_dir.clone(),
             ..OutputConfig::default()
         };
 
@@ -117,7 +118,7 @@ impl ClipVideoUseCase {
         source_video: &Path,
     ) -> Option<Vec<crate::face::models::FaceKeyframe>> {
         // Determine which crop modes need face tracking.
-        let needs_tracking = matches!(payload.crop_mode.as_str(), "full_face" | "center_face" | "multi_face");
+        let needs_tracking = matches!(payload.crop_mode.as_str(), "full_face" | "center_face" | "multi_face" | "split_face");
         if !needs_tracking {
             return None;
         }

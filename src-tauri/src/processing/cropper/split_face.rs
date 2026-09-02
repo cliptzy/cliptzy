@@ -1,6 +1,5 @@
 use super::{
-    apply_debug_ass, finish_crop_builder, generate_dynamic_crop_expr, CropStrategy,
-    OutputConfig,
+    apply_debug_ass, finish_crop_builder, generate_dynamic_crop_expr, CropStrategy, OutputConfig,
 };
 use crate::error::CliptzyError;
 use crate::face::models::FaceKeyframe;
@@ -43,11 +42,17 @@ impl CropStrategy for SplitFaceCrop {
         let scale = FilterNode::new("scale")
             .param(
                 "w",
-                &format!("'max(iw*{}/ih,{})'", output_config.height, output_config.width),
+                &format!(
+                    "'max(iw*{}/ih,{})'",
+                    output_config.height, output_config.width
+                ),
             )
             .param(
                 "h",
-                &format!("'max(ih*{}/iw,{})'", output_config.width, output_config.height),
+                &format!(
+                    "'max(ih*{}/iw,{})'",
+                    output_config.width, output_config.height
+                ),
             )
             .inputs(&[&input_v])
             .outputs(&["scaled"]);
@@ -56,8 +61,8 @@ impl CropStrategy for SplitFaceCrop {
         let top_crop = FilterNode::new("crop")
             .param("w", &output_config.width.to_string())
             .param("h", &(output_config.height / 2).to_string())
-            .param("x", "0")
-            .param("y", "0")
+            .param("x", &format!("(iw-{})/2", output_config.width))
+            .param("y", &format!("(ih-{})/2", output_config.height / 2))
             .inputs(&["scaled"])
             .outputs(&["top"]);
 
@@ -79,7 +84,7 @@ impl CropStrategy for SplitFaceCrop {
         // Stack the two halves vertically.
         let vstack = FilterNode::new("vstack")
             .inputs(&["top", "bottom"])
-            .outputs(&["stacked"]);
+            .outputs(&["outv"]);
 
         // Assemble graph.
         graph.add_node(scale);

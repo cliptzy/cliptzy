@@ -38,7 +38,7 @@ impl CropStrategy for SplitBrollCrop {
         
         // Apply debug ASS if configured
         let main_v = apply_debug_ass(&mut graph, "0:v", output_config);
-        let broll_v = apply_debug_ass(&mut graph, "1:v", output_config);
+        let broll_v = "1:v".to_string();
         
         // Calculate dimensions: split output vertically into 2 equal parts
         let half_height = output_config.height / 2; // 960px for 1920 total
