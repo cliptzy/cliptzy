@@ -98,6 +98,7 @@ pub fn run() {
             commands::video::list_broll_assets,
             commands::video::import_broll_file,
             commands::video::delete_broll_file,
+            commands::emotion::analyze_emotions,
             commands::ai::fetch_openai_models,
             commands::ai::ask_agent,
             commands::auth::login_with_google,

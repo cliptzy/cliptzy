@@ -35,6 +35,40 @@ impl EffectsManager {
         let mut rng = rand::rng();
         matching.choose(&mut rng).copied()
     }
+
+    pub fn get_effects_for_timeline(
+        &self,
+        timeline: &crate::analysis::fusion::EmotionTimeline,
+    ) -> Vec<ScheduledEffect> {
+        let mut scheduled = Vec::new();
+        // Keep track of the last effect to avoid spamming too many effects
+        let mut last_effect_time = -10.0;
+
+        for seg in &timeline.segments {
+            // Only add an effect if it has high confidence and minimum 5s gap
+            if seg.score > 0.6 && seg.start_time - last_effect_time > 5.0 {
+                let emo_str = format!("{:?}", seg.emotion).to_lowercase();
+
+                if let Some(effect) = self.get_effect(&emo_str) {
+                    scheduled.push(ScheduledEffect {
+                        effect: effect.clone(),
+                        start_time: seg.start_time,
+                        end_time: seg.end_time,
+                    });
+                    last_effect_time = seg.end_time;
+                }
+            }
+        }
+
+        scheduled
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScheduledEffect {
+    pub effect: VideoEffect,
+    pub start_time: f64,
+    pub end_time: f64,
 }
 
 impl Default for EffectsManager {

@@ -1,4 +1,5 @@
 pub mod audio;
+pub mod fusion;
 pub mod text;
 pub mod visual;
 pub mod voice;
@@ -6,7 +7,7 @@ pub mod voice;
 use serde::{Deserialize, Serialize};
 
 /// Standar klasifikasi emosi lintas-analyzer
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum EmotionLabel {
     Neutral,
     Happy,

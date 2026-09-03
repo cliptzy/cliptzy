@@ -139,6 +139,7 @@ impl Default for AppConfig {
             tiktok: TikTokConfig::default(),
             instagram: InstagramConfig::default(),
             compilation: CompilationConfig::default(),
+            emotion: EmotionConfig::default(),
         }
     }
 }

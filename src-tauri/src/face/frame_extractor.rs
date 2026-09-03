@@ -7,7 +7,18 @@ use tokio_util::sync::CancellationToken;
 pub struct ExtractedFrames {
     pub paths: Vec<PathBuf>,
     pub fps: f32,
-    _temp_dir: TempDir,
+    /// Owns the temporary directory so frame files persist for the lifetime
+    /// of this struct. Made `pub` so the face tracker cache can keep the
+    /// directory alive after extraction.
+    pub temp_dir: TempDir,
+}
+
+impl ExtractedFrames {
+    /// Returns true if the underlying temporary directory still exists on disk.
+    /// This is used by the frame cache to detect stale entries.
+    pub fn is_valid(&self) -> bool {
+        self.temp_dir.path().exists()
+    }
 }
 
 pub async fn extract_frames(
@@ -100,6 +111,6 @@ pub async fn extract_frames(
     Ok(ExtractedFrames {
         paths,
         fps,
-        _temp_dir: tmp_dir,
+        temp_dir: tmp_dir,
     })
 }

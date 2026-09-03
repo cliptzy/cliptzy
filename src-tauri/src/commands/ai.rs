@@ -63,10 +63,10 @@ pub async fn ask_agent(prompt: String) -> Result<String, CliptzyError> {
     log::info!("Agent processing prompt: {}", prompt);
     let config = crate::config::models::AppConfig::load().unwrap_or_default();
     let ai_provider = crate::ai::create_provider(&config.ai);
-    
+
     // Uji jalannya Tool AnalyzeTranscriptTool
     let tools = vec![crate::ai::tools::analyze::analyze_transcript_tool()];
-    
+
     match ai_provider.generate_with_tools(&prompt, tools, None).await {
         Ok(result) => Ok(result),
         Err(e) => Err(CliptzyError::AIProvider(format!("Agent error: {}", e))),

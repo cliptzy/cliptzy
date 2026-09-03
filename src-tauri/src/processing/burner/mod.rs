@@ -10,7 +10,7 @@ use std::path::Path;
 
 pub struct VideoBurnerConfig {
     pub ass_path: Option<String>,
-    pub vfx_overlay_path: Option<String>,
+    pub scheduled_effects: Vec<crate::processing::effects::ScheduledEffect>,
     pub normalize_audio: bool,
     pub config: Option<crate::transcription::models::SubtitleConfig>,
     pub watermark_path: Option<String>,
@@ -37,10 +37,19 @@ pub async fn burn_video_effects(
         final_v = subtitle::apply_subtitle(&mut graph, &final_v, debug_ass, &None);
     }
 
-    if let Some(vfx) = &config.vfx_overlay_path {
-        if !vfx.trim().is_empty() {
-            final_v = vfx::apply_vfx(&mut graph, &final_v, &mut input_idx);
-        }
+    let mut final_a = "0:a".to_string();
+
+    for effect in &config.scheduled_effects {
+        let (new_v, new_a) = vfx::apply_vfx(
+            &mut graph,
+            &final_v,
+            &final_a,
+            &mut input_idx,
+            effect.start_time,
+            effect.end_time,
+        );
+        final_v = new_v;
+        final_a = new_a;
     }
 
     if let Some(wm) = &config.watermark_path {
@@ -54,9 +63,8 @@ pub async fn burn_video_effects(
         }
     }
 
-    let mut final_a = "0:a".to_string();
     if config.normalize_audio {
-        final_a = audio::apply_normalization(&mut graph);
+        final_a = audio::apply_normalization(&mut graph, &final_a);
     }
 
     let hw_accel = &config.hw_accel;
@@ -68,10 +76,11 @@ pub async fn burn_video_effects(
 
     builder = builder.input_path(input_path.to_path_buf());
 
-    if let Some(vfx_path) = &config.vfx_overlay_path {
-        if !vfx_path.trim().is_empty() {
-            builder = builder.input_path(Path::new(vfx_path).to_path_buf());
-        }
+    for effect in &config.scheduled_effects {
+        let vfx_path = crate::paths::app_data_dir()
+            .join("assets")
+            .join(&effect.effect.file);
+        builder = builder.input_path(vfx_path);
     }
 
     if let Some(wm_path) = &config.watermark_path {

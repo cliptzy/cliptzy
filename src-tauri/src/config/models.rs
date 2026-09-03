@@ -114,6 +114,7 @@ pub struct AppConfig {
     pub ui_locked: bool,
     pub broll_dir: String,
 
+    pub emotion: EmotionConfig,
     pub upload_interval: f64,
     pub hw_accel: String,
     pub debug_mode: bool,
@@ -176,5 +177,27 @@ impl AppConfig {
         std::fs::write(&config_path, content)?;
         log::info!("Konfigurasi berhasil disimpan.");
         Ok(())
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(default)]
+pub struct EmotionConfig {
+    pub enabled: bool,
+    pub enable_visual: bool,
+    pub enable_audio: bool,
+    pub enable_voice: bool,
+    pub enable_text: bool,
+}
+
+impl Default for EmotionConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            enable_visual: true,
+            enable_audio: true,
+            enable_voice: true,
+            enable_text: true,
+        }
     }
 }

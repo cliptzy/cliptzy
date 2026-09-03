@@ -93,11 +93,32 @@ pub async fn try_generate_emotion_debug_ass(
     Some(output_ass_path.to_path_buf())
 }
 
+fn get_emotion_color(
+    time: f64,
+    timeline: Option<&crate::analysis::fusion::EmotionTimeline>,
+    default_color: &str,
+) -> String {
+    if let Some(tl) = timeline {
+        for seg in &tl.segments {
+            if time >= seg.start_time && time <= seg.end_time {
+                return match seg.emotion {
+                    crate::analysis::EmotionLabel::Happy => "&H0000FFFF&".to_string(),
+                    crate::analysis::EmotionLabel::Angry => "&H000000FF&".to_string(),
+                    crate::analysis::EmotionLabel::Sad => "&H00FF0000&".to_string(),
+                    _ => default_color.to_string(),
+                };
+            }
+        }
+    }
+    default_color.to_string()
+}
+
 pub fn generate_ass_file(
     segments: &[TranscriptionSegment],
     output_path: &Path,
     config: &SubtitleConfig,
     resolution: (u32, u32),
+    emotion_timeline: Option<&crate::analysis::fusion::EmotionTimeline>,
 ) -> Result<(), CliptzyError> {
     let (width, height) = resolution;
 
@@ -163,16 +184,21 @@ pub fn generate_ass_file(
                             w_text = w_text.to_uppercase();
                         }
                         if i == j {
+                            let dynamic_color = get_emotion_color(
+                                word.start,
+                                emotion_timeline,
+                                &config.active_word_color,
+                            );
                             if config.animation == "hormozi" {
                                 text_parts.push(format!(
                                     "{{\\c{}}}{}{{\\c{}}}",
-                                    config.active_word_color, w_text, config.primary_color
+                                    dynamic_color, w_text, config.primary_color
                                 ));
                             } else {
                                 // karaoke
                                 text_parts.push(format!(
                                     "{{\\c{}}}{{\\k10}}{}{{\\c{}}}",
-                                    config.active_word_color, w_text, config.primary_color
+                                    dynamic_color, w_text, config.primary_color
                                 ));
                             }
                         } else {

@@ -1,13 +1,21 @@
 use super::detector::FaceDetectorWrapper;
-use super::frame_extractor::extract_frames;
+use super::frame_extractor::{extract_frames, ExtractedFrames};
 use super::tracker_strategy::track_faces_in_frames;
 use crate::error::CliptzyError;
 use crate::face::models::NormalizedCenter;
 use crate::orchestrator::pipeline::emit_progress;
 use image::{self, GenericImageView};
 use log::info;
+use std::collections::HashMap;
 use std::path::Path;
+use std::sync::{Arc, Mutex, OnceLock};
 use tokio_util::sync::CancellationToken;
+
+// Cache for extracted frames keyed by (video_path, tracking_mode, interval_sec)
+// This avoids re-extracting frames when the same parameters are used
+// Cache for extracted frames keyed by (video_path, tracking_mode, interval_sec)
+// This avoids re-extracting frames when the same parameters are used
+static FRAME_CACHE: OnceLock<Mutex<HashMap<String, Arc<ExtractedFrames>>>> = OnceLock::new();
 
 pub async fn get_face_keyframes(
     video_path: &Path,
@@ -28,6 +36,48 @@ pub async fn get_face_keyframes(
         video_path, tracking_mode
     );
 
+    // Create cache key from video path and parameters
+    let cache_key = format!(
+        "{}:{}:{}",
+        video_path.to_string_lossy(),
+        tracking_mode,
+        interval_sec
+    );
+
+    let cache = FRAME_CACHE.get_or_init(|| Mutex::new(HashMap::new()));
+
+    // Step 1: Check cache without holding the lock across an await.
+    // The lock guard MUST be dropped before any .await to satisfy the Send bound.
+    let cached: Option<Arc<ExtractedFrames>> = {
+        let guard = cache.lock().unwrap();
+        guard
+            .get(&cache_key)
+            .filter(|f| f.temp_dir.path().exists())
+            .cloned()
+    };
+
+    // Step 2: Resolve `extracted` from cache or extract fresh frames.
+    // `extract_frames` is an async call, so we must NOT hold a std::sync::MutexGuard
+    // across this await — tokio::sync::Mutex would also work, but std::sync is fine
+    // because we only hold the lock for synchronous lookups.
+    let extracted: Arc<ExtractedFrames> = match cached {
+        Some(cached_frames) => {
+            info!("Using cached extracted frames for {}", cache_key);
+            cached_frames
+        }
+        None => {
+            // Not in cache (or stale) — extract new frames. No lock held here.
+            let new_frames =
+                extract_frames(video_path, &tracking_mode, interval_sec, &cancel_token).await?;
+            let arc_frames = Arc::new(new_frames);
+            // Re-acquire the lock briefly to insert into cache.
+            let mut guard = cache.lock().unwrap();
+            guard.remove(&cache_key); // Drop any stale entry.
+            guard.insert(cache_key, Arc::clone(&arc_frames));
+            arc_frames
+        }
+    };
+
     let model_path = crate::ai::onnx::ensure_model_downloaded(
         "seeta_fd_frontal_v1.0.bin",
         "https://github.com/atomashpolskiy/rustface/raw/master/model/seeta_fd_frontal_v1.0.bin",
@@ -36,8 +86,6 @@ pub async fn get_face_keyframes(
     .map_err(CliptzyError::Internal)?;
 
     let mut detector = FaceDetectorWrapper::new(&model_path).map_err(CliptzyError::Internal)?;
-
-    let extracted = extract_frames(video_path, &tracking_mode, interval_sec, &cancel_token).await?;
 
     let (keyframes, analysis) = track_faces_in_frames(
         &extracted.paths,
@@ -169,11 +217,11 @@ pub async fn get_two_faces_normalized_centers(
         });
         let to_center = |d: &rustface::FaceInfo| {
             let rect = d.bbox();
-            // The SeetaFace detector's bounding box center often leans slightly to the left 
-            // of the actual facial features (nose/eyes) due to hair/ear inclusion. 
+            // The SeetaFace detector's bounding box center often leans slightly to the left
+            // of the actual facial features (nose/eyes) due to hair/ear inclusion.
             // We apply a 5% empirical shift to the right relative to the bounding box width.
             let adjusted_x = rect.x() as f32 + (rect.width() as f32 * 0.55);
-            
+
             NormalizedCenter {
                 cx: adjusted_x / w as f32,
                 cy: (rect.y() as f32 + rect.height() as f32 / 2.0) / h as f32,

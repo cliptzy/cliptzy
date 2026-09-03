@@ -62,9 +62,10 @@ impl AIProvider for OpenAIProvider {
     ) -> Result<String, CliptzyError> {
         let model = self.client.completion_model(&self.model);
 
-        let mut req = model.completion_request(prompt)
+        let mut req = model
+            .completion_request(prompt)
             .additional_params(serde_json::json!({ "stream": false }));
-        
+
         if !tools.is_empty() {
             req = req.tools(tools);
         }
@@ -73,8 +74,13 @@ impl AIProvider for OpenAIProvider {
         let response = match model.completion(request).await {
             Ok(res) => res,
             Err(e) => {
-                log::warn!("OpenAI request with tools failed: {}. Retrying without tools...", e);
-                let req_no_tools = self.client.completion_model(&self.model)
+                log::warn!(
+                    "OpenAI request with tools failed: {}. Retrying without tools...",
+                    e
+                );
+                let req_no_tools = self
+                    .client
+                    .completion_model(&self.model)
                     .completion_request(prompt)
                     .additional_params(serde_json::json!({ "stream": false }))
                     .build();

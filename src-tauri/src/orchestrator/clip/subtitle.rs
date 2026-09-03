@@ -59,9 +59,28 @@ impl ClipVideoUseCase {
         } else {
             None
         };
+        // Scheduled VFX effects based on Emotion timeline
+        let emotion_cache_path = crate::orchestrator::job_cache::cache_file(
+            &self.ctx.job_dir,
+            &format!("emotions_{}.json", idx),
+        );
+        let emotion_cache: Option<crate::orchestrator::clip::models::EmotionCacheEntry> =
+            crate::orchestrator::job_cache::read_json_cache(&emotion_cache_path).unwrap_or(None);
+
+        let mut scheduled_effects = Vec::new();
+        if let Some(cache) = emotion_cache {
+            let timeline = crate::analysis::fusion::EmotionTimeline {
+                segments: cache.segments,
+                dominant_emotion: crate::analysis::EmotionLabel::Neutral,
+                emotion_distribution: std::collections::HashMap::new(),
+            };
+            let effects_manager = crate::processing::effects::EffectsManager::new();
+            scheduled_effects = effects_manager.get_effects_for_timeline(&timeline);
+        }
+
         let burn_config = crate::processing::burner::VideoBurnerConfig {
             ass_path: ass_path_opt,
-            vfx_overlay_path: None,
+            scheduled_effects,
             normalize_audio: true,
             config: sub_config_opt,
             watermark_path,
@@ -139,11 +158,27 @@ impl ClipVideoUseCase {
                 &self.ctx.config.subtitle,
                 out_config.height,
             );
+            // Try to load emotion timeline if exists
+            let emotion_cache_path = crate::orchestrator::job_cache::cache_file(
+                &self.ctx.job_dir,
+                &format!("emotions_{}.json", idx),
+            );
+            let emotion_cache: Option<crate::orchestrator::clip::models::EmotionCacheEntry> =
+                crate::orchestrator::job_cache::read_json_cache(&emotion_cache_path)
+                    .unwrap_or(None);
+
+            let timeline = emotion_cache.map(|c| crate::analysis::fusion::EmotionTimeline {
+                segments: c.segments,
+                dominant_emotion: crate::analysis::EmotionLabel::Neutral, // Dummy
+                emotion_distribution: std::collections::HashMap::new(),
+            });
+
             crate::transcription::ass_writer::generate_ass_file(
                 &transcript,
                 &ass_path,
                 &sub_config,
                 (out_config.width, out_config.height),
+                timeline.as_ref(),
             )?;
             return Ok((ass_path.to_string_lossy().to_string(), sub_config));
         }

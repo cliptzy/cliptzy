@@ -30,20 +30,40 @@ impl VisualEmotionAnalyzer {
         &self,
         image: &image::DynamicImage,
     ) -> Result<(EmotionLabel, f32), CliptzyError> {
+        let results = self.run_batch_inference(&[image.clone()])?;
+        if let Some(probs) = results.first() {
+            Ok(Self::map_probs_to_emotion(probs))
+        } else {
+            Err(CliptzyError::Model("Empty result from inference".into()))
+        }
+    }
+
+    pub fn run_batch_inference(
+        &self,
+        images: &[image::DynamicImage],
+    ) -> Result<Vec<[f32; 7]>, CliptzyError> {
+        if images.is_empty() {
+            return Ok(Vec::new());
+        }
+
         let mut guard = self.model.get_session()?;
         let session = &mut *guard;
+        let batch_size = images.len();
 
-        // ViT expects 224x224 RGB
-        let resized = image.resize_exact(224, 224, image::imageops::FilterType::Triangle);
-        let rgb = resized.into_rgb8();
+        let mut input_tensor: Array4<f32> = Array::zeros((batch_size, 3, 224, 224));
 
-        let mut input_tensor: Array4<f32> = Array::zeros((1, 3, 224, 224));
-        for (x, y, pixel) in rgb.enumerate_pixels() {
-            // ViT Normalize: mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]
-            input_tensor[[0, 0, y as usize, x as usize]] = (pixel[0] as f32 / 255.0 - 0.5) / 0.5; // R
-            input_tensor[[0, 1, y as usize, x as usize]] = (pixel[1] as f32 / 255.0 - 0.5) / 0.5; // G
-            input_tensor[[0, 2, y as usize, x as usize]] = (pixel[2] as f32 / 255.0 - 0.5) / 0.5;
-            // B
+        for (b, image) in images.iter().enumerate() {
+            let resized = image.resize_exact(224, 224, image::imageops::FilterType::Triangle);
+            let rgb = resized.into_rgb8();
+            for (x, y, pixel) in rgb.enumerate_pixels() {
+                // ViT Normalize: mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]
+                input_tensor[[b, 0, y as usize, x as usize]] =
+                    (pixel[0] as f32 / 255.0 - 0.5) / 0.5; // R
+                input_tensor[[b, 1, y as usize, x as usize]] =
+                    (pixel[1] as f32 / 255.0 - 0.5) / 0.5; // G
+                input_tensor[[b, 2, y as usize, x as usize]] =
+                    (pixel[2] as f32 / 255.0 - 0.5) / 0.5; // B
+            }
         }
 
         let tensor = ort::value::Tensor::from_array(input_tensor)
@@ -61,19 +81,32 @@ impl VisualEmotionAnalyzer {
             .try_extract_tensor::<f32>()
             .map_err(|e| CliptzyError::Model(format!("Output error: {}", e)))?;
 
-        let logits = output_tensor;
+        let mut results = Vec::with_capacity(batch_size);
 
-        // Hitung softmax untuk mendapatkan probabilitas yang benar (0.0 - 1.0)
-        let max_logit = logits.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
-        let exp_sum: f32 = logits.iter().map(|&x| (x - max_logit).exp()).sum();
-        let softmax: Vec<f32> = logits
-            .iter()
-            .map(|&x| (x - max_logit).exp() / exp_sum)
-            .collect();
+        // Calculate softmax for each item in the batch
+        for b in 0..batch_size {
+            let mut logit_row = [0.0; 7];
+            for i in 0..7 {
+                logit_row[i] = output_tensor[b * 7 + i];
+            }
 
+            let max_logit = logit_row.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
+            let exp_sum: f32 = logit_row.iter().map(|&x| (x - max_logit).exp()).sum();
+
+            let mut probs = [0.0; 7];
+            for i in 0..7 {
+                probs[i] = (logit_row[i] - max_logit).exp() / exp_sum;
+            }
+            results.push(probs);
+        }
+
+        Ok(results)
+    }
+
+    pub fn map_probs_to_emotion(probs: &[f32; 7]) -> (EmotionLabel, f32) {
         let mut max_idx = 0;
-        let mut max_val = softmax[0];
-        for (i, &val) in softmax.iter().enumerate() {
+        let mut max_val = probs[0];
+        for (i, &val) in probs.iter().enumerate() {
             if val > max_val {
                 max_val = val;
                 max_idx = i;
@@ -93,7 +126,7 @@ impl VisualEmotionAnalyzer {
             _ => EmotionLabel::Unknown,
         };
 
-        Ok((emotion, max_val))
+        (emotion, max_val)
     }
 }
 

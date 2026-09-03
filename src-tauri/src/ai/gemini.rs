@@ -62,8 +62,15 @@ impl AIProvider for GeminiProvider {
         let response = match model.completion(request).await {
             Ok(res) => res,
             Err(e) => {
-                log::warn!("Gemini request with tools failed: {}. Retrying without tools...", e);
-                let req_no_tools = self.client.completion_model(&self.model).completion_request(prompt).build();
+                log::warn!(
+                    "Gemini request with tools failed: {}. Retrying without tools...",
+                    e
+                );
+                let req_no_tools = self
+                    .client
+                    .completion_model(&self.model)
+                    .completion_request(prompt)
+                    .build();
                 model.completion(req_no_tools).await.map_err(|e2| {
                     CliptzyError::AIProvider(format!("Gemini request error (fallback): {}", e2))
                 })?

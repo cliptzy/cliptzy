@@ -33,6 +33,14 @@ pub fn track_faces_in_frames(
     let force_detect_interval = (fps * 2.0) as isize;
     let mut analysis_segments = Vec::new();
 
+    struct CropData {
+        ts: f64,
+        bbox: crate::analysis::BoundingBox,
+        image: image::DynamicImage,
+    }
+    let mut crops_to_analyze = Vec::new();
+    let mut last_bbox_dims: Option<(f32, f32)> = None;
+
     for (i, path) in frame_paths.iter().enumerate() {
         if cancel_token.is_cancelled() {
             return Err(CliptzyError::Cancelled);
@@ -100,6 +108,34 @@ pub fn track_faces_in_frames(
                             last_cx = res.pos.0 / w as f32;
                             last_cy = res.pos.1 / h as f32;
                             raw_keyframes.push((ts, last_cx, last_cy));
+
+                            if visual_analyzer.is_some() {
+                                if let Some((bw, bh)) = last_bbox_dims {
+                                    let nx = res.pos.0 - bw * 0.55;
+                                    let ny = res.pos.1 - bh * 0.4;
+                                    let cropped = img.crop_imm(
+                                        nx.max(0.0) as u32,
+                                        ny.max(0.0) as u32,
+                                        bw as u32,
+                                        bh as u32,
+                                    );
+                                    let resized = cropped.resize_exact(
+                                        224,
+                                        224,
+                                        image::imageops::FilterType::Triangle,
+                                    );
+                                    crops_to_analyze.push(CropData {
+                                        ts: ts as f64,
+                                        bbox: crate::analysis::BoundingBox {
+                                            x: nx / w as f32,
+                                            y: ny / h as f32,
+                                            w: bw / w as f32,
+                                            h: bh / h as f32,
+                                        },
+                                        image: resized,
+                                    });
+                                }
+                            }
                         }
                     }
                 }
@@ -114,9 +150,8 @@ pub fn track_faces_in_frames(
                 area_a.cmp(&area_b)
             }) {
                 let bbox = largest.bbox();
+                last_bbox_dims = Some((bbox.width() as f32, bbox.height() as f32));
 
-                // The SeetaFace detector's bounding box center often leans slightly to the left 
-                // of the actual facial features. We apply a 5% empirical shift (0.55) to the right.
                 let px = bbox.x() as f32 + bbox.width() as f32 * 0.55;
                 let py = if tracking_mode == "cinematic" {
                     bbox.y() as f32 + bbox.height() as f32 * 0.4
@@ -133,28 +168,25 @@ pub fn track_faces_in_frames(
                 last_cy = py / h as f32;
                 raw_keyframes.push((ts, last_cx, last_cy));
 
-                if let Some(analyzer) = visual_analyzer {
+                if visual_analyzer.is_some() {
                     let cropped = img.crop_imm(
                         bbox.x().max(0) as u32,
                         bbox.y().max(0) as u32,
                         bbox.width().max(0) as u32,
                         bbox.height().max(0) as u32,
                     );
-
-                    if let Ok((emotion, score)) = analyzer.run_inference(&cropped) {
-                        analysis_segments.push(crate::analysis::AnalysisSegment {
-                            start_time: ts as f64,
-                            end_time: (ts as f64) + (1.0 / fps as f64),
-                            emotion,
-                            score,
-                            bounding_box: Some(crate::analysis::BoundingBox {
-                                x: bbox.x() as f32 / w as f32,
-                                y: bbox.y() as f32 / h as f32,
-                                w: bbox.width() as f32 / w as f32,
-                                h: bbox.height() as f32 / h as f32,
-                            }),
-                        });
-                    }
+                    let resized =
+                        cropped.resize_exact(224, 224, image::imageops::FilterType::Triangle);
+                    crops_to_analyze.push(CropData {
+                        ts: ts as f64,
+                        bbox: crate::analysis::BoundingBox {
+                            x: bbox.x() as f32 / w as f32,
+                            y: bbox.y() as f32 / h as f32,
+                            w: bbox.width() as f32 / w as f32,
+                            h: bbox.height() as f32 / h as f32,
+                        },
+                        image: resized,
+                    });
                 }
             } else {
                 prev_point = None;
@@ -166,6 +198,49 @@ pub fn track_faces_in_frames(
     }
 
     let keyframes = finalize_keyframes(raw_keyframes, tracking_mode, interval_sec, fps);
+
+    if let Some(analyzer) = visual_analyzer {
+        let mut all_probs = Vec::new();
+        // Batch size of 32
+        for chunk in crops_to_analyze.chunks(32) {
+            let images: Vec<_> = chunk.iter().map(|c| c.image.clone()).collect();
+            if let Ok(probs_batch) = analyzer.run_batch_inference(&images) {
+                all_probs.extend(probs_batch);
+            } else {
+                all_probs.extend(vec![[0.0; 7]; images.len()]);
+            }
+        }
+
+        let ema_alpha = 0.3_f32; // Smoothing factor
+        let mut smoothed_probs = [0.0_f32; 7];
+
+        for (i, probs) in all_probs.into_iter().enumerate() {
+            let data = &crops_to_analyze[i];
+
+            if i == 0 {
+                smoothed_probs = probs;
+            } else {
+                for j in 0..7 {
+                    smoothed_probs[j] =
+                        ema_alpha * probs[j] + (1.0 - ema_alpha) * smoothed_probs[j];
+                }
+            }
+
+            let (emotion, score) =
+                crate::analysis::visual::VisualEmotionAnalyzer::map_probs_to_emotion(
+                    &smoothed_probs,
+                );
+
+            analysis_segments.push(crate::analysis::AnalysisSegment {
+                start_time: data.ts,
+                end_time: data.ts + (1.0 / fps as f64),
+                emotion,
+                score,
+                bounding_box: Some(data.bbox.clone()),
+            });
+        }
+    }
+
     let opt_analysis = if visual_analyzer.is_some() {
         Some(analysis_segments)
     } else {
