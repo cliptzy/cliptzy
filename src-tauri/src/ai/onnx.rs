@@ -12,7 +12,11 @@ pub async fn ensure_model_downloaded(file_name: &str, url: &str) -> Result<PathB
     let model_path = model_dir.join(file_name);
 
     if !model_path.exists() {
-        log::info!("Model not found. Downloading {} to {:?}", file_name, model_path);
+        log::info!(
+            "Model not found. Downloading {} to {:?}",
+            file_name,
+            model_path
+        );
         let response = reqwest::get(url)
             .await
             .map_err(|e| format!("Download failed for {}: {}", file_name, e))?;

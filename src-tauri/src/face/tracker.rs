@@ -2,12 +2,12 @@ use super::detector::FaceDetectorWrapper;
 use super::frame_extractor::extract_frames;
 use super::tracker_strategy::track_faces_in_frames;
 use crate::error::CliptzyError;
-use log::info;
-use std::path::Path;
-use tokio_util::sync::CancellationToken;
 use crate::face::models::NormalizedCenter;
 use crate::orchestrator::pipeline::emit_progress;
 use image::{self, GenericImageView};
+use log::info;
+use std::path::Path;
+use tokio_util::sync::CancellationToken;
 
 pub async fn get_face_keyframes(
     video_path: &Path,
@@ -16,8 +16,13 @@ pub async fn get_face_keyframes(
     app_handle: Option<tauri::AppHandle>,
     cancel_token: CancellationToken,
     visual_analyzer: Option<&crate::analysis::visual::VisualEmotionAnalyzer>,
-) -> Result<(Vec<super::models::FaceKeyframe>, Option<Vec<crate::analysis::AnalysisSegment>>), CliptzyError>
-{
+) -> Result<
+    (
+        Vec<super::models::FaceKeyframe>,
+        Option<Vec<crate::analysis::AnalysisSegment>>,
+    ),
+    CliptzyError,
+> {
     info!(
         "Starting face keyframe extraction for {:?} with mode: {}",
         video_path, tracking_mode
@@ -30,11 +35,9 @@ pub async fn get_face_keyframes(
     .await
     .map_err(CliptzyError::Internal)?;
 
-    let mut detector =
-        FaceDetectorWrapper::new(&model_path).map_err(CliptzyError::Internal)?;
+    let mut detector = FaceDetectorWrapper::new(&model_path).map_err(CliptzyError::Internal)?;
 
-    let extracted =
-        extract_frames(video_path, &tracking_mode, interval_sec, &cancel_token).await?;
+    let extracted = extract_frames(video_path, &tracking_mode, interval_sec, &cancel_token).await?;
 
     let (keyframes, analysis) = track_faces_in_frames(
         &extracted.paths,
@@ -73,7 +76,13 @@ pub async fn get_two_faces_normalized_centers(
     app_handle: Option<tauri::AppHandle>,
     cancel_token: CancellationToken,
     _visual_analyzer: Option<&crate::analysis::visual::VisualEmotionAnalyzer>,
-) -> Result<(crate::face::models::MultiFaceData, Option<Vec<crate::analysis::AnalysisSegment>>), CliptzyError> {
+) -> Result<
+    (
+        crate::face::models::MultiFaceData,
+        Option<Vec<crate::analysis::AnalysisSegment>>,
+    ),
+    CliptzyError,
+> {
     // ---------------------------------------------------------------------
     // 1. Load the face detection model.
     // ---------------------------------------------------------------------
@@ -193,8 +202,16 @@ pub async fn get_two_faces_normalized_centers(
 
         let ts = (i as f32 / fps) as f64;
         // First occurrence uses "cut" mode; subsequent frames use "glide".
-        let mode1 = if face1_keyframes.is_empty() { "cut" } else { "glide" };
-        let mode2 = if face2_keyframes.is_empty() { "cut" } else { "glide" };
+        let mode1 = if face1_keyframes.is_empty() {
+            "cut"
+        } else {
+            "glide"
+        };
+        let mode2 = if face2_keyframes.is_empty() {
+            "cut"
+        } else {
+            "glide"
+        };
 
         face1_keyframes.push(crate::face::models::FaceKeyframe {
             timestamp: ts,
@@ -213,7 +230,9 @@ pub async fn get_two_faces_normalized_centers(
     // If after processing we have zero keyframes for either face, treat it as a
     // detection failure.
     if face1_keyframes.is_empty() || face2_keyframes.is_empty() {
-        return Err(CliptzyError::Config("multi_face mode requires at least two detectable faces".into()));
+        return Err(CliptzyError::Config(
+            "multi_face mode requires at least two detectable faces".into(),
+        ));
     }
 
     let multi = crate::face::models::MultiFaceData {

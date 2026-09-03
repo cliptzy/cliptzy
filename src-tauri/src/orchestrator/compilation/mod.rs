@@ -10,8 +10,7 @@ pub use audio_extraction::extract_main_audio;
 pub use audio_sync::sync_restreamer_audio;
 pub use clipping::clip_and_label_restreamers;
 pub use models::{
-    EpicMoment, MainAudioExtractionResult, PrepareCompilationResult, RestreamerClip,
-    RestreamerInfo,
+    EpicMoment, MainAudioExtractionResult, PrepareCompilationResult, RestreamerClip, RestreamerInfo,
 };
 pub use moment_detection::detect_epic_moments;
 pub use restreamer_search::search_restreamers;
@@ -68,21 +67,17 @@ impl PrepareCompilationUseCase {
             e
         })?;
 
-        let restreamers = search_restreamers(
-            &self.ctx,
-            &audio_res.video_info,
-            search_keywords,
-            Some(60),
-        )
-        .await
-        .map_err(|e| {
-            log::error!(
-                "[PrepareCompilation] Gagal fase pencarian restreamer untuk {}: {}",
-                video_id,
-                e
-            );
-            e
-        })?;
+        let restreamers =
+            search_restreamers(&self.ctx, &audio_res.video_info, search_keywords, Some(60))
+                .await
+                .map_err(|e| {
+                    log::error!(
+                        "[PrepareCompilation] Gagal fase pencarian restreamer untuk {}: {}",
+                        video_id,
+                        e
+                    );
+                    e
+                })?;
 
         emit_stage(&self.ctx, "done", "Persiapan kompilasi selesai!", 100, 100);
 

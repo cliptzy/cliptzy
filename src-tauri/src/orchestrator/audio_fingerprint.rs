@@ -162,7 +162,10 @@ fn save_fingerprint_db(
     std::fs::write(cache_path, buffer).map_err(|e| e.to_string())
 }
 
-fn load_fingerprint_db(cache_path: &Path, source_fp: &FileFingerprint) -> Option<AudioFingerprintDb> {
+fn load_fingerprint_db(
+    cache_path: &Path,
+    source_fp: &FileFingerprint,
+) -> Option<AudioFingerprintDb> {
     let data = std::fs::read(cache_path).ok()?;
     let mut cursor = &data[..];
 
@@ -175,7 +178,10 @@ fn load_fingerprint_db(cache_path: &Path, source_fp: &FileFingerprint) -> Option
 
     let version = read_u32(&mut cursor)?;
     if version != CACHE_VERSION {
-        log::info!("Cache fingerprint versi lama (v{}), rebuild diperlukan.", version);
+        log::info!(
+            "Cache fingerprint versi lama (v{}), rebuild diperlukan.",
+            version
+        );
         return None;
     }
 
@@ -286,7 +292,10 @@ fn pick_best_match(
     }
 }
 
-fn find_fingerprint_match(long_hashes: &[HashEntry], short_samples: &[f32]) -> Option<AudioMatchResult> {
+fn find_fingerprint_match(
+    long_hashes: &[HashEntry],
+    short_samples: &[f32],
+) -> Option<AudioMatchResult> {
     let short_hashes = process_audio_internal(short_samples);
     if short_hashes.is_empty() || long_hashes.is_empty() {
         return None;
@@ -393,7 +402,10 @@ fn normalize_rms(samples: &[f32], target_rms: f32) -> Vec<f32> {
         return samples.to_vec();
     }
     let gain = target_rms / rms;
-    samples.iter().map(|s| (s * gain).clamp(-1.0, 1.0)).collect()
+    samples
+        .iter()
+        .map(|s| (s * gain).clamp(-1.0, 1.0))
+        .collect()
 }
 
 struct Biquad {

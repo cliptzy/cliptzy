@@ -13,31 +13,48 @@ pub async fn stack_video(
     config: &StackerConfig,
 ) -> Result<(), CliptzyError> {
     let parent_dir = output_path.parent().unwrap_or_else(|| Path::new("."));
-    let concat_file_path = parent_dir.join(format!("cliptzy_concat_{}.txt", uuid::Uuid::new_v4().to_string().chars().take(8).collect::<String>()));
+    let concat_file_path = parent_dir.join(format!(
+        "cliptzy_concat_{}.txt",
+        uuid::Uuid::new_v4()
+            .to_string()
+            .chars()
+            .take(8)
+            .collect::<String>()
+    ));
     let mut file_content = String::new();
 
     if let Some(intro) = &config.intro_path {
         file_content.push_str(&format!(
             "file '{}'\n",
-            intro.to_string_lossy().replace('\\', "/").replace('\'', "'\\''")
+            intro
+                .to_string_lossy()
+                .replace('\\', "/")
+                .replace('\'', "'\\''")
         ));
     }
 
     file_content.push_str(&format!(
         "file '{}'\n",
-        main_video.to_string_lossy().replace('\\', "/").replace('\'', "'\\''")
+        main_video
+            .to_string_lossy()
+            .replace('\\', "/")
+            .replace('\'', "'\\''")
     ));
 
     if let Some(outro) = &config.outro_path {
         file_content.push_str(&format!(
             "file '{}'\n",
-            outro.to_string_lossy().replace('\\', "/").replace('\'', "'\\''")
+            outro
+                .to_string_lossy()
+                .replace('\\', "/")
+                .replace('\'', "'\\''")
         ));
     }
 
     std::fs::write(&concat_file_path, file_content).map_err(CliptzyError::Io)?;
 
-    let ffmpeg_bin = crate::utils::find_executable("ffmpeg").unwrap_or_else(|| std::path::PathBuf::from("ffmpeg"));
+    let ffmpeg_bin = crate::utils::find_executable("ffmpeg")
+        .unwrap_or_else(|| std::path::PathBuf::from("ffmpeg"));
     let mut cmd = tokio::process::Command::new(&ffmpeg_bin);
     cmd.arg("-y")
         .arg("-f")
@@ -51,7 +68,7 @@ pub async fn stack_video(
         .arg("-movflags")
         .arg("+faststart")
         .arg(output_path);
-        
+
     log::info!("FFmpeg Stacker Command: {:?}", cmd);
 
     let output = cmd.output().await.map_err(|e| CliptzyError::FFmpeg {

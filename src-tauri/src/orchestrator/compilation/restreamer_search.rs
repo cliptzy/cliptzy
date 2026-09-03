@@ -1,7 +1,5 @@
 use super::helpers::emit_stage;
-use super::models::{
-    extract_youtube_video_id, RestreamerInfo, RestreamerSearchCacheEntry,
-};
+use super::models::{extract_youtube_video_id, RestreamerInfo, RestreamerSearchCacheEntry};
 use crate::error::CliptzyError;
 use crate::orchestrator::job_cache::{cache_file, hash_payload, read_json_cache, write_json_cache};
 use crate::orchestrator::pipeline::PipelineContext;
@@ -12,7 +10,9 @@ use std::collections::HashSet;
 const MAX_SEARCH_QUERIES: usize = 8;
 const TARGET_RESULT_COUNT: usize = 10;
 
-pub(crate) fn migrate_cached_restreamers(cached: &RestreamerSearchCacheEntry) -> Vec<RestreamerInfo> {
+pub(crate) fn migrate_cached_restreamers(
+    cached: &RestreamerSearchCacheEntry,
+) -> Vec<RestreamerInfo> {
     if !cached.restreamers.is_empty() {
         return cached.restreamers.clone();
     }
@@ -98,7 +98,9 @@ fn push_unique_query(queries: &mut Vec<String>, seen: &mut HashSet<String>, quer
 }
 
 fn extract_team_token(side: &str) -> String {
-    let mut cleaned = side.trim().trim_matches(|c: char| c == '|' || c == '-' || c == ':');
+    let mut cleaned = side
+        .trim()
+        .trim_matches(|c: char| c == '|' || c == '-' || c == ':');
     if let Some((_, right)) = cleaned.rsplit_once('-') {
         let right = right.trim();
         if !right.is_empty() && right.len() <= 24 {
@@ -170,11 +172,7 @@ fn build_heuristic_queries(title: &str, custom_keywords: Option<&str>) -> Vec<St
     }
 
     if let Some((team_a, team_b)) = extract_vs_teams(title) {
-        push_unique_query(
-            &mut queries,
-            &mut seen,
-            &format!("{team_a} {team_b} nobar"),
-        );
+        push_unique_query(&mut queries, &mut seen, &format!("{team_a} {team_b} nobar"));
         push_unique_query(
             &mut queries,
             &mut seen,
@@ -185,25 +183,17 @@ fn build_heuristic_queries(title: &str, custom_keywords: Option<&str>) -> Vec<St
             &mut seen,
             &format!("{team_a} {team_b} reaksi"),
         );
-        push_unique_query(
-            &mut queries,
-            &mut seen,
-            &format!("{team_a} {team_b} live"),
-        );
+        push_unique_query(&mut queries, &mut seen, &format!("{team_a} {team_b} live"));
         push_unique_query(&mut queries, &mut seen, &format!("{team_a} nobar live"));
         push_unique_query(&mut queries, &mut seen, &format!("{team_b} nobar live"));
     }
 
     if let Some(league) = extract_league_hint(title) {
         push_unique_query(&mut queries, &mut seen, &format!("{league} nobar"));
-        push_unique_query(
-            &mut queries,
-            &mut seen,
-            &format!("{league} live reaction"),
-        );
+        push_unique_query(&mut queries, &mut seen, &format!("{league} live reaction"));
     }
 
-  queries
+    queries
 }
 
 fn restreamer_search_prompt(video_info: &VideoAnalysisResult) -> String {
@@ -258,10 +248,7 @@ async fn expand_queries_with_ai(
     let ai_provider = crate::ai::create_provider(config);
     let prompt = restreamer_search_prompt(video_info);
 
-    match ai_provider
-        .generate(&prompt, Some(&ctx.progress_tx))
-        .await
-    {
+    match ai_provider.generate(&prompt, Some(&ctx.progress_tx)).await {
         Ok(response) => {
             let queries = parse_ai_query_list(&response);
             log::info!(
@@ -286,10 +273,7 @@ async fn build_search_queries(
     custom_keywords: Option<&str>,
 ) -> Vec<String> {
     let mut queries = build_heuristic_queries(&video_info.title, custom_keywords);
-    let mut seen: HashSet<String> = queries
-        .iter()
-        .map(|q| q.to_lowercase())
-        .collect();
+    let mut seen: HashSet<String> = queries.iter().map(|q| q.to_lowercase()).collect();
 
     for ai_query in expand_queries_with_ai(ctx, video_info).await {
         push_unique_query(&mut queries, &mut seen, &ai_query);

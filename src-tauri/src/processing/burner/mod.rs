@@ -97,10 +97,14 @@ pub async fn burn_video_effects(
         ])
         .raw_args(hw_accel.encode_args())
         .raw_args(vec![
-            "-pix_fmt".to_string(), "yuv420p".to_string(),
-            "-movflags".to_string(), "+faststart".to_string(),
-            "-c:a".to_string(), "aac".to_string(),
-            "-b:a".to_string(), "192k".to_string(),
+            "-pix_fmt".to_string(),
+            "yuv420p".to_string(),
+            "-movflags".to_string(),
+            "+faststart".to_string(),
+            "-c:a".to_string(),
+            "aac".to_string(),
+            "-b:a".to_string(),
+            "192k".to_string(),
         ])
         .overwrite()
         .output_path(output_path.to_path_buf());
@@ -114,16 +118,21 @@ pub async fn burn_video_effects(
                 let current_sec = time.as_secs_f64();
                 if total_duration > 0.0 {
                     let mut pct = (current_sec / total_duration) * 100.0;
-                    if pct > 99.9 { pct = 99.9; }
+                    if pct > 99.9 {
+                        pct = 99.9;
+                    }
                     crate::orchestrator::pipeline::emit_progress(
                         &handle_clone,
                         &crate::orchestrator::pipeline::ProgressEvent {
                             stage: "subtitle".into(),
-                            label: format!("Menambahkan efek visual/teks ke video... ({:.1}%)", pct),
+                            label: format!(
+                                "Menambahkan efek visual/teks ke video... ({:.1}%)",
+                                pct
+                            ),
                             current: pct as u32,
                             total: 100,
                             detail: None,
-                        }
+                        },
                     );
                 }
             }

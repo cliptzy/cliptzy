@@ -11,4 +11,11 @@ pub trait AIProvider: Send + Sync {
         prompt: &str,
         progress: Option<&ProgressTx>,
     ) -> Result<String, CliptzyError>;
+
+    async fn generate_with_tools(
+        &self,
+        prompt: &str,
+        tools: Vec<rig_core::completion::ToolDefinition>,
+        progress: Option<&ProgressTx>,
+    ) -> Result<String, CliptzyError>;
 }

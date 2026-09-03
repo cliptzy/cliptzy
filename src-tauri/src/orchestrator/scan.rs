@@ -93,7 +93,10 @@ pub async fn scan_video(
             start += segment_length;
         }
 
-        log::info!("Berhasil menganalisis video lokal dengan {} segmen", segments.len());
+        log::info!(
+            "Berhasil menganalisis video lokal dengan {} segmen",
+            segments.len()
+        );
         Ok(ScanResult {
             video_id: "local".to_string(),
             title,

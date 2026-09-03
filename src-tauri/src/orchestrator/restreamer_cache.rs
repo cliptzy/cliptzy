@@ -3,7 +3,9 @@ use std::path::{Path, PathBuf};
 
 /// Direktori cache global untuk aset restreamer (dibagi antar job / match).
 pub fn restreamer_cache_root() -> PathBuf {
-    crate::paths::app_data_dir().join("cache").join("restreamers")
+    crate::paths::app_data_dir()
+        .join("cache")
+        .join("restreamers")
 }
 
 pub fn restreamer_cache_dir(restreamer_id: &str) -> PathBuf {

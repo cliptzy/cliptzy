@@ -114,8 +114,11 @@ impl AIHighlightDetector {
     fn parse_json_highlights(&self, raw_text: &str) -> Vec<Value> {
         let mut json_str = raw_text.trim().to_string();
 
-        let re_arr = RE_JSON_ARR.get_or_init(|| Regex::new(r"(?s)\[\s*\{.*\}\s*\]").expect("Invalid regex pattern"));
-        let re_obj = RE_JSON_OBJ.get_or_init(|| Regex::new(r#"(?s)\{\s*".*"\s*:.*\s*\}"#).expect("Invalid regex pattern"));
+        let re_arr = RE_JSON_ARR
+            .get_or_init(|| Regex::new(r"(?s)\[\s*\{.*\}\s*\]").expect("Invalid regex pattern"));
+        let re_obj = RE_JSON_OBJ.get_or_init(|| {
+            Regex::new(r#"(?s)\{\s*".*"\s*:.*\s*\}"#).expect("Invalid regex pattern")
+        });
 
         if let Some(mat) = re_arr.find(raw_text) {
             json_str = mat.as_str().to_string();

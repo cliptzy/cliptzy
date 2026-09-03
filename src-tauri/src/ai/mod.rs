@@ -1,10 +1,12 @@
 pub mod detector;
 pub mod gemini;
 pub mod metadata;
+pub mod models;
 pub mod ollama;
 pub mod openai;
 pub mod prompts;
 pub mod provider;
+pub mod tools;
 
 use crate::config::models::AIConfig;
 use gemini::GeminiProvider;

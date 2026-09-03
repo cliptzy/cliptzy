@@ -2,7 +2,10 @@ use crate::error::CliptzyError;
 use reqwest::Client;
 
 #[tauri::command]
-pub async fn fetch_openai_models(base_url: String, api_key: String) -> Result<Vec<String>, CliptzyError> {
+pub async fn fetch_openai_models(
+    base_url: String,
+    api_key: String,
+) -> Result<Vec<String>, CliptzyError> {
     log::info!("Fetching models from: {}", base_url);
 
     let client = Client::new();
@@ -29,8 +32,7 @@ pub async fn fetch_openai_models(base_url: String, api_key: String) -> Result<Ve
         let text = res.text().await.unwrap_or_default();
         return Err(CliptzyError::AIProvider(format!(
             "API returned status {}: {}",
-            status,
-            text
+            status, text
         )));
     }
 
@@ -54,4 +56,19 @@ pub async fn fetch_openai_models(base_url: String, api_key: String) -> Result<Ve
     models.dedup();
 
     Ok(models)
+}
+
+#[tauri::command]
+pub async fn ask_agent(prompt: String) -> Result<String, CliptzyError> {
+    log::info!("Agent processing prompt: {}", prompt);
+    let config = crate::config::models::AppConfig::load().unwrap_or_default();
+    let ai_provider = crate::ai::create_provider(&config.ai);
+    
+    // Uji jalannya Tool AnalyzeTranscriptTool
+    let tools = vec![crate::ai::tools::analyze::analyze_transcript_tool()];
+    
+    match ai_provider.generate_with_tools(&prompt, tools, None).await {
+        Ok(result) => Ok(result),
+        Err(e) => Err(CliptzyError::AIProvider(format!("Agent error: {}", e))),
+    }
 }

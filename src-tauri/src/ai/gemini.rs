@@ -2,13 +2,13 @@ use crate::ai::provider::AIProvider;
 use crate::error::CliptzyError;
 use crate::orchestrator::pipeline::ProgressTx;
 use async_trait::async_trait;
-use reqwest::Client;
-use serde_json::json;
+use rig_core::client::CompletionClient;
+use rig_core::completion::CompletionModel;
+use rig_core::providers::gemini;
 
 pub struct GeminiProvider {
-    api_key: String,
+    client: gemini::Client,
     model: String,
-    client: Client,
 }
 
 impl GeminiProvider {
@@ -18,10 +18,15 @@ impl GeminiProvider {
         } else {
             model
         };
+
+        let client = gemini::Client::builder()
+            .api_key(api_key)
+            .build()
+            .expect("Failed to initialize Gemini client");
+
         Self {
-            api_key: api_key.to_string(),
+            client,
             model: model.to_string(),
-            client: Client::new(),
         }
     }
 }
@@ -37,71 +42,48 @@ impl AIProvider for GeminiProvider {
         prompt: &str,
         _progress: Option<&ProgressTx>,
     ) -> Result<String, CliptzyError> {
-        let url = format!(
-            "https://generativelanguage.googleapis.com/v1beta/models/{}:streamGenerateContent?alt=sse&key={}",
-            self.model, self.api_key
-        );
+        self.generate_with_tools(prompt, vec![], _progress).await
+    }
 
-        let body = json!({
-            "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {
-                "temperature": 0.2,
-                "responseMimeType": "application/json"
-            }
-        });
+    async fn generate_with_tools(
+        &self,
+        prompt: &str,
+        tools: Vec<rig_core::completion::ToolDefinition>,
+        _progress: Option<&ProgressTx>,
+    ) -> Result<String, CliptzyError> {
+        let model = self.client.completion_model(&self.model);
 
-        let mut res = self
-            .client
-            .post(&url)
-            .json(&body)
-            .send()
-            .await
-            .map_err(|e| CliptzyError::AIProvider(format!("Gemini request error: {}", e)))?;
-
-        if !res.status().is_success() {
-            let status = res.status();
-            let err_text = res.text().await.unwrap_or_default();
-            return Err(CliptzyError::AIProvider(format!(
-                "Gemini error ({}): {}",
-                status, err_text
-            )));
+        let mut req = model.completion_request(prompt);
+        if !tools.is_empty() {
+            req = req.tools(tools);
         }
+        let request = req.build();
 
-        let mut full_response = String::new();
-        while let Some(chunk) = res
-            .chunk()
-            .await
-            .map_err(|e| CliptzyError::AIProvider(e.to_string()))?
-        {
-            let chunk_str = String::from_utf8_lossy(&chunk);
-            for line in chunk_str.lines() {
-                let line = line.trim();
-                if line.starts_with("data: ") {
-                    let json_str = &line[6..];
-                    if let Ok(data) = serde_json::from_str::<serde_json::Value>(json_str) {
-                        if let Some(candidates) = data.get("candidates").and_then(|c| c.as_array())
-                        {
-                            if let Some(first) = candidates.first() {
-                                if let Some(parts) = first
-                                    .get("content")
-                                    .and_then(|c| c.get("parts"))
-                                    .and_then(|p| p.as_array())
-                                {
-                                    if let Some(part) = parts.first() {
-                                        if let Some(text) =
-                                            part.get("text").and_then(|t| t.as_str())
-                                        {
-                                            full_response.push_str(text);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+        let response = match model.completion(request).await {
+            Ok(res) => res,
+            Err(e) => {
+                log::warn!("Gemini request with tools failed: {}. Retrying without tools...", e);
+                let req_no_tools = self.client.completion_model(&self.model).completion_request(prompt).build();
+                model.completion(req_no_tools).await.map_err(|e2| {
+                    CliptzyError::AIProvider(format!("Gemini request error (fallback): {}", e2))
+                })?
+            }
+        };
+
+        for content in response.choice {
+            match content {
+                rig_core::completion::AssistantContent::ToolCall(call) => {
+                    return Ok(call.function.arguments.to_string());
                 }
+                rig_core::completion::AssistantContent::Text(text) => {
+                    return Ok(text.text);
+                }
+                _ => {}
             }
         }
 
-        Ok(full_response)
+        Err(CliptzyError::AIProvider(
+            "Empty response from Gemini".to_string(),
+        ))
     }
 }

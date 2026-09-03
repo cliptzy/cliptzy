@@ -227,8 +227,7 @@ impl ClipVideoUseCase {
             },
         );
 
-        let model_path =
-            crate::transcription::whisper::ensure_model_exists(whisper_model).await?;
+        let model_path = crate::transcription::whisper::ensure_model_exists(whisper_model).await?;
         let transcriber = crate::transcription::whisper::WhisperTranscriber::new(&model_path)?;
 
         emit_progress(

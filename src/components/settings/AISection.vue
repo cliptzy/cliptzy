@@ -101,14 +101,12 @@
  <div class="flex items-end gap-2">
  <select
  v-model="settings.config.ai.openai_model"
- :disabled="!openaiModelsLoaded || isLoadingOpenaiModels"
- class="flex-1 bg-base-200 border border-neutral rounded-none p-3 text-sm font-bold text-base-content focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer  disabled:opacity-50"
+ class="flex-1 bg-base-200 border border-neutral rounded-none p-3 text-sm font-bold text-base-content focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
  >
  <option v-if="isLoadingOpenaiModels" value="" disabled>Loading models...</option>
- <option v-else-if="!openaiModelsLoaded" value="" disabled>Enter key + refresh to load</option>
- <option v-else-if="openaiModelsLoaded && openaiModels.length === 0" value="" disabled>No models found</option>
+ <option v-else-if="!openaiModelsLoaded && !settings.config.ai.openai_model" value="" disabled>Click refresh to load</option>
+ <option v-if="settings.config.ai.openai_model && !openaiModels.includes(settings.config.ai.openai_model)" :value="settings.config.ai.openai_model">{{ settings.config.ai.openai_model }} (tersimpan)</option>
  <option v-for="m in openaiModels" :key="m" :value="m">{{ m }}</option>
- <option v-if="openaiModelsLoaded && !openaiModels.includes(settings.config.ai.openai_model)" :value="settings.config.ai.openai_model">{{ settings.config.ai.openai_model }} (kustom)</option>
  </select>
  <button
  @click="loadOpenaiModels"
@@ -179,6 +177,35 @@
  </label>
  </div>
  </div>
+
+ <!-- Test Agent Section -->
+ <div class="pt-3 border-t border-neutral dark:border-neutral mt-4">
+ <div class="flex items-center justify-between mb-2">
+ <span class="text-[10px] text-secondary uppercase font-bold tracking-widest">Pengujian Agen AI (Fase 4)</span>
+ </div>
+ <div class="flex flex-col gap-2">
+ <textarea
+ v-model="testPrompt"
+ rows="3"
+ placeholder="Masukkan instruksi ke agen..."
+ class="w-full bg-base-200 border border-neutral rounded-none p-3 text-sm text-base-content focus:outline-none focus:ring-2 focus:ring-primary"
+ ></textarea>
+ <div class="flex gap-2 items-center">
+ <button 
+ @click="testAgent" 
+ :disabled="isTestingAgent || !testPrompt"
+ class="px-4 py-2 bg-primary text-primary-content font-bold text-sm hover:bg-primary/90 transition-colors disabled:opacity-50"
+ >
+ <span v-if="isTestingAgent">Menganalisis...</span>
+ <span v-else>Jalankan Tool & Agen</span>
+ </button>
+ </div>
+ <div v-if="testResult" class="mt-2 bg-base-300 p-3 text-xs font-mono overflow-auto max-h-[200px] whitespace-pre-wrap">
+ {{ testResult }}
+ </div>
+ </div>
+ </div>
+
  </div>
 </template>
 
@@ -197,25 +224,45 @@ const openaiModelsLoaded = ref(false);
 const openaiModelsError = ref<string | null>(null);
 
 const loadOpenaiModels = async () => {
- if (!settings.config.ai.openai_key || !settings.config.ai.openai_base_url) {
- openaiModelsError.value = "Masukkan API key dan base URL terlebih dahulu.";
- return;
- }
- isLoadingOpenaiModels.value = true;
- openaiModelsError.value = null;
- openaiModelsLoaded.value = false;
- try {
- const models: string[] = await invoke('fetch_openai_models', {
- baseUrl: settings.config.ai.openai_base_url,
- apiKey: settings.config.ai.openai_key,
- });
- openaiModels.value = models;
- openaiModelsLoaded.value = true;
- } catch (e: any) {
- openaiModelsError.value = String(e) || "Gagal memuat model.";
- } finally {
- isLoadingOpenaiModels.value = false;
- }
+  if (!settings.config.ai.openai_key || !settings.config.ai.openai_base_url) {
+    openaiModelsError.value = "Masukkan API key dan base URL terlebih dahulu.";
+    return;
+  }
+  isLoadingOpenaiModels.value = true;
+  openaiModelsError.value = null;
+  openaiModelsLoaded.value = false;
+  try {
+    const models: string[] = await invoke('fetch_openai_models', {
+      baseUrl: settings.config.ai.openai_base_url,
+      apiKey: settings.config.ai.openai_key,
+    });
+    openaiModels.value = models;
+    openaiModelsLoaded.value = true;
+  } catch (e: any) {
+    openaiModelsError.value = String(e) || "Gagal memuat model.";
+  } finally {
+    isLoadingOpenaiModels.value = false;
+  }
+};
+
+const testPrompt = ref("Tolong temukan momen epik dari transkrip berikut:\n[0.0 - 5.0] Halo semuanya selamat datang di video saya\n[5.0 - 20.0] Wah dia nge-kill 5 orang berturut-turut! RRQ Wipeout gila banget gameplay nya!");
+const isTestingAgent = ref(false);
+const testResult = ref("");
+
+const testAgent = async () => {
+  if (!testPrompt.value) return;
+  isTestingAgent.value = true;
+  testResult.value = "";
+  try {
+    const res: string = await invoke('ask_agent', {
+      prompt: testPrompt.value
+    });
+    testResult.value = res;
+  } catch (e: any) {
+    testResult.value = "Error: " + String(e);
+  } finally {
+    isTestingAgent.value = false;
+  }
 };
 </script>
 

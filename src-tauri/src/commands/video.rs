@@ -6,9 +6,7 @@ use crate::orchestrator::compilation::{
     EpicMoment, ExecuteCompilationUseCase, PrepareCompilationResult, PrepareCompilationUseCase,
 };
 use crate::orchestrator::pipeline::PipelineContext;
-use crate::orchestrator::segment_audio::{
-    AnalyzeSegmentAudioUseCase, SegmentAudioAnalysisResult,
-};
+use crate::orchestrator::segment_audio::{AnalyzeSegmentAudioUseCase, SegmentAudioAnalysisResult};
 use crate::processing::broll_manager::BrollManager;
 use std::collections::HashMap;
 use std::fs;
@@ -32,7 +30,8 @@ pub async fn analyze_video(
         Some(&result.thumbnail),
         Some("clipper"),
         "Draft",
-    ).await;
+    )
+    .await;
 
     Ok(serde_json::to_value(result).unwrap_or(serde_json::json!({})))
 }
@@ -49,27 +48,14 @@ pub async fn clip_video(
         video_id
     );
 
-    let _ = upsert_job_history(
-        &app,
-        &video_id,
-        None,
-        None,
-        None,
-        None,
-        "Processing",
-    ).await;
+    let _ = upsert_job_history(&app, &video_id, None, None, None, None, "Processing").await;
 
     let cancel_token = tokio_util::sync::CancellationToken::new();
     *state.cancel_token.lock().await = Some(cancel_token.clone());
     let (progress_tx, _) = tokio::sync::broadcast::channel(100);
 
-    let ctx = build_pipeline_context(
-        app.clone(),
-        cancel_token,
-        progress_tx,
-        video_id.clone(),
-    )
-    .await?;
+    let ctx =
+        build_pipeline_context(app.clone(), cancel_token, progress_tx, video_id.clone()).await?;
 
     let mut use_case = ClipVideoUseCase::new(ctx);
     let result = use_case.execute(payload).await;
@@ -81,8 +67,13 @@ pub async fn clip_video(
         None,
         None,
         None,
-        if result.is_ok() { "Completed" } else { "Failed" },
-    ).await;
+        if result.is_ok() {
+            "Completed"
+        } else {
+            "Failed"
+        },
+    )
+    .await;
 
     result
 }
@@ -102,10 +93,10 @@ pub async fn list_broll_assets() -> Result<Vec<String>, CliptzyError> {
     let config = AppConfig::load()?;
     let app_dir = crate::paths::app_data_dir();
     let broll_dir = app_dir.join(&config.broll_dir);
-    
+
     let manager = BrollManager::new(&broll_dir);
     let files = manager.list_broll_files()?;
-    
+
     // Return just the filenames for simplicity
     let mut filenames = Vec::new();
     for file in files {
@@ -113,7 +104,7 @@ pub async fn list_broll_assets() -> Result<Vec<String>, CliptzyError> {
             filenames.push(name.to_string_lossy().to_string());
         }
     }
-    
+
     Ok(filenames)
 }
 
@@ -122,10 +113,10 @@ pub async fn import_broll_file(source_path: String) -> Result<String, CliptzyErr
     let config = AppConfig::load()?;
     let app_dir = crate::paths::app_data_dir();
     let broll_dir = app_dir.join(&config.broll_dir);
-    
+
     // Ensure broll directory exists
     fs::create_dir_all(&broll_dir)?;
-    
+
     let source = Path::new(&source_path);
     if !source.exists() {
         return Err(CliptzyError::Config(format!(
@@ -133,15 +124,16 @@ pub async fn import_broll_file(source_path: String) -> Result<String, CliptzyErr
             source_path
         )));
     }
-    
+
     // Generate destination filename
-    let file_name = source.file_name()
+    let file_name = source
+        .file_name()
         .ok_or_else(|| CliptzyError::Config("Invalid source file path".to_string()))?;
     let dest_path = broll_dir.join(file_name);
-    
+
     // Copy the file
     fs::copy(source, &dest_path)?;
-    
+
     Ok(dest_path.to_string_lossy().to_string())
 }
 
@@ -150,7 +142,7 @@ pub async fn delete_broll_file(filename: String) -> Result<(), CliptzyError> {
     let config = AppConfig::load()?;
     let app_dir = crate::paths::app_data_dir();
     let broll_dir = app_dir.join(&config.broll_dir);
-    
+
     let file_path = broll_dir.join(&filename);
     if !file_path.exists() {
         return Err(CliptzyError::Config(format!(
@@ -158,9 +150,9 @@ pub async fn delete_broll_file(filename: String) -> Result<(), CliptzyError> {
             filename
         )));
     }
-    
+
     fs::remove_file(file_path)?;
-    
+
     Ok(())
 }
 
@@ -181,8 +173,8 @@ pub async fn prepare_compilation(
     *state.cancel_token.lock().await = Some(cancel_token.clone());
     let (progress_tx, _) = tokio::sync::broadcast::channel(100);
 
-    let ctx = build_pipeline_context(app.clone(), cancel_token, progress_tx, video_id.clone())
-        .await?;
+    let ctx =
+        build_pipeline_context(app.clone(), cancel_token, progress_tx, video_id.clone()).await?;
 
     let mut use_case = PrepareCompilationUseCase::new(ctx);
     let result = use_case
@@ -196,7 +188,7 @@ pub async fn prepare_compilation(
             );
             e
         });
-        
+
     if let Ok(res) = &result {
         let _ = upsert_job_history(
             &app,
@@ -206,9 +198,10 @@ pub async fn prepare_compilation(
             Some(&res.video_info.thumbnail),
             Some("compilation"),
             "Draft",
-        ).await;
+        )
+        .await;
     }
-    
+
     result
 }
 
@@ -227,31 +220,18 @@ pub async fn execute_compilation(
         video_id
     );
 
-    let _ = upsert_job_history(
-        &app,
-        &video_id,
-        None,
-        None,
-        None,
-        None,
-        "Processing",
-    ).await;
+    let _ = upsert_job_history(&app, &video_id, None, None, None, None, "Processing").await;
 
     let cancel_token = tokio_util::sync::CancellationToken::new();
     *state.cancel_token.lock().await = Some(cancel_token.clone());
     let (progress_tx, _) = tokio::sync::broadcast::channel(100);
 
-    let ctx = build_pipeline_context(app.clone(), cancel_token, progress_tx, video_id.clone())
-        .await?;
+    let ctx =
+        build_pipeline_context(app.clone(), cancel_token, progress_tx, video_id.clone()).await?;
 
     let mut use_case = ExecuteCompilationUseCase::new(ctx);
     let result = use_case
-        .execute(
-            main_audio_path,
-            restreamer_urls,
-            moments,
-            output_filename,
-        )
+        .execute(main_audio_path, restreamer_urls, moments, output_filename)
         .await
         .map_err(|e| {
             log::error!(
@@ -269,8 +249,13 @@ pub async fn execute_compilation(
         None,
         None,
         None,
-        if result.is_ok() { "Completed" } else { "Failed" },
-    ).await;
+        if result.is_ok() {
+            "Completed"
+        } else {
+            "Failed"
+        },
+    )
+    .await;
 
     result
 }
@@ -298,21 +283,22 @@ async fn build_pipeline_context(
 }
 
 pub async fn upsert_job_history(
-    app: &tauri::AppHandle, 
-    video_id: &str, 
+    app: &tauri::AppHandle,
+    video_id: &str,
     title: Option<&str>,
     url: Option<&str>,
     thumbnail: Option<&str>,
     mode: Option<&str>, // "clipper" | "compilation"
-    status: &str // "Draft" | "Processing" | "Completed" | "Failed"
+    status: &str,       // "Draft" | "Processing" | "Completed" | "Failed"
 ) -> Result<(), crate::error::CliptzyError> {
     use serde_json::json;
-    use tauri_plugin_store::StoreExt;
     use std::time::{SystemTime, UNIX_EPOCH};
+    use tauri_plugin_store::StoreExt;
 
-    let store = app.store("history.json")
+    let store = app
+        .store("history.json")
         .map_err(|e| crate::error::CliptzyError::Internal(e.to_string()))?;
-    
+
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
@@ -320,18 +306,27 @@ pub async fn upsert_job_history(
 
     let mut job_data = store.get(video_id).unwrap_or(json!({}));
 
-    if let Some(t) = title { job_data["title"] = json!(t); }
-    if let Some(u) = url { job_data["url"] = json!(u); }
-    if let Some(th) = thumbnail { job_data["thumbnail"] = json!(th); }
-    if let Some(m) = mode { job_data["mode"] = json!(m); }
-    
+    if let Some(t) = title {
+        job_data["title"] = json!(t);
+    }
+    if let Some(u) = url {
+        job_data["url"] = json!(u);
+    }
+    if let Some(th) = thumbnail {
+        job_data["thumbnail"] = json!(th);
+    }
+    if let Some(m) = mode {
+        job_data["mode"] = json!(m);
+    }
+
     job_data["video_id"] = json!(video_id);
     job_data["status"] = json!(status);
     job_data["updated_at"] = json!(now);
 
     store.set(video_id, job_data);
-    store.save().map_err(|e| crate::error::CliptzyError::Internal(e.to_string()))?;
+    store
+        .save()
+        .map_err(|e| crate::error::CliptzyError::Internal(e.to_string()))?;
 
     Ok(())
 }
-

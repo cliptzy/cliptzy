@@ -28,47 +28,57 @@ pub fn start_gpu_monitor() {
         std::thread::spawn(|| {
             #[cfg(target_os = "windows")]
             {
-                use std::process::{Command, Stdio};
                 use std::io::{BufRead, BufReader};
-                
+                use std::process::{Command, Stdio};
+
                 let mut child = match Command::new("typeperf")
                     .arg("\\GPU Engine(*)\\Utilization Percentage")
                     .stdout(Stdio::piped())
                     .stderr(Stdio::null())
-                    .spawn() {
-                        Ok(c) => c,
-                        Err(_) => return,
-                    };
+                    .spawn()
+                {
+                    Ok(c) => c,
+                    Err(_) => return,
+                };
 
                 if let Some(stdout) = child.stdout.take() {
                     let reader = BufReader::new(stdout);
                     for line in reader.lines() {
                         if let Ok(line) = line {
-                            if !line.starts_with("\"") || line.contains("PDH_") || line.contains("Time") { 
-                                continue; 
+                            if !line.starts_with("\"")
+                                || line.contains("PDH_")
+                                || line.contains("Time")
+                            {
+                                continue;
                             }
                             let parts: Vec<&str> = line.split(',').collect();
                             let mut max_val: f32 = 0.0;
                             for part in parts.iter().skip(1) {
                                 let clean = part.trim_matches('"');
                                 if let Ok(v) = clean.parse::<f32>() {
-                                    if v > max_val { max_val = v; }
+                                    if v > max_val {
+                                        max_val = v;
+                                    }
                                 }
                             }
-                            GPU_USAGE.store(max_val.to_bits(), std::sync::atomic::Ordering::Relaxed);
+                            GPU_USAGE
+                                .store(max_val.to_bits(), std::sync::atomic::Ordering::Relaxed);
                         }
                     }
                 }
             }
-            
+
             #[cfg(not(target_os = "windows"))]
             {
                 // Fallback for nvidia-smi on Linux/Mac
                 use std::process::Command;
                 loop {
                     if let Ok(output) = Command::new("nvidia-smi")
-                        .args(&["--query-gpu=utilization.gpu", "--format=csv,noheader,nounits"])
-                        .output() 
+                        .args(&[
+                            "--query-gpu=utilization.gpu",
+                            "--format=csv,noheader,nounits",
+                        ])
+                        .output()
                     {
                         let text = String::from_utf8_lossy(&output.stdout);
                         if let Some(val) = text.trim().lines().next() {

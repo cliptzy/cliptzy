@@ -1,7 +1,7 @@
-use std::fs;
-use std::path::{Path, PathBuf};
 use crate::error::CliptzyError;
 use rand::prelude::IndexedRandom;
+use std::fs;
+use std::path::{Path, PathBuf};
 
 /// Manages B-roll asset selection and retrieval
 pub struct BrollManager {
@@ -57,7 +57,8 @@ impl BrollManager {
     pub fn pick_random(&self) -> Result<PathBuf, CliptzyError> {
         let files = self.list_broll_files()?;
         let mut rng = rand::rng();
-        files.choose(&mut rng)
+        files
+            .choose(&mut rng)
             .cloned()
             .ok_or_else(|| CliptzyError::Config("No B-roll files available".to_string()))
     }

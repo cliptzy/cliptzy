@@ -138,7 +138,10 @@ impl AppConfig {
         let config_path = app_dir.join("config.json");
 
         if !config_path.exists() {
-            log::info!("config.json tidak ditemukan di {:?}, menggunakan nilai default.", config_path);
+            log::info!(
+                "config.json tidak ditemukan di {:?}, menggunakan nilai default.",
+                config_path
+            );
             return Ok(Self::default());
         }
 
@@ -150,7 +153,10 @@ impl AppConfig {
                 Ok(config)
             }
             Err(e) => {
-                log::warn!("Gagal parsing config.json: {}. Menggunakan fallback default.", e);
+                log::warn!(
+                    "Gagal parsing config.json: {}. Menggunakan fallback default.",
+                    e
+                );
                 // Return default on parse failure to prevent UI breaking completely
                 Ok(Self::default())
             }

@@ -25,7 +25,10 @@ impl ClipVideoUseCase {
                     detail: None,
                 },
             );
-            log::info!("crop_mode=none, melewati proses crop untuk {:?}", source_video);
+            log::info!(
+                "crop_mode=none, melewati proses crop untuk {:?}",
+                source_video
+            );
             return Ok(source_video.to_path_buf());
         }
 
@@ -118,7 +121,10 @@ impl ClipVideoUseCase {
         source_video: &Path,
     ) -> Option<Vec<crate::face::models::FaceKeyframe>> {
         // Determine which crop modes need face tracking.
-        let needs_tracking = matches!(payload.crop_mode.as_str(), "full_face" | "center_face" | "multi_face" | "split_face");
+        let needs_tracking = matches!(
+            payload.crop_mode.as_str(),
+            "full_face" | "center_face" | "multi_face" | "split_face"
+        );
         if !needs_tracking {
             return None;
         }
@@ -137,53 +143,53 @@ impl ClipVideoUseCase {
         let tracking_mode = self.ctx.config.face_tracking_mode.clone();
 
         // Multi‑face mode uses the dedicated detector returning two sets of keyframes.
-            if payload.crop_mode == "multi_face" {
-                // Attempt to load cached multi‑face data first.
-                let cache_path = cache_file(
-                    &self.ctx.job_dir,
-                    &format!("multi_face_{}.json", payload.segment_index),
-                );
+        if payload.crop_mode == "multi_face" {
+            // Attempt to load cached multi‑face data first.
+            let cache_path = cache_file(
+                &self.ctx.job_dir,
+                &format!("multi_face_{}.json", payload.segment_index),
+            );
 
-                // If a cached file exists we will use it; otherwise we compute and cache.
-                if cache_path.exists() {
-                        match crate::orchestrator::job_cache::read_json_cache::<
-                            crate::face::models::MultiFaceData,
-                        >(&cache_path)
-                        {
-                            Some(cached) => {
-                                let mut combined = cached.face_1_keyframes;
-                                combined.extend(cached.face_2_keyframes);
-                                return Some(combined);
-                            }
-                            None => {
-                                // Cache miss – will compute below.
-                            }
-                        }
-                }
-
-                match crate::face::tracker::get_two_faces_normalized_centers(
-                    source_video,
-                    1.0,
-                    tracking_mode,
-                    Some(self.ctx.app_handle.clone()),
-                    self.ctx.cancel_token.clone(),
-                    None,
-                )
-                .await
+            // If a cached file exists we will use it; otherwise we compute and cache.
+            if cache_path.exists() {
+                match crate::orchestrator::job_cache::read_json_cache::<
+                    crate::face::models::MultiFaceData,
+                >(&cache_path)
                 {
-                    Ok((multi_data, _)) => {
-                        // Cache the multi‑face result for future runs.
-                        let _ = write_json_cache(&cache_path, &multi_data);
-                        let mut combined = multi_data.face_1_keyframes;
-                        combined.extend(multi_data.face_2_keyframes);
-                        Some(combined)
+                    Some(cached) => {
+                        let mut combined = cached.face_1_keyframes;
+                        combined.extend(cached.face_2_keyframes);
+                        return Some(combined);
                     }
-                    Err(e) => {
-                        log::warn!("Multi‑face tracking failed: {}. Fallback to center.", e);
-                        None
+                    None => {
+                        // Cache miss – will compute below.
                     }
                 }
-            } else {
+            }
+
+            match crate::face::tracker::get_two_faces_normalized_centers(
+                source_video,
+                1.0,
+                tracking_mode,
+                Some(self.ctx.app_handle.clone()),
+                self.ctx.cancel_token.clone(),
+                None,
+            )
+            .await
+            {
+                Ok((multi_data, _)) => {
+                    // Cache the multi‑face result for future runs.
+                    let _ = write_json_cache(&cache_path, &multi_data);
+                    let mut combined = multi_data.face_1_keyframes;
+                    combined.extend(multi_data.face_2_keyframes);
+                    Some(combined)
+                }
+                Err(e) => {
+                    log::warn!("Multi‑face tracking failed: {}. Fallback to center.", e);
+                    None
+                }
+            }
+        } else {
             // Existing single‑face path.
             match crate::face::tracker::get_face_keyframes(
                 source_video,
@@ -204,11 +210,7 @@ impl ClipVideoUseCase {
         }
     }
 
-    async fn resolve_debug_ass_path(
-        &self,
-        source_video: &Path,
-        idx: u32,
-    ) -> Option<String> {
+    async fn resolve_debug_ass_path(&self, source_video: &Path, idx: u32) -> Option<String> {
         if !self.ctx.config.debug_mode {
             return None;
         }

@@ -21,9 +21,7 @@ pub struct SimpleProbeResult {
     pub streams: Vec<SimpleProbeStream>,
 }
 
-pub async fn probe_local_video(
-    path: &Path,
-) -> Result<SimpleProbeResult, CliptzyError> {
+pub async fn probe_local_video(path: &Path) -> Result<SimpleProbeResult, CliptzyError> {
     let mut cmd = tokio::process::Command::new("ffprobe");
     cmd.arg("-v")
         .arg("quiet")
@@ -56,13 +54,20 @@ pub async fn probe_local_video(
             message: format!("ffprobe parse error: {}", e),
         })?;
 
-    let format_duration = probe.get("format").and_then(|f| f.get("duration")).and_then(|d| d.as_str()).map(|s| s.to_string());
-    
+    let format_duration = probe
+        .get("format")
+        .and_then(|f| f.get("duration"))
+        .and_then(|d| d.as_str())
+        .map(|s| s.to_string());
+
     let mut parsed_streams = Vec::new();
     if let Some(streams) = probe.get_mut("streams").and_then(|s| s.as_array_mut()) {
         for s in streams {
             parsed_streams.push(SimpleProbeStream {
-                codec_type: s.get("codec_type").and_then(|c| c.as_str()).map(|s| s.to_string()),
+                codec_type: s
+                    .get("codec_type")
+                    .and_then(|c| c.as_str())
+                    .map(|s| s.to_string()),
                 width: s.get("width").and_then(|w| w.as_u64()).map(|w| w as u32),
                 height: s.get("height").and_then(|h| h.as_u64()).map(|h| h as u32),
             });
@@ -70,7 +75,9 @@ pub async fn probe_local_video(
     }
 
     Ok(SimpleProbeResult {
-        format: Some(SimpleProbeFormat { duration: format_duration }),
+        format: Some(SimpleProbeFormat {
+            duration: format_duration,
+        }),
         streams: parsed_streams,
     })
 }

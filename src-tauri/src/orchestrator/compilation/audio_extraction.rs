@@ -4,9 +4,7 @@ use super::models::{
     PreparedMainSegment, VideoInfoCacheEntry,
 };
 use crate::error::CliptzyError;
-use crate::orchestrator::job_cache::{
-    cache_file, fingerprint, read_json_cache, write_json_cache,
-};
+use crate::orchestrator::job_cache::{cache_file, fingerprint, read_json_cache, write_json_cache};
 use crate::orchestrator::pipeline::PipelineContext;
 
 pub(crate) fn ensure_main_audio_segments_cached(
@@ -56,8 +54,7 @@ pub(crate) fn ensure_main_audio_segments_cached(
     std::fs::create_dir_all(&segments_dir)?;
 
     let (main_samples, sample_rate) =
-        crate::transcription::audio::decode_wav(main_audio_path)
-            .map_err(CliptzyError::Internal)?;
+        crate::transcription::audio::decode_wav(main_audio_path).map_err(CliptzyError::Internal)?;
 
     let mut segment_files = Vec::new();
     let mut prepared = Vec::new();

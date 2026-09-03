@@ -41,8 +41,6 @@ pub fn get_user_info(
 }
 
 #[tauri::command]
-pub fn is_supabase_available(
-    client: State<'_, Arc<crate::supabase::SupabaseClient>>,
-) -> bool {
+pub fn is_supabase_available(client: State<'_, Arc<crate::supabase::SupabaseClient>>) -> bool {
     client.is_available()
 }

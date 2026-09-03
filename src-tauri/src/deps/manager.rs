@@ -66,7 +66,11 @@ pub async fn check_dependencies() -> Result<DependencyStatus, CliptzyError> {
         let p = bin_dir.join("ffmpeg.exe");
         #[cfg(not(target_os = "windows"))]
         let p = bin_dir.join("ffmpeg");
-        if p.exists() { Some(p) } else { None }
+        if p.exists() {
+            Some(p)
+        } else {
+            None
+        }
     });
 
     let deno_bin = find_executable("deno").or_else(|| {
@@ -74,7 +78,11 @@ pub async fn check_dependencies() -> Result<DependencyStatus, CliptzyError> {
         let p = bin_dir.join("deno.exe");
         #[cfg(not(target_os = "windows"))]
         let p = bin_dir.join("deno");
-        if p.exists() { Some(p) } else { None }
+        if p.exists() {
+            Some(p)
+        } else {
+            None
+        }
     });
 
     let ytdlp_bin = find_executable("yt-dlp").or_else(|| {
@@ -82,7 +90,11 @@ pub async fn check_dependencies() -> Result<DependencyStatus, CliptzyError> {
         let p = bin_dir.join("yt-dlp.exe");
         #[cfg(not(target_os = "windows"))]
         let p = bin_dir.join("yt-dlp");
-        if p.exists() { Some(p) } else { None }
+        if p.exists() {
+            Some(p)
+        } else {
+            None
+        }
     });
 
     let mut ffmpeg_installed = false;
@@ -392,4 +404,3 @@ pub async fn install_ytdlp(app: AppHandle) -> Result<(), CliptzyError> {
 
     Ok(())
 }
-

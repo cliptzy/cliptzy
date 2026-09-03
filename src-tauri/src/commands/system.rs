@@ -21,12 +21,23 @@ pub async fn get_available_hwaccels() -> Result<Vec<String>, String> {
     accels.push("mac".to_string());
 
     let gpus = crate::system::get_system_gpus();
-    let has_nvidia = gpus.iter().any(|g| g.contains("nvidia") || g.contains("geforce") || g.contains("quadro") || g.contains("rtx") || g.contains("gtx"));
-    let has_amd = gpus.iter().any(|g| g.contains("amd") || g.contains("radeon") || g.contains("rx "));
-    let has_intel = gpus.iter().any(|g| g.contains("intel") || g.contains("uhd") || g.contains("iris") || g.contains("arc"));
+    let has_nvidia = gpus.iter().any(|g| {
+        g.contains("nvidia")
+            || g.contains("geforce")
+            || g.contains("quadro")
+            || g.contains("rtx")
+            || g.contains("gtx")
+    });
+    let has_amd = gpus
+        .iter()
+        .any(|g| g.contains("amd") || g.contains("radeon") || g.contains("rx "));
+    let has_intel = gpus.iter().any(|g| {
+        g.contains("intel") || g.contains("uhd") || g.contains("iris") || g.contains("arc")
+    });
 
     // Attempt to invoke ffmpeg to detect real accels
-    let ffmpeg_bin = crate::utils::find_executable("ffmpeg").unwrap_or_else(|| std::path::PathBuf::from("ffmpeg"));
+    let ffmpeg_bin = crate::utils::find_executable("ffmpeg")
+        .unwrap_or_else(|| std::path::PathBuf::from("ffmpeg"));
     if let Ok(output) = std::process::Command::new(&ffmpeg_bin)
         .arg("-hwaccels")
         .output()
@@ -35,7 +46,8 @@ pub async fn get_available_hwaccels() -> Result<Vec<String>, String> {
         if text.contains("videotoolbox") && !accels.contains(&"mac".to_string()) {
             accels.push("mac".to_string());
         }
-        if (text.contains("cuda") || text.contains("nvenc") || text.contains("cuvid")) && has_nvidia {
+        if (text.contains("cuda") || text.contains("nvenc") || text.contains("cuvid")) && has_nvidia
+        {
             accels.push("nvidia".to_string());
         }
         if (text.contains("amf") || text.contains("d3d11va")) && has_amd {
@@ -111,7 +123,7 @@ pub async fn cancel_processing(state: tauri::State<'_, crate::AppState>) -> Resu
     let mut token_guard = state.cancel_token.lock().await;
     if let Some(token) = token_guard.take() {
         token.cancel();
-        
+
         // Force kill any ffmpeg/yt-dlp to interrupt rust_ffmpeg processes
         crate::utils::kill_processes(&["ffmpeg", "yt-dlp"]);
 

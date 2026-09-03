@@ -1,6 +1,6 @@
 use crate::error::CliptzyError;
-use tokio_util::sync::CancellationToken;
 use std::process::Stdio;
+use tokio_util::sync::CancellationToken;
 
 pub struct PipelineStage {
     pub name: String,
@@ -46,7 +46,7 @@ impl PipelineStage {
                     code: -1,
                     message: format!("Gagal wait proses {}: {}", self.name, e),
                 })?;
-                
+
                 let stderr_output = stderr_handle.await.unwrap_or_default();
 
                 if !exit_status.success() {
@@ -78,4 +78,3 @@ impl PipelineStage {
         }
     }
 }
-

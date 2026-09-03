@@ -43,16 +43,15 @@ impl SupabaseClient {
                 let mut headers = reqwest::header::HeaderMap::new();
                 headers.insert(
                     "apikey",
-                    key.parse()
-                        .map_err(|_| CliptzyError::Config("invalid SUPABASE_KEY header value".into()))?,
+                    key.parse().map_err(|_| {
+                        CliptzyError::Config("invalid SUPABASE_KEY header value".into())
+                    })?,
                 );
                 headers.insert(
                     "Authorization",
-                    format!("Bearer {}", key)
-                        .parse()
-                        .map_err(|_| {
-                            CliptzyError::Config("invalid Authorization header value".into())
-                        })?,
+                    format!("Bearer {}", key).parse().map_err(|_| {
+                        CliptzyError::Config("invalid Authorization header value".into())
+                    })?,
                 );
                 headers
             })
@@ -162,27 +161,35 @@ impl SupabaseClient {
     }
 
     pub fn get_user_display_name(&self) -> Option<String> {
-        self.session.lock().unwrap_or_else(|e| e.into_inner()).as_ref().and_then(|s| {
-            s.user.as_ref().and_then(|u| {
-                u.user_metadata.as_ref().and_then(|m| {
-                    m.get("full_name")
-                        .or_else(|| m.get("name"))
-                        .and_then(|v| v.as_str().map(String::from))
+        self.session
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .as_ref()
+            .and_then(|s| {
+                s.user.as_ref().and_then(|u| {
+                    u.user_metadata.as_ref().and_then(|m| {
+                        m.get("full_name")
+                            .or_else(|| m.get("name"))
+                            .and_then(|v| v.as_str().map(String::from))
+                    })
                 })
             })
-        })
     }
 
     pub fn get_user_avatar_url(&self) -> Option<String> {
-        self.session.lock().unwrap_or_else(|e| e.into_inner()).as_ref().and_then(|s| {
-            s.user.as_ref().and_then(|u| {
-                u.user_metadata.as_ref().and_then(|m| {
-                    m.get("avatar_url")
-                        .or_else(|| m.get("picture"))
-                        .and_then(|v| v.as_str().map(String::from))
+        self.session
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .as_ref()
+            .and_then(|s| {
+                s.user.as_ref().and_then(|u| {
+                    u.user_metadata.as_ref().and_then(|m| {
+                        m.get("avatar_url")
+                            .or_else(|| m.get("picture"))
+                            .and_then(|v| v.as_str().map(String::from))
+                    })
                 })
             })
-        })
     }
 
     pub async fn login_with_google(&self) -> Result<bool, CliptzyError> {
@@ -195,12 +202,10 @@ impl SupabaseClient {
         hasher.update(code_verifier.as_bytes());
         let code_challenge = URL_SAFE_NO_PAD.encode(hasher.finalize());
 
-        let auth_url =
-            crate::auth::oauth_server::build_google_auth_url(&self.url, &code_challenge);
+        let auth_url = crate::auth::oauth_server::build_google_auth_url(&self.url, &code_challenge);
 
-        opener::open(&auth_url).map_err(|e| {
-            CliptzyError::Supabase(format!("failed to open browser: {}", e))
-        })?;
+        opener::open(&auth_url)
+            .map_err(|e| CliptzyError::Supabase(format!("failed to open browser: {}", e)))?;
 
         let code = crate::auth::oauth_server::listen_for_auth_code().await?;
 
@@ -249,7 +254,10 @@ impl SupabaseClient {
         Ok(())
     }
 
-    pub async fn sync_config_up(&self, config_dict: serde_json::Value) -> Result<bool, CliptzyError> {
+    pub async fn sync_config_up(
+        &self,
+        config_dict: serde_json::Value,
+    ) -> Result<bool, CliptzyError> {
         self.require_available()?;
         let (user_id, token) = self.require_session()?;
 
@@ -294,7 +302,9 @@ impl SupabaseClient {
             .header("Authorization", format!("Bearer {}", token))
             .send()
             .await
-            .map_err(|e| CliptzyError::Supabase(format!("sync config down request failed: {}", e)))?;
+            .map_err(|e| {
+                CliptzyError::Supabase(format!("sync config down request failed: {}", e))
+            })?;
 
         if !resp.status().is_success() {
             return Err(CliptzyError::Supabase(format!(

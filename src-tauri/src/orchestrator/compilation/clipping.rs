@@ -130,10 +130,14 @@ pub async fn clip_and_label_restreamers(
             ff_cmd.arg(arg);
         }
         ff_cmd
-            .arg("-pix_fmt").arg("yuv420p")
-            .arg("-movflags").arg("+faststart")
-            .arg("-c:a").arg("aac")
-            .arg("-b:a").arg("192k");
+            .arg("-pix_fmt")
+            .arg("yuv420p")
+            .arg("-movflags")
+            .arg("+faststart")
+            .arg("-c:a")
+            .arg("aac")
+            .arg("-b:a")
+            .arg("192k");
         ff_cmd.arg("-y");
         ff_cmd.arg(output_mp4.to_string_lossy().to_string());
 

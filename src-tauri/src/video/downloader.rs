@@ -1,10 +1,10 @@
 use crate::error::CliptzyError;
 use crate::orchestrator::pipeline::{emit_progress, ProgressEvent};
 use std::path::Path;
+use std::process::Stdio;
+use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
 use tokio_util::sync::CancellationToken;
-use tokio::io::{AsyncBufReadExt, BufReader};
-use std::process::Stdio;
 
 fn extract_percentage(line: &str) -> Option<f64> {
     if !line.contains("[download]") {
@@ -14,7 +14,10 @@ fn extract_percentage(line: &str) -> Option<f64> {
         let before_pct = &line[..idx];
         let words: Vec<&str> = before_pct.split_whitespace().collect();
         if let Some(last) = words.last() {
-            let clean: String = last.chars().filter(|c| c.is_ascii_digit() || *c == '.').collect();
+            let clean: String = last
+                .chars()
+                .filter(|c| c.is_ascii_digit() || *c == '.')
+                .collect();
             return clean.parse::<f64>().ok();
         }
     }
@@ -98,10 +101,10 @@ pub async fn download_segment(
 
     let stdout = child.stdout.take().unwrap();
     let stderr = child.stderr.take().unwrap();
-    
+
     let handle_clone1 = progress.cloned();
     let handle_clone2 = progress.cloned();
-    
+
     let total_duration = end - start;
 
     tokio::spawn(async move {
@@ -133,10 +136,12 @@ pub async fn download_segment(
         let mut reader = BufReader::new(stderr);
         let mut buf = Vec::new();
         while let Ok(n) = reader.read_until(b'\r', &mut buf).await {
-            if n == 0 { break; }
+            if n == 0 {
+                break;
+            }
             let line = String::from_utf8_lossy(&buf).to_string();
             buf.clear();
-            
+
             if let Some(pct) = extract_ffmpeg_time(&line, total_duration) {
                 if let Some(h) = &handle_clone2 {
                     emit_progress(

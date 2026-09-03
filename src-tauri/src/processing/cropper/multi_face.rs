@@ -1,9 +1,5 @@
 use super::{
-    apply_debug_ass,
-    finish_crop_builder,
-    generate_dynamic_crop_expr,
-    CropStrategy,
-    OutputConfig,
+    apply_debug_ass, finish_crop_builder, generate_dynamic_crop_expr, CropStrategy, OutputConfig,
 };
 use crate::error::CliptzyError;
 use crate::face::models::FaceKeyframe;
@@ -72,14 +68,8 @@ impl CropStrategy for MultiFaceCrop {
 
         // ---------- Top static centre crop ----------
         let top_scale = FilterNode::new("scale")
-            .param(
-                "w",
-                &format!("'max(iw*{}/ih,{})'", top_h, out_w),
-            )
-            .param(
-                "h",
-                &format!("'max(ih*{}/iw,{})'", out_w, top_h),
-            )
+            .param("w", &format!("'max(iw*{}/ih,{})'", top_h, out_w))
+            .param("h", &format!("'max(ih*{}/iw,{})'", out_w, top_h))
             .inputs(&[&input_v])
             .outputs(&["top_scaled"]);
 
@@ -99,43 +89,43 @@ impl CropStrategy for MultiFaceCrop {
 
         // ---------- Bottom left panel (face 1) ----------
         let bl_scale = FilterNode::new("scale")
-            .param(
-                "w",
-                &format!("'max(iw*{}/ih,{})'", bottom_h, bottom_w),
-            )
-            .param(
-                "h",
-                &format!("'max(ih*{}/iw,{})'", bottom_w, bottom_h),
-            )
+            .param("w", &format!("'max(iw*{}/ih,{})'", bottom_h, bottom_w))
+            .param("h", &format!("'max(ih*{}/iw,{})'", bottom_w, bottom_h))
             .inputs(&[&input_v])
             .outputs(&["bl_scaled"]);
 
         let bl_crop = FilterNode::new("crop")
             .param("w", &bottom_w.to_string())
             .param("h", &bottom_h.to_string())
-            .param("x", &generate_dynamic_crop_expr(face1_kf, "x", bottom_w, bottom_h))
-            .param("y", &generate_dynamic_crop_expr(face1_kf, "y", bottom_w, bottom_h))
+            .param(
+                "x",
+                &generate_dynamic_crop_expr(face1_kf, "x", bottom_w, bottom_h),
+            )
+            .param(
+                "y",
+                &generate_dynamic_crop_expr(face1_kf, "y", bottom_w, bottom_h),
+            )
             .inputs(&["bl_scaled"])
             .outputs(&["bottom_left"]);
 
         // ---------- Bottom right panel (face 2) ----------
         let br_scale = FilterNode::new("scale")
-            .param(
-                "w",
-                &format!("'max(iw*{}/ih,{})'", bottom_h, bottom_w),
-            )
-            .param(
-                "h",
-                &format!("'max(ih*{}/iw,{})'", bottom_w, bottom_h),
-            )
+            .param("w", &format!("'max(iw*{}/ih,{})'", bottom_h, bottom_w))
+            .param("h", &format!("'max(ih*{}/iw,{})'", bottom_w, bottom_h))
             .inputs(&[&input_v])
             .outputs(&["br_scaled"]);
 
         let br_crop = FilterNode::new("crop")
             .param("w", &bottom_w.to_string())
             .param("h", &bottom_h.to_string())
-            .param("x", &generate_dynamic_crop_expr(face2_kf, "x", bottom_w, bottom_h))
-            .param("y", &generate_dynamic_crop_expr(face2_kf, "y", bottom_w, bottom_h))
+            .param(
+                "x",
+                &generate_dynamic_crop_expr(face2_kf, "x", bottom_w, bottom_h),
+            )
+            .param(
+                "y",
+                &generate_dynamic_crop_expr(face2_kf, "y", bottom_w, bottom_h),
+            )
             .inputs(&["br_scaled"])
             .outputs(&["bottom_right"]);
 

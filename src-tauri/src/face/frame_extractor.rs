@@ -16,7 +16,8 @@ pub async fn extract_frames(
     interval_sec: f32,
     cancel_token: &CancellationToken,
 ) -> Result<ExtractedFrames, CliptzyError> {
-    let tmp_dir = TempDir::new().map_err(|e| CliptzyError::Internal(format!("Tempdir error: {}", e)))?;
+    let tmp_dir =
+        TempDir::new().map_err(|e| CliptzyError::Internal(format!("Tempdir error: {}", e)))?;
 
     let fps = if tracking_mode == "cinematic" {
         15.0
@@ -28,12 +29,12 @@ pub async fn extract_frames(
     let ffmpeg_bin =
         crate::utils::find_executable("ffmpeg").unwrap_or_else(|| PathBuf::from("ffmpeg"));
 
-    let video_path_str = video_path.to_str().ok_or_else(|| {
-        CliptzyError::Internal(format!("Invalid video path: {:?}", video_path))
-    })?;
-    let frame_pattern_str = frame_pattern.to_str().ok_or_else(|| {
-        CliptzyError::Internal("Invalid temp frame path".into())
-    })?;
+    let video_path_str = video_path
+        .to_str()
+        .ok_or_else(|| CliptzyError::Internal(format!("Invalid video path: {:?}", video_path)))?;
+    let frame_pattern_str = frame_pattern
+        .to_str()
+        .ok_or_else(|| CliptzyError::Internal("Invalid temp frame path".into()))?;
 
     let scale_opt = if tracking_mode == "cinematic" {
         "scale=-1:240"
@@ -59,13 +60,14 @@ pub async fn extract_frames(
     args.push(format!("fps={},{}", fps, scale_opt));
     args.push(frame_pattern_str.to_string());
 
-    let mut child = Command::new(&ffmpeg_bin)
-        .args(&args)
-        .spawn()
-        .map_err(|e| CliptzyError::FFmpeg {
-            code: -1,
-            message: format!("FFmpeg extract spawn failed: {}", e),
-        })?;
+    let mut child =
+        Command::new(&ffmpeg_bin)
+            .args(&args)
+            .spawn()
+            .map_err(|e| CliptzyError::FFmpeg {
+                code: -1,
+                message: format!("FFmpeg extract spawn failed: {}", e),
+            })?;
 
     let status = tokio::select! {
         _ = cancel_token.cancelled() => {

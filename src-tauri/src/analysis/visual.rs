@@ -1,7 +1,7 @@
 use super::{AnalysisSegment, EmotionAnalyzer, EmotionLabel};
+use crate::ai::onnx::OnnxModelManager;
 use crate::error::CliptzyError;
 use crate::orchestrator::pipeline::ProgressEvent;
-use crate::ai::onnx::OnnxModelManager;
 use ndarray::{Array, Array4};
 use std::path::Path;
 use tokio::sync::broadcast::Sender;
@@ -42,7 +42,8 @@ impl VisualEmotionAnalyzer {
             // ViT Normalize: mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]
             input_tensor[[0, 0, y as usize, x as usize]] = (pixel[0] as f32 / 255.0 - 0.5) / 0.5; // R
             input_tensor[[0, 1, y as usize, x as usize]] = (pixel[1] as f32 / 255.0 - 0.5) / 0.5; // G
-            input_tensor[[0, 2, y as usize, x as usize]] = (pixel[2] as f32 / 255.0 - 0.5) / 0.5; // B
+            input_tensor[[0, 2, y as usize, x as usize]] = (pixel[2] as f32 / 255.0 - 0.5) / 0.5;
+            // B
         }
 
         let tensor = ort::value::Tensor::from_array(input_tensor)
@@ -65,7 +66,10 @@ impl VisualEmotionAnalyzer {
         // Hitung softmax untuk mendapatkan probabilitas yang benar (0.0 - 1.0)
         let max_logit = logits.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
         let exp_sum: f32 = logits.iter().map(|&x| (x - max_logit).exp()).sum();
-        let softmax: Vec<f32> = logits.iter().map(|&x| (x - max_logit).exp() / exp_sum).collect();
+        let softmax: Vec<f32> = logits
+            .iter()
+            .map(|&x| (x - max_logit).exp() / exp_sum)
+            .collect();
 
         let mut max_idx = 0;
         let mut max_val = softmax[0];

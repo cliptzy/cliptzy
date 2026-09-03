@@ -2,7 +2,10 @@ use super::models::{ClipPaths, ClipPayload};
 use crate::processing::cropper::OutputConfig;
 use std::path::Path;
 
-pub(crate) fn apply_segment_bounds(payload: &mut ClipPayload, config: &crate::config::models::AppConfig) {
+pub(crate) fn apply_segment_bounds(
+    payload: &mut ClipPayload,
+    config: &crate::config::models::AppConfig,
+) {
     let min_dur = config.min_duration as f64;
     let padding = config.padding as f64;
 

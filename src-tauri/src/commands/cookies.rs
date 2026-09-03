@@ -36,11 +36,10 @@ pub async fn validate_cookies_file(cookies_path: String) -> Result<serde_json::V
     }
 
     // Check 2 & 3: Read and parse cookies
-    let content =
-        std::fs::read_to_string(path).map_err(|e| {
-            log::error!("Gagal membaca file cookies: {}", e);
-            format!("Gagal membaca file cookies: {}", e)
-        })?;
+    let content = std::fs::read_to_string(path).map_err(|e| {
+        log::error!("Gagal membaca file cookies: {}", e);
+        format!("Gagal membaca file cookies: {}", e)
+    })?;
 
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -161,13 +160,10 @@ pub async fn test_youtube_cookies(browser_name: String) -> Result<serde_json::Va
         .arg("--no-warnings")
         .arg("https://www.youtube.com/watch?v=gBSX9DPhRqg"); // a typical small test video
 
-    let output = cmd
-        .output()
-        .await
-        .map_err(|e| {
-            log::error!("Gagal menjalankan yt-dlp: {}", e);
-            format!("Gagal menjalankan yt-dlp: {}", e)
-        })?;
+    let output = cmd.output().await.map_err(|e| {
+        log::error!("Gagal menjalankan yt-dlp: {}", e);
+        format!("Gagal menjalankan yt-dlp: {}", e)
+    })?;
 
     if output.status.success() {
         Ok(serde_json::json!({

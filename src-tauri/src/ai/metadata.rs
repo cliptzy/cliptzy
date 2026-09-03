@@ -88,7 +88,9 @@ impl MetadataGenerator {
 
             let raw_response = provider.generate(&prompt, progress).await?;
 
-            let re = RE_META_OBJ.get_or_init(|| Regex::new(r#"(?s)\{\s*".*"\s*:.*\s*\}"#).expect("Invalid regex pattern"));
+            let re = RE_META_OBJ.get_or_init(|| {
+                Regex::new(r#"(?s)\{\s*".*"\s*:.*\s*\}"#).expect("Invalid regex pattern")
+            });
             let json_str = if let Some(mat) = re.find(&raw_response) {
                 mat.as_str()
             } else {

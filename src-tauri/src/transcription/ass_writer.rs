@@ -68,7 +68,9 @@ pub async fn try_generate_emotion_debug_ass(
     let json_str = std::fs::read_to_string(emotion_cache_path).ok()?;
     let cached: EmotionDebugCache = serde_json::from_str(&json_str).ok()?;
 
-    let probe = crate::video::local::probe_local_video(source_video).await.ok()?;
+    let probe = crate::video::local::probe_local_video(source_video)
+        .await
+        .ok()?;
     let mut v_w = 1920u32;
     let mut v_h = 1080u32;
     for stream in probe.streams {
@@ -90,7 +92,6 @@ pub async fn try_generate_emotion_debug_ass(
     log::info!("Debug ASS generated at {:?}", output_ass_path);
     Some(output_ass_path.to_path_buf())
 }
-
 
 pub fn generate_ass_file(
     segments: &[TranscriptionSegment],
@@ -248,7 +249,10 @@ pub fn generate_debug_ass(
     writeln!(file, "Style: DebugText,Arial,36,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,1,0,0,0,100,100,0,0,1,2,2,7,0,0,0,1")?;
     writeln!(file, "")?;
     writeln!(file, "[Events]")?;
-    writeln!(file, "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text")?;
+    writeln!(
+        file,
+        "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text"
+    )?;
 
     for seg in segments {
         if let Some(bbox) = &seg.bounding_box {
@@ -270,10 +274,22 @@ pub fn generate_debug_ass(
                 x1, y1, x2, y1, x2, y2, x1, y2
             );
 
-            writeln!(file, "Dialogue: 0,{},{},DebugBox,,0,0,0,,{}", start, end, draw_cmd)?;
+            writeln!(
+                file,
+                "Dialogue: 0,{},{},DebugBox,,0,0,0,,{}",
+                start, end, draw_cmd
+            )?;
 
             let text = format!("{:?} ({:.1}%)", seg.emotion, seg.score * 100.0);
-            writeln!(file, "Dialogue: 0,{},{},DebugText,,0,0,0,,{{\\pos({},{})}}{}", start, end, x1, y1 - 40, text)?;
+            writeln!(
+                file,
+                "Dialogue: 0,{},{},DebugText,,0,0,0,,{{\\pos({},{})}}{}",
+                start,
+                end,
+                x1,
+                y1 - 40,
+                text
+            )?;
         }
     }
 

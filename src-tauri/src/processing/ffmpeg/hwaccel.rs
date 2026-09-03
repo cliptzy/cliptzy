@@ -58,13 +58,13 @@ impl HwAccel {
                 "8000k".to_string(),
             ],
             HwAccel::Amf => vec![
-                "-c:v".to_string(), 
+                "-c:v".to_string(),
                 "h264_amf".to_string(),
                 "-b:v".to_string(),
                 "3000k".to_string(),
             ],
             HwAccel::Qsv => vec![
-                "-c:v".to_string(), 
+                "-c:v".to_string(),
                 "h264_qsv".to_string(),
                 "-b:v".to_string(),
                 "3000k".to_string(),

@@ -65,8 +65,7 @@ impl AnalyzeSegmentAudioUseCase {
             "Tahap 2: Memeriksa dan memuat model Whisper ({})...",
             whisper_model
         );
-        let model_path =
-            crate::transcription::whisper::ensure_model_exists(&whisper_model).await?;
+        let model_path = crate::transcription::whisper::ensure_model_exists(&whisper_model).await?;
 
         log::info!("Tahap 3: Menjalankan transkripsi Whisper (local)...");
         let transcriber = crate::transcription::whisper::WhisperTranscriber::new(&model_path)?;

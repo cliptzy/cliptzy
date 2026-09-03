@@ -2,14 +2,13 @@ use crate::ai::provider::AIProvider;
 use crate::error::CliptzyError;
 use crate::orchestrator::pipeline::ProgressTx;
 use async_trait::async_trait;
-use reqwest::Client;
-use serde_json::json;
+use rig_core::client::CompletionClient;
+use rig_core::completion::CompletionModel;
+use rig_core::providers::openai;
 
 pub struct OpenAIProvider {
-    api_key: String,
+    client: openai::CompletionsClient,
     model: String,
-    base_url: String,
-    client: Client,
 }
 
 impl OpenAIProvider {
@@ -19,16 +18,24 @@ impl OpenAIProvider {
         } else {
             model
         };
-        let base_url = if base_url.is_empty() {
-            "https://api.openai.com/v1"
+
+        let builder = openai::Client::builder().api_key(api_key);
+        let builder = if !base_url.is_empty() {
+            let mut base = base_url.trim_end_matches('/').to_string();
+            if !base.ends_with("/v1") {
+                base.push_str("/v1");
+            }
+            builder.base_url(&base)
         } else {
-            base_url
+            builder
         };
+
+        let client = builder.build().expect("Failed to initialize OpenAI client");
+        let client = client.completions_api();
+
         Self {
-            api_key: api_key.to_string(),
+            client,
             model: model.to_string(),
-            base_url: base_url.trim_end_matches('/').to_string(),
-            client: Client::new(),
         }
     }
 }
@@ -44,71 +51,53 @@ impl AIProvider for OpenAIProvider {
         prompt: &str,
         _progress: Option<&ProgressTx>,
     ) -> Result<String, CliptzyError> {
-        let url = format!("{}/chat/completions", self.base_url);
+        self.generate_with_tools(prompt, vec![], _progress).await
+    }
 
-        let body = json!({
-            "model": self.model,
-            "messages": [
-                {
-                    "role": "system",
-                    "content": "You are a professional video editor and JSON highlight generator."
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            "response_format": { "type": "json_object" },
-            "temperature": 0.3,
-            "stream": true
-        });
+    async fn generate_with_tools(
+        &self,
+        prompt: &str,
+        tools: Vec<rig_core::completion::ToolDefinition>,
+        _progress: Option<&ProgressTx>,
+    ) -> Result<String, CliptzyError> {
+        let model = self.client.completion_model(&self.model);
 
-        let mut res = self
-            .client
-            .post(&url)
-            .header("Authorization", format!("Bearer {}", self.api_key))
-            .json(&body)
-            .send()
-            .await
-            .map_err(|e| CliptzyError::AIProvider(format!("OpenAI request error: {}", e)))?;
-
-        if !res.status().is_success() {
-            let status = res.status();
-            let err_text = res.text().await.unwrap_or_default();
-            return Err(CliptzyError::AIProvider(format!(
-                "OpenAI error ({}): {}",
-                status, err_text
-            )));
+        let mut req = model.completion_request(prompt)
+            .additional_params(serde_json::json!({ "stream": false }));
+        
+        if !tools.is_empty() {
+            req = req.tools(tools);
         }
+        let request = req.build();
 
-        let mut full_response = String::new();
-        while let Some(chunk) = res
-            .chunk()
-            .await
-            .map_err(|e| CliptzyError::AIProvider(e.to_string()))?
-        {
-            let chunk_str = String::from_utf8_lossy(&chunk);
-            for line in chunk_str.lines() {
-                let line = line.trim();
-                if line.starts_with("data: ") && line != "data: [DONE]" {
-                    let json_str = &line[6..];
-                    if let Ok(data) = serde_json::from_str::<serde_json::Value>(json_str) {
-                        if let Some(choices) = data.get("choices").and_then(|c| c.as_array()) {
-                            if let Some(first) = choices.first() {
-                                if let Some(content) = first
-                                    .get("delta")
-                                    .and_then(|d| d.get("content"))
-                                    .and_then(|c| c.as_str())
-                                {
-                                    full_response.push_str(content);
-                                }
-                            }
-                        }
-                    }
+        let response = match model.completion(request).await {
+            Ok(res) => res,
+            Err(e) => {
+                log::warn!("OpenAI request with tools failed: {}. Retrying without tools...", e);
+                let req_no_tools = self.client.completion_model(&self.model)
+                    .completion_request(prompt)
+                    .additional_params(serde_json::json!({ "stream": false }))
+                    .build();
+                model.completion(req_no_tools).await.map_err(|e2| {
+                    CliptzyError::AIProvider(format!("OpenAI request error (fallback): {}", e2))
+                })?
+            }
+        };
+
+        for content in response.choice {
+            match content {
+                rig_core::completion::AssistantContent::ToolCall(call) => {
+                    return Ok(call.function.arguments.to_string());
                 }
+                rig_core::completion::AssistantContent::Text(text) => {
+                    return Ok(text.text);
+                }
+                _ => {}
             }
         }
 
-        Ok(full_response)
+        Err(CliptzyError::AIProvider(
+            "Empty response from OpenAI".to_string(),
+        ))
     }
 }

@@ -343,25 +343,43 @@ pub async fn detect_epic_moments(
             chunk.len()
         );
 
-        match ai_provider.generate(&prompt, Some(&ctx.progress_tx)).await {
+        let tools = vec![crate::ai::tools::analyze::analyze_transcript_tool()];
+        match ai_provider
+            .generate_with_tools(&prompt, tools, Some(&ctx.progress_tx))
+            .await
+        {
             Ok(response) => {
-                let json_str = extract_json_array(&response).unwrap_or_else(|_| "[]".to_string());
-                match serde_json::from_str::<Vec<EpicMoment>>(&json_str) {
-                    Ok(mut parsed_moments) => {
-                        apply_segment_duration_cap(
-                            &mut parsed_moments,
-                            config.compilation.max_segment_duration,
-                        );
-                        all_moments.extend(parsed_moments);
+                let json_val: Result<serde_json::Value, _> = serde_json::from_str(&response);
+                let parsed_moments = match json_val {
+                    Ok(val) => {
+                        if let Some(moments) = val.get("moments") {
+                            serde_json::from_value::<Vec<EpicMoment>>(moments.clone())
+                                .unwrap_or_else(|_| vec![])
+                        } else if val.is_array() {
+                            serde_json::from_value::<Vec<EpicMoment>>(val)
+                                .unwrap_or_else(|_| vec![])
+                        } else {
+                            vec![]
+                        }
                     }
-                    Err(e) => {
-                        log::error!(
-                            "[Compilation] Gagal parse JSON AI untuk chunk {}: {} | Raw: {}",
-                            idx + 1,
-                            e,
-                            &response[..response.len().min(500)]
-                        );
+                    Err(_) => {
+                        let json_str =
+                            extract_json_array(&response).unwrap_or_else(|_| "[]".to_string());
+                        serde_json::from_str::<Vec<EpicMoment>>(&json_str)
+                            .unwrap_or_else(|_| vec![])
                     }
+                };
+
+                if !parsed_moments.is_empty() {
+                    let mut pm = parsed_moments;
+                    apply_segment_duration_cap(&mut pm, config.compilation.max_segment_duration);
+                    all_moments.extend(pm);
+                } else {
+                    log::error!(
+                        "[Compilation] Gagal parse JSON AI untuk chunk {}: Raw: {}",
+                        idx + 1,
+                        &response[..response.len().min(500)]
+                    );
                 }
             }
             Err(e) => {

@@ -47,8 +47,6 @@ pub async fn get_downloader(
 
     builder = builder.with_args(extra_args);
 
-
-
     builder
         .build()
         .await
@@ -61,17 +59,22 @@ pub async fn analyze_youtube_video(
     ytdlp_bin: &Path,
 ) -> Result<VideoAnalysisResult, String> {
     let mut cmd = tokio::process::Command::new(ytdlp_bin);
-    
-    let mut args_to_log = vec!["--dump-single-json".to_string(), "--no-warnings".to_string()];
+
+    let mut args_to_log = vec![
+        "--dump-single-json".to_string(),
+        "--no-warnings".to_string(),
+    ];
     cmd.arg("--dump-single-json").arg("--no-warnings");
 
     args_to_log.push("--extractor-args".to_string());
     args_to_log.push("youtube:player-client=android,web,default".to_string());
     args_to_log.push("--remote-components".to_string());
     args_to_log.push("ejs:github".to_string());
-    
-    cmd.arg("--extractor-args").arg("youtube:player-client=android,web,default")
-       .arg("--remote-components").arg("ejs:github");
+
+    cmd.arg("--extractor-args")
+        .arg("youtube:player-client=android,web,default")
+        .arg("--remote-components")
+        .arg("ejs:github");
 
     if let Some(browser) = cookies_path {
         if !browser.is_empty() {
@@ -80,13 +83,19 @@ pub async fn analyze_youtube_video(
             cmd.arg("--cookies-from-browser").arg(browser);
         }
     }
-    
+
     args_to_log.push(url.to_string());
     cmd.arg(url);
 
-    log::info!("Menjalankan perintah fetch video: yt-dlp {}", args_to_log.join(" "));
+    log::info!(
+        "Menjalankan perintah fetch video: yt-dlp {}",
+        args_to_log.join(" ")
+    );
 
-    let output = cmd.output().await.map_err(|e| format!("Gagal mengeksekusi yt-dlp: {}", e))?;
+    let output = cmd
+        .output()
+        .await
+        .map_err(|e| format!("Gagal mengeksekusi yt-dlp: {}", e))?;
 
     if !output.status.success() {
         let err_str = String::from_utf8_lossy(&output.stderr);
@@ -95,16 +104,19 @@ pub async fn analyze_youtube_video(
     }
 
     let stdout_str = String::from_utf8_lossy(&output.stdout);
-    
+
     // Kadang yt-dlp mengeluarkan pesan peringatan sebelum JSON object
     let json_start = stdout_str.find('{').unwrap_or(0);
-    let json_end = stdout_str.rfind('}').map(|i| i + 1).unwrap_or(stdout_str.len());
+    let json_end = stdout_str
+        .rfind('}')
+        .map(|i| i + 1)
+        .unwrap_or(stdout_str.len());
     let clean_json = if json_start < json_end {
         &stdout_str[json_start..json_end]
     } else {
         &stdout_str
     };
-    
+
     let video: yt_dlp::model::video::Video = match serde_json::from_str(clean_json) {
         Ok(v) => v,
         Err(e) => {
@@ -122,7 +134,8 @@ pub async fn analyze_youtube_video(
         .and_then(|v| v.as_str())
         .map(|s| s.to_string());
 
-    let engaged = video.get_heatmap()
+    let engaged = video
+        .get_heatmap()
         .map(|h| h.get_highly_engaged_segments(0.5))
         .unwrap_or_default();
 
@@ -150,7 +163,10 @@ pub async fn analyze_youtube_video(
         });
     }
 
-    log::info!("Mencari format media yang cocok untuk video ID: {}", video.id);
+    log::info!(
+        "Mencari format media yang cocok untuk video ID: {}",
+        video.id
+    );
 
     let valid_formats: Vec<_> = video
         .formats
@@ -230,5 +246,3 @@ pub async fn download_youtube_video(
 
     Ok(())
 }
-
-

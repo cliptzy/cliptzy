@@ -56,15 +56,12 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
-        .manage(Arc::new(
-            supabase::SupabaseClient::new().unwrap_or_else(|e| {
-                log::warn!(
-                    "Supabase tidak tersedia, menjalankan mode offline: {}",
-                    e
-                );
+        .manage(Arc::new(supabase::SupabaseClient::new().unwrap_or_else(
+            |e| {
+                log::warn!("Supabase tidak tersedia, menjalankan mode offline: {}", e);
                 supabase::SupabaseClient::offline()
-            }),
-        ))
+            },
+        )))
         .manage(AppState {
             cancel_token: Mutex::new(None),
         })
@@ -102,6 +99,7 @@ pub fn run() {
             commands::video::import_broll_file,
             commands::video::delete_broll_file,
             commands::ai::fetch_openai_models,
+            commands::ai::ask_agent,
             commands::auth::login_with_google,
             commands::auth::logout,
             commands::auth::get_user_id,

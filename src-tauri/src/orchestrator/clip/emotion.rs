@@ -2,7 +2,9 @@ use super::models::EmotionCacheEntry;
 use super::ClipVideoUseCase;
 use crate::analysis::EmotionAnalyzer;
 use crate::error::CliptzyError;
-use crate::orchestrator::job_cache::{cache_file, fingerprint, is_fingerprint_valid, read_json_cache, write_json_cache};
+use crate::orchestrator::job_cache::{
+    cache_file, fingerprint, is_fingerprint_valid, read_json_cache, write_json_cache,
+};
 use crate::orchestrator::pipeline::{emit_progress, ProgressEvent};
 use std::path::Path;
 
@@ -64,7 +66,10 @@ impl ClipVideoUseCase {
                         },
                     );
                 }
-                log::info!("Emotion analysis selesai, tersimpan di {:?}", emotion_cache_path);
+                log::info!(
+                    "Emotion analysis selesai, tersimpan di {:?}",
+                    emotion_cache_path
+                );
             }
             Err(e) => {
                 log::warn!("Visual Emotion Analyzer gagal (dilewati): {}", e);

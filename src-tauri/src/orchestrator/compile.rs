@@ -28,8 +28,16 @@ fn format_concat_entry(path: &Path) -> String {
 }
 
 impl CompileVideoUseCase {
-    pub fn new(job_dir: PathBuf, hwaccel: crate::processing::ffmpeg::hwaccel::HwAccel, deps: crate::deps::AppDependencies) -> Self {
-        Self { job_dir, hwaccel, deps }
+    pub fn new(
+        job_dir: PathBuf,
+        hwaccel: crate::processing::ffmpeg::hwaccel::HwAccel,
+        deps: crate::deps::AppDependencies,
+    ) -> Self {
+        Self {
+            job_dir,
+            hwaccel,
+            deps,
+        }
     }
 
     pub async fn execute(
@@ -60,7 +68,9 @@ impl CompileVideoUseCase {
         }
 
         if concat_content.is_empty() {
-            return Err(CliptzyError::Config("Tidak ada urutan klip valid untuk dikompilasi".into()));
+            return Err(CliptzyError::Config(
+                "Tidak ada urutan klip valid untuk dikompilasi".into(),
+            ));
         }
 
         std::fs::write(&concat_txt_path, &concat_content)
@@ -72,38 +82,54 @@ impl CompileVideoUseCase {
         let concat_input = concat_txt_path.to_string_lossy().to_string();
 
         let mut cmd = tokio::process::Command::new(&self.deps.ffmpeg);
-        cmd.arg("-f").arg("concat")
-            .arg("-safe").arg("0")
-            .arg("-i").arg(&concat_input)
-            .arg("-c").arg("copy")
-            .arg("-movflags").arg("+faststart")
+        cmd.arg("-f")
+            .arg("concat")
+            .arg("-safe")
+            .arg("0")
+            .arg("-i")
+            .arg(&concat_input)
+            .arg("-c")
+            .arg("copy")
+            .arg("-movflags")
+            .arg("+faststart")
             .arg("-y")
             .arg(output_mp4.to_string_lossy().to_string());
 
-        let mut stage = crate::processing::ffmpeg::runner::PipelineStage::new("Concat Compile", cmd);
-        
+        let mut stage =
+            crate::processing::ffmpeg::runner::PipelineStage::new("Concat Compile", cmd);
+
         if stage.execute(cancel_token.clone()).await.is_err() {
             log::warn!("Stream copy gagal, mencoba fallback re-encode...");
-            
+
             let encode_args = self.hwaccel.encode_args();
 
             let mut fallback_cmd = tokio::process::Command::new(&self.deps.ffmpeg);
             fallback_cmd
-                .arg("-f").arg("concat")
-                .arg("-safe").arg("0")
-                .arg("-i").arg(&concat_input);
+                .arg("-f")
+                .arg("concat")
+                .arg("-safe")
+                .arg("0")
+                .arg("-i")
+                .arg(&concat_input);
             for arg in &encode_args {
                 fallback_cmd.arg(arg);
             }
             fallback_cmd
-                .arg("-pix_fmt").arg("yuv420p")
-                .arg("-movflags").arg("+faststart")
-                .arg("-c:a").arg("aac")
-                .arg("-b:a").arg("192k")
+                .arg("-pix_fmt")
+                .arg("yuv420p")
+                .arg("-movflags")
+                .arg("+faststart")
+                .arg("-c:a")
+                .arg("aac")
+                .arg("-b:a")
+                .arg("192k")
                 .arg("-y")
                 .arg(output_mp4.to_string_lossy().to_string());
-            
-            let mut fallback_stage = crate::processing::ffmpeg::runner::PipelineStage::new("Concat Re-encode", fallback_cmd);
+
+            let mut fallback_stage = crate::processing::ffmpeg::runner::PipelineStage::new(
+                "Concat Re-encode",
+                fallback_cmd,
+            );
             fallback_stage.execute(cancel_token).await?;
         }
 

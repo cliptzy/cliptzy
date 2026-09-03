@@ -15,7 +15,13 @@ pub fn track_faces_in_frames(
     app_handle: Option<&tauri::AppHandle>,
     cancel_token: &CancellationToken,
     visual_analyzer: Option<&crate::analysis::visual::VisualEmotionAnalyzer>,
-) -> Result<(Vec<FaceKeyframe>, Option<Vec<crate::analysis::AnalysisSegment>>), CliptzyError> {
+) -> Result<
+    (
+        Vec<FaceKeyframe>,
+        Option<Vec<crate::analysis::AnalysisSegment>>,
+    ),
+    CliptzyError,
+> {
     let mut raw_keyframes = Vec::new();
     let mut last_cx = 0.5;
     let mut last_cy = 0.5;
