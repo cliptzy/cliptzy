@@ -210,7 +210,6 @@ import { useVideoStore } from "../../stores/video";
 import { useAppStore } from "../../stores/app";
 import { useSettingsStore } from "../../stores/settings";
 import { invoke } from "@tauri-apps/api/core";
-import CCard from "../CCard.vue";
 
 const props = defineProps<{
     mode?: 'clipper' | 'compilation'

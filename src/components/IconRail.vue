@@ -31,7 +31,14 @@
         </button>
       </router-link>
     </nav>
-  </aside>
+    <div class="flex flex-col items-center gap-2 mt-4">
+    <button @click="toggleDarkMode"
+      class="w-10 h-10 flex items-center justify-center rounded-none text-base-content bg-base-200 hover:bg-base-300 transition-colors duration-200"
+      :title="isDark ? 'Switch to Light mode' : 'Switch to Dark mode'">
+      <component :is="isDark ? IconMoon : IconSun" class="w-5 h-5"/>
+    </button>
+  </div>
+</aside>
 </template>
 
 <script setup lang="ts">

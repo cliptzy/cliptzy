@@ -346,7 +346,6 @@ import { useAppStore } from "../../stores/app";
 import { useAuthStore } from "../../stores/auth";
 import { useSettingsStore } from "../../stores/settings";
 import { invoke } from "@tauri-apps/api/core";
-import CCard from "../CCard.vue";
 
 // Icons
 import IconUser from "~icons/lucide/user";

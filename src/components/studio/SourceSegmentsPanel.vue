@@ -487,7 +487,6 @@ import { onMounted, computed } from "vue";
 import { useVideoStore } from "../../stores/video";
 import { useSettingsStore } from "../../stores/settings";
 import { isReactionCompilation } from "../../constants/compilation";
-import CCard from "../CCard.vue";
 
 import ScanResultCard from "./ScanResultCard.vue";
 

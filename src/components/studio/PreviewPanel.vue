@@ -1,6 +1,6 @@
 <template>
-    <CCard
-        class="flex-1 flex flex-col items-center justify-center bg-base-100 relative border-r border-neutral overflow-hidden group p-4 h-full min-h-0 xl:min-h-[400px]"
+    <div
+        class="flex-1 flex flex-col items-center justify-center bg-base-100/50 relative border-r border-neutral overflow-hidden group p-4 h-full min-h-0 xl:min-h-[400px]"
     >
         <h3
             class="absolute top-4 left-4 text-xs font-bold text-secondary uppercase tracking-wider z-10 flex items-center gap-2"
@@ -9,13 +9,13 @@
         </h3>
 
         <div
-            class="relative w-full bg-base-100 rounded-none overflow-hidden border border-neutral  transition-all duration-300"
+            class="relative w-full bg-black rounded-none overflow-hidden border border-neutral transition-all duration-300"
             :class="props.mode === 'compilation' ? 'aspect-video max-w-[640px]' : { 'max-w-[320px]': true, 'aspect-[9/16]': settings.config.output_ratio === '9:16', 'aspect-square': settings.config.output_ratio === '1:1', 'aspect-video': settings.config.output_ratio === '16:9', 'aspect-auto': settings.config.output_ratio === 'original' }"
         >
             <!-- Iframe Container to crop YouTube to output ratio -->
             <div
                 v-show="isYoutube"
-                class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-full aspect-video pointer-events-none opacity-90"
+                class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-full aspect-video pointer-events-none"
             >
                 <div id="youtube-player" class="w-full h-full"></div>
             </div>
@@ -24,7 +24,7 @@
                 v-if="!isYoutube && videoStore.metadata?.stream_url"
                 ref="videoPlayer"
                 :src="videoStore.metadata.stream_url"
-                class="w-full h-full object-cover opacity-90"
+                class="w-full h-full object-cover"
                 loop
                 @timeupdate="
                     localTime = ($event.target as HTMLVideoElement).currentTime;
@@ -42,12 +42,12 @@
             <img
                 v-if="!videoStore.metadata"
                 src="https://images.unsplash.com/photo-1611162617474-5b21e879e113?q=80&w=1000&auto=format&fit=crop"
-                class="w-full h-full object-cover opacity-50"
+                class="w-full h-full object-cover opacity-60"
             />
             <img
                 v-else-if="!isYoutube && !videoStore.metadata?.stream_url"
                 :src="videoStore.metadata?.thumbnail_url"
-                class="w-full h-full object-cover opacity-50"
+                class="w-full h-full object-cover"
             />
 
             <!-- Safe Zones Overlay -->
@@ -92,7 +92,7 @@
               <!-- Watermark Overlay Placeholder -->
               <div
                   v-else
-                  class="absolute left-1/2 -translate-x-1/2 pointer-events-none opacity-50 text-base-content font-bold text-sm bg-base-200 px-2 py-1 rounded"
+                  class="absolute left-1/2 -translate-x-1/2 pointer-events-none opacity-50 text-base-content font-bold text-sm bg-base-200 px-2 py-1 rounded-none"
                   :class="{ 'top-8': settings.config.watermark_position === 'top', 'top-1/2 -translate-y-1/2': settings.config.watermark_position === 'center', 'bottom-32': settings.config.watermark_position === 'bottom' }"
               >
                   @cliptzy
@@ -162,12 +162,12 @@
 
         <!-- Floating Play Controls -->
         <div
-            class="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-base-100/90 backdrop-blur-xl px-6 py-2 rounded-none border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10"
+            class="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-base-100/90 backdrop-blur-xl px-6 py-2 rounded-none border border-neutral opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10"
         >
             <button class="text-base-content hover:text-base-content transition-colors" @click="seekRelative(-5)" >
                 <IconSkipBack class="w-5 h-5" />
             </button>
-            <button @click="togglePlay" class="w-10 h-10 bg-base-200text-base-content rounded-none flex items-center justify-center  transition-transform shadow-[0_0_15px_rgba(255,255,255,0.3)]" >
+            <button @click="togglePlay" class="w-10 h-10 bg-base-200 text-base-content rounded-none flex items-center justify-center transition-transform border border-neutral shadow-sm" >
                 <IconPause v-if="isPlaying" class="w-5 h-5" />
                 <IconPlay v-else class="w-5 h-5 ml-1" />
             </button>
@@ -175,7 +175,7 @@
                 <IconSkipForward class="w-5 h-5" />
             </button>
 
-            <div class="w-px h-6 bg-white/20 mx-2"></div>
+            <div class="w-px h-6 bg-neutral mx-2"></div>
 
             <!-- Volume Control -->
             <div class="flex items-center gap-2 group/volume w-24">
@@ -193,13 +193,13 @@
                 />
             </div>
 
-            <div class="w-px h-6 bg-white/20 mx-2"></div>
+            <div class="w-px h-6 bg-neutral mx-2"></div>
 
             <button class="text-base-content hover:text-base-content transition-colors" @click="showSafeZone = !showSafeZone" :class="{ 'text-base-content ': showSafeZone }" title="Toggle UI Safe Zones" >
                 <IconLayoutTemplate class="w-5 h-5" />
             </button>
         </div>
-    </CCard>
+    </div>
 </template>
 
 <script setup lang="ts">
