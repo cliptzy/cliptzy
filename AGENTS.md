@@ -362,3 +362,12 @@ Sebelum menulis kode, AI Model WAJIB menjawab pertanyaan berikut:
   1. Pembuatan `BrollAssetsSection.vue` dalam layar *Settings* (disinkronisasi ke PINIA `broll_dir`).
   2. Ekstraksi spesifikasi metadata *crop mode* (`requiresFaces`, `requiresBroll`, icon, deskripsi) ke `src/constants/cropModes.ts`.
   3. Modifikasi `InspectorPanel.vue` guna memunculkan pesan peringatan UI dinamis tergantung syarat tiap mode.
+
+### 4.32. Integrasi Cek & Instalasi Otomatis yt-dlp via Crate `yt-dlp`
+
+- **Problem**: Panel "Dependensi Eksternal" di Settings (`EngineSection.vue`) sebelumnya hanya memeriksa dan memasang FFmpeg dan Deno. `yt-dlp` belum tercatat dalam UI maupun didukung instalasi otomatisnya, padahal `yt-dlp` adalah dependensi krusial untuk scraping video YouTube.
+- **Solusi**:
+  1. Memanfaatkan crate `yt-dlp` yang sudah ada di dependensi Rust (`yt_dlp::client::deps::LibraryInstaller`) untuk mengunduh binary resmi `yt-dlp` langsung dari GitHub release sesuai platform/arsitektur pengguna ke direktori `app_data_dir()/bin`.
+  2. Memperluas struct `DependencyStatus` dengan field `ytdlp_installed: bool` dan `ytdlp_version: String`, serta mengoptimalkan fungsi `check_dependencies` di `deps/manager.rs` agar mendeteksi keberadaan binary di PATH maupun folder bin lokal aplikasi via `find_executable`.
+  3. Mengekspos command baru `install_ytdlp` di `deps/manager.rs` dan mendaftarkannya di `lib.rs::invoke_handler` serta menyertakannya dalam pipeline `install_dependencies`.
+  4. Menambahkan card `yt-dlp` di `EngineSection.vue` dengan tombol aksi responsif ("Pasang" / "Perbarui" / status checkmark) dan sinkronisasi progress instalasi secara real-time.

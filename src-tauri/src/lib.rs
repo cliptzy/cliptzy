@@ -114,6 +114,7 @@ pub fn run() {
             orchestrator::scan::scan_video,
             deps::manager::check_dependencies,
             deps::manager::install_dependencies,
+            deps::manager::install_ytdlp,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

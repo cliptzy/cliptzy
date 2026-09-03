@@ -57,10 +57,53 @@
  />
  <IconXCircle v-else class="w-5 h-5 text-error" />
  </div>
+
+ <div
+ class="flex justify-between items-center bg-base-200 border border-neutral p-3 rounded-none border-none shrink-0"
+ >
+ <div class="flex flex-col">
+ <span
+ class="text-sm font-bold text-base-content"
+ >yt-dlp</span
+ >
+ <span
+ class="text-xs font-bold"
+ :class="
+ depsStatus.ytdlp_installed
+ ? 'text-secondary '
+ : 'text-error'
+ "
+ >{{ depsStatus.ytdlp_version }}</span
+ >
+ </div>
+ <div class="flex items-center gap-2">
+ <button
+ @click="runInstallYtDlp"
+ :disabled="isInstallingDeps || isInstallingYtDlp"
+ class="px-2.5 py-1 text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded-none"
+ :class="
+ depsStatus.ytdlp_installed
+ ? 'bg-base-300 text-base-content hover:bg-neutral'
+ : 'bg-primary text-primary-content hover:bg-primary/90'
+ "
+ >
+ <span v-if="isInstallingYtDlp" class="flex items-center gap-1">
+ <IconLoader class="w-3 h-3 animate-spin" />
+ {{ depsStatus.ytdlp_installed ? 'Memperbarui...' : 'Memasang...' }}
+ </span>
+ <span v-else>{{ depsStatus.ytdlp_installed ? 'Perbarui' : 'Pasang' }}</span>
+ </button>
+ <IconCheckCircle
+ v-if="depsStatus.ytdlp_installed && !isInstallingYtDlp"
+ class="w-5 h-5 text-secondary"
+ />
+ <IconXCircle v-else-if="!depsStatus.ytdlp_installed && !isInstallingYtDlp" class="w-5 h-5 text-error" />
+ </div>
+ </div>
  </div>
 
  <div
- v-if="isInstallingDeps"
+ v-if="isInstallingDeps || isInstallingYtDlp"
  class="flex flex-col gap-2 shrink-0 mt-auto"
  >
  <div
@@ -78,7 +121,7 @@
 
  <button
  @click="runInstallDeps"
- :disabled="isInstallingDeps"
+ :disabled="isInstallingDeps || isInstallingYtDlp"
  class="w-full py-3 mt-auto rounded-none text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed  bg-primary text-primary-content hover:bg-primary/90 shrink-0"
  >
  <span
@@ -239,39 +282,57 @@ const availableAccels = ref<string[]>(["cpu"]);
 const isLoadingAccels = ref(true);
 
 const depsStatus = ref({
- ffmpeg_installed: false,
- ffmpeg_version: "Memeriksa...",
- deno_installed: false,
- deno_version: "Memeriksa...",
+  ffmpeg_installed: false,
+  ffmpeg_version: "Memeriksa...",
+  deno_installed: false,
+  deno_version: "Memeriksa...",
+  ytdlp_installed: false,
+  ytdlp_version: "Memeriksa...",
 });
 const isInstallingDeps = ref(false);
+const isInstallingYtDlp = ref(false);
 const installProgressText = ref("");
 const installProgressPercent = ref(0);
 
 let unlistenDepsProgress: any = null;
 
 const checkDeps = async () => {
- try {
- const status: any = await invoke("check_dependencies");
- depsStatus.value = status;
- } catch (e) {
- console.error("Gagal memeriksa dependensi:", e);
- }
+  try {
+    const status: any = await invoke("check_dependencies");
+    depsStatus.value = status;
+  } catch (e) {
+    console.error("Gagal memeriksa dependensi:", e);
+  }
 };
 
 const runInstallDeps = async () => {
- isInstallingDeps.value = true;
- installProgressText.value = "Menyiapkan instalasi...";
- installProgressPercent.value = 0;
- try {
- await invoke("install_dependencies");
- await checkDeps();
- } catch (e) {
- console.error("Instalasi gagal:", e);
- installProgressText.value = "Instalasi Gagal!";
- } finally {
- isInstallingDeps.value = false;
- }
+  isInstallingDeps.value = true;
+  installProgressText.value = "Menyiapkan instalasi...";
+  installProgressPercent.value = 0;
+  try {
+    await invoke("install_dependencies");
+    await checkDeps();
+  } catch (e) {
+    console.error("Instalasi gagal:", e);
+    installProgressText.value = "Instalasi Gagal!";
+  } finally {
+    isInstallingDeps.value = false;
+  }
+};
+
+const runInstallYtDlp = async () => {
+  isInstallingYtDlp.value = true;
+  installProgressText.value = "Menyiapkan instalasi yt-dlp...";
+  installProgressPercent.value = 10;
+  try {
+    await invoke("install_ytdlp");
+    await checkDeps();
+  } catch (e) {
+    console.error("Instalasi yt-dlp gagal:", e);
+    installProgressText.value = "Instalasi yt-dlp Gagal!";
+  } finally {
+    isInstallingYtDlp.value = false;
+  }
 };
 
 onMounted(async () => {

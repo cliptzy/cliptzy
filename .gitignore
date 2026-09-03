@@ -22,6 +22,7 @@ lerna-debug.log*
 # Tauri & Rust Backend
 # =========================
 src-tauri/target/
+src-tauri/target_check/
 src-tauri/gen/
 **/*.rs.bk
 

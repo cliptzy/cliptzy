@@ -35,6 +35,8 @@ pub struct DependencyStatus {
     pub ffmpeg_version: String,
     pub deno_installed: bool,
     pub deno_version: String,
+    pub ytdlp_installed: bool,
+    pub ytdlp_version: String,
 }
 
 pub fn setup_env() {
@@ -55,19 +57,33 @@ pub fn setup_env() {
 
 #[tauri::command]
 pub async fn check_dependencies() -> Result<DependencyStatus, CliptzyError> {
-    log::debug!("Memeriksa dependensi sistem (FFmpeg & Deno)");
+    log::debug!("Memeriksa dependensi sistem (FFmpeg, Deno, yt-dlp)");
     let app_dir = crate::paths::app_data_dir();
     let bin_dir = app_dir.join("bin");
 
-    #[cfg(target_os = "windows")]
-    let ffmpeg_bin = bin_dir.join("ffmpeg.exe");
-    #[cfg(not(target_os = "windows"))]
-    let ffmpeg_bin = bin_dir.join("ffmpeg");
+    let ffmpeg_bin = find_executable("ffmpeg").or_else(|| {
+        #[cfg(target_os = "windows")]
+        let p = bin_dir.join("ffmpeg.exe");
+        #[cfg(not(target_os = "windows"))]
+        let p = bin_dir.join("ffmpeg");
+        if p.exists() { Some(p) } else { None }
+    });
 
-    #[cfg(target_os = "windows")]
-    let deno_bin = bin_dir.join("deno.exe");
-    #[cfg(not(target_os = "windows"))]
-    let deno_bin = bin_dir.join("deno");
+    let deno_bin = find_executable("deno").or_else(|| {
+        #[cfg(target_os = "windows")]
+        let p = bin_dir.join("deno.exe");
+        #[cfg(not(target_os = "windows"))]
+        let p = bin_dir.join("deno");
+        if p.exists() { Some(p) } else { None }
+    });
+
+    let ytdlp_bin = find_executable("yt-dlp").or_else(|| {
+        #[cfg(target_os = "windows")]
+        let p = bin_dir.join("yt-dlp.exe");
+        #[cfg(not(target_os = "windows"))]
+        let p = bin_dir.join("yt-dlp");
+        if p.exists() { Some(p) } else { None }
+    });
 
     let mut ffmpeg_installed = false;
     let mut ffmpeg_version = "Tidak terpasang".to_string();
@@ -75,9 +91,12 @@ pub async fn check_dependencies() -> Result<DependencyStatus, CliptzyError> {
     let mut deno_installed = false;
     let mut deno_version = "Tidak terpasang".to_string();
 
-    if ffmpeg_bin.exists() {
-        log::debug!("Ditemukan binary FFmpeg di {:?}", ffmpeg_bin);
-        if let Ok(output) = tokio::process::Command::new(&ffmpeg_bin)
+    let mut ytdlp_installed = false;
+    let mut ytdlp_version = "Tidak terpasang".to_string();
+
+    if let Some(ref path) = ffmpeg_bin {
+        log::debug!("Ditemukan binary FFmpeg di {:?}", path);
+        if let Ok(output) = tokio::process::Command::new(path)
             .arg("-version")
             .output()
             .await
@@ -103,9 +122,9 @@ pub async fn check_dependencies() -> Result<DependencyStatus, CliptzyError> {
         log::warn!("Binary FFmpeg tidak ditemukan.");
     }
 
-    if deno_bin.exists() {
-        log::debug!("Ditemukan binary Deno di {:?}", deno_bin);
-        if let Ok(output) = tokio::process::Command::new(&deno_bin)
+    if let Some(ref path) = deno_bin {
+        log::debug!("Ditemukan binary Deno di {:?}", path);
+        if let Ok(output) = tokio::process::Command::new(path)
             .arg("--version")
             .output()
             .await
@@ -125,11 +144,35 @@ pub async fn check_dependencies() -> Result<DependencyStatus, CliptzyError> {
         log::warn!("Binary Deno tidak ditemukan.");
     }
 
+    if let Some(ref path) = ytdlp_bin {
+        log::debug!("Ditemukan binary yt-dlp di {:?}", path);
+        if let Ok(output) = tokio::process::Command::new(path)
+            .arg("--version")
+            .output()
+            .await
+        {
+            if output.status.success() {
+                ytdlp_installed = true;
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                if let Some(first_line) = stdout.lines().next() {
+                    ytdlp_version = first_line.trim().to_string();
+                } else {
+                    ytdlp_version = "Terpasang".to_string();
+                }
+                log::info!("yt-dlp terdeteksi: {}", ytdlp_version);
+            }
+        }
+    } else {
+        log::warn!("Binary yt-dlp tidak ditemukan.");
+    }
+
     Ok(DependencyStatus {
         ffmpeg_installed,
         ffmpeg_version,
         deno_installed,
         deno_version,
+        ytdlp_installed,
+        ytdlp_version,
     })
 }
 
@@ -293,11 +336,60 @@ pub async fn install_dependencies(app: AppHandle) -> Result<(), CliptzyError> {
         // Simple fallback for linux
         emit_progress(
             "Ekstraksi Linux belum diimplementasi (Gunakan apt install ffmpeg).",
-            100.0,
+            80.0,
         );
     }
+
+    emit_progress("Mengunduh & memasang yt-dlp...", 85.0);
+    crate::utils::kill_processes(&["yt-dlp"]);
+    tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+
+    let installer = yt_dlp::client::deps::LibraryInstaller::new(bin_dir.clone());
+    let ytdlp_path = installer
+        .install_youtube(None)
+        .await
+        .map_err(|e| CliptzyError::Download(format!("Gagal memasang yt-dlp: {}", e)))?;
+    log::info!("yt-dlp berhasil dipasang di {:?}", ytdlp_path);
 
     emit_progress("Selesai!", 100.0);
 
     Ok(())
 }
+
+#[tauri::command]
+pub async fn install_ytdlp(app: AppHandle) -> Result<(), CliptzyError> {
+    log::info!("Memulai proses instalasi yt-dlp...");
+    let app_dir = crate::paths::app_data_dir();
+    let bin_dir = app_dir.join("bin");
+    std::fs::create_dir_all(&bin_dir)?;
+
+    let emit_progress = |step: &str, progress: f32| {
+        log::info!("Progres Instalasi yt-dlp: {} ({}%)", step, progress);
+        let _ = app.emit(
+            "deps-progress",
+            DependencyProgress {
+                step: step.to_string(),
+                progress,
+            },
+        );
+    };
+
+    emit_progress("Menyiapkan instalasi yt-dlp...", 10.0);
+
+    crate::utils::kill_processes(&["yt-dlp"]);
+    tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+
+    emit_progress("Mengunduh yt-dlp binary...", 40.0);
+
+    let installer = yt_dlp::client::deps::LibraryInstaller::new(bin_dir.clone());
+    let path = installer
+        .install_youtube(None)
+        .await
+        .map_err(|e| CliptzyError::Download(format!("Gagal memasang yt-dlp: {}", e)))?;
+
+    log::info!("yt-dlp berhasil dipasang di {:?}", path);
+    emit_progress("yt-dlp berhasil dipasang!", 100.0);
+
+    Ok(())
+}
+
