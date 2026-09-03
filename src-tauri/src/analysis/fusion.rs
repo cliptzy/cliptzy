@@ -1,4 +1,4 @@
-use super::audio::AudioEventAnalyzer;
+﻿use super::audio::AudioEventAnalyzer;
 use super::text::TextSentimentAnalyzer;
 use super::visual::VisualEmotionAnalyzer;
 use super::voice::VoiceEmotionAnalyzer;
