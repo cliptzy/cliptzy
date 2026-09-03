@@ -115,7 +115,9 @@ pub fn track_faces_in_frames(
             }) {
                 let bbox = largest.bbox();
 
-                let px = bbox.x() as f32 + bbox.width() as f32 / 2.0;
+                // The SeetaFace detector's bounding box center often leans slightly to the left 
+                // of the actual facial features. We apply a 5% empirical shift (0.55) to the right.
+                let px = bbox.x() as f32 + bbox.width() as f32 * 0.55;
                 let py = if tracking_mode == "cinematic" {
                     bbox.y() as f32 + bbox.height() as f32 * 0.4
                 } else {

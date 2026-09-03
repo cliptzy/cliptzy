@@ -38,8 +38,13 @@ impl CropStrategy for SplitFaceCrop {
         let mut graph = FilterGraph::new();
         let input_v = apply_debug_ass(&mut graph, "0:v", output_config);
 
-        // Scale the source video so it fits the output width while preserving aspect ratio.
-        let scale = FilterNode::new("scale")
+        let split = FilterNode::new("split")
+            .param("", "2")
+            .inputs(&[&input_v])
+            .outputs(&["split_top", "split_bottom"]);
+
+        // Scale the top half normally.
+        let top_scale = FilterNode::new("scale")
             .param(
                 "w",
                 &format!(
@@ -54,8 +59,27 @@ impl CropStrategy for SplitFaceCrop {
                     output_config.width, output_config.height
                 ),
             )
-            .inputs(&[&input_v])
-            .outputs(&["scaled"]);
+            .inputs(&["split_top"])
+            .outputs(&["top_scaled"]);
+
+        // Scale the bottom half (face) with a 1.3x zoom so the face appears larger.
+        let bottom_scale = FilterNode::new("scale")
+            .param(
+                "w",
+                &format!(
+                    "'max(iw*{}/ih,{})*1.3'",
+                    output_config.height, output_config.width
+                ),
+            )
+            .param(
+                "h",
+                &format!(
+                    "'max(ih*{}/iw,{})*1.3'",
+                    output_config.width, output_config.height
+                ),
+            )
+            .inputs(&["split_bottom"])
+            .outputs(&["bottom_scaled"]);
 
         // ----- Top half (static center crop) -----
         let top_crop = FilterNode::new("crop")
@@ -63,7 +87,7 @@ impl CropStrategy for SplitFaceCrop {
             .param("h", &(output_config.height / 2).to_string())
             .param("x", &format!("(iw-{})/2", output_config.width))
             .param("y", &format!("(ih-{})/2", output_config.height / 2))
-            .inputs(&["scaled"])
+            .inputs(&["top_scaled"])
             .outputs(&["top"]);
 
         // ----- Bottom half (dynamic face crop) -----
@@ -78,7 +102,7 @@ impl CropStrategy for SplitFaceCrop {
             .param("h", &bottom_h.to_string())
             .param("x", &x_offset)
             .param("y", &y_offset)
-            .inputs(&["scaled"])
+            .inputs(&["bottom_scaled"])
             .outputs(&["bottom"]);
 
         // Stack the two halves vertically.
@@ -87,7 +111,9 @@ impl CropStrategy for SplitFaceCrop {
             .outputs(&["outv"]);
 
         // Assemble graph.
-        graph.add_node(scale);
+        graph.add_node(split);
+        graph.add_node(top_scale);
+        graph.add_node(bottom_scale);
         graph.add_node(top_crop);
         graph.add_node(bottom_crop);
         graph.add_node(vstack);

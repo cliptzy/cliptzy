@@ -21,10 +21,15 @@ impl HwAccel {
         }
 
         #[cfg(target_os = "macos")]
-        return HwAccel::VideoToolbox;
+        {
+            return HwAccel::VideoToolbox;
+        }
 
-        // Default to CPU for maximum compatibility
-        HwAccel::Cpu
+        #[cfg(not(target_os = "macos"))]
+        {
+            // Default to CPU for maximum compatibility
+            HwAccel::Cpu
+        }
     }
 
     pub fn encoder(&self) -> &str {

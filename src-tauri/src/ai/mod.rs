@@ -1,7 +1,6 @@
 pub mod detector;
 pub mod gemini;
 pub mod metadata;
-pub mod models;
 pub mod ollama;
 pub mod openai;
 pub mod prompts;

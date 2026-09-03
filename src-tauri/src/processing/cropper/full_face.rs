@@ -74,14 +74,14 @@ impl CropStrategy for FullFaceCrop {
             .param(
                 "w",
                 &format!(
-                    "'max(iw*{}/ih,{})'",
+                    "'max(iw*{}/ih,{})*1.2'",
                     output_config.height, output_config.width
                 ),
             )
             .param(
                 "h",
                 &format!(
-                    "'max(ih*{}/iw,{})'",
+                    "'max(ih*{}/iw,{})*1.2'",
                     output_config.width, output_config.height
                 ),
             )

@@ -169,8 +169,13 @@ pub async fn get_two_faces_normalized_centers(
         });
         let to_center = |d: &rustface::FaceInfo| {
             let rect = d.bbox();
+            // The SeetaFace detector's bounding box center often leans slightly to the left 
+            // of the actual facial features (nose/eyes) due to hair/ear inclusion. 
+            // We apply a 5% empirical shift to the right relative to the bounding box width.
+            let adjusted_x = rect.x() as f32 + (rect.width() as f32 * 0.55);
+            
             NormalizedCenter {
-                cx: (rect.x() as f32 + rect.width() as f32 / 2.0) / w as f32,
+                cx: adjusted_x / w as f32,
                 cy: (rect.y() as f32 + rect.height() as f32 / 2.0) / h as f32,
             }
         };
