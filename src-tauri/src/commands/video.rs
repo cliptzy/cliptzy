@@ -11,6 +11,7 @@ use crate::processing::broll_manager::BrollManager;
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
+use tauri::Emitter;
 
 #[tauri::command]
 pub async fn analyze_video(
@@ -327,6 +328,9 @@ pub async fn upsert_job_history(
     store
         .save()
         .map_err(|e| crate::error::CliptzyError::Internal(e.to_string()))?;
+
+    // Emit event to notify frontend that history has changed
+    let _ = app.emit("job-history-updated", ());
 
     Ok(())
 }

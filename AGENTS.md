@@ -400,6 +400,33 @@ Sebelum menulis kode, AI Model WAJIB menjawab pertanyaan berikut:
 ### 4.36. Single Source of Truth (SSOT) Model ONNX & Command Manajemen UI
 
 - **Problem**: Model ONNX (ViT, Wav2Vec2, AST, RoBERTa, SeetaFace) sebelumnya memiliki URL hardcoded tersebar di 5+ file analyzer (`visual.rs`, `voice.rs`, `audio.rs`, `text.rs`, `face/tracker.rs`). Tidak ada sinkronisasi metadata (nama, kategori, ukuran) antara backend dan frontend. UI Settings tidak memiliki halaman manajemen model (list/download/delete). Bug: tokenizer RoBERTa mengunduh file salah (`model.onnx` bukan `tokenizer.json`).
+
+### 4.37. Perbaikan Job History Dashboard & Auto-Refresh (Event-Driven)
+
+- **Problem**: Aktivitas terakhir di `DashboardView.vue` tidak muncul saat user memproses clip video. Root cause:
+  1. Command `scan_video` (dipanggil oleh `previewVideo` di Studio) **tidak pernah** memanggil `upsert_job_history`, sehingga job tidak tersimpan saat URL dimuat.
+  2. Composable `useJobHistory()` dipanggil manual via `loadHistory()` di `onMounted` setiap komponen, sehingga tidak reaktif lintas komponen/halaman.
+  3. Tidak ada mekanisme real-time refresh saat backend menulis history baru.
+
+- **Solusi**:
+  1. **Backend (`scan_video`)**: Menambahkan parameter `app: tauri::AppHandle` dan memanggil `upsert_job_history` dengan status **"Draft"** setelah berhasil menganalisis video YouTube atau lokal. Untuk video lokal, `video_id` dibuat unik menggunakan `std::time::SystemTime` timestamp (`local_{timestamp}`).
+  2. **Backend (`upsert_job_history`)**: Menambahkan `app.emit("job-history-updated", ())` setelah menyimpan ke store, sehingga frontend otomatis tahu ada perubahan tanpa polling.
+  3. **Frontend (`useJobHistory.ts`)**: 
+     - Refactor untuk mendengarkan event Tauri `job-history-updated` via `listen()` di dalam `onMounted`.
+     - Setiap kali event diterima, otomatis memanggil `loadHistory()` untuk refresh data.
+     - Cleanup listener di `onUnmounted` untuk mencegah memory leak.
+  4. **Frontend (Komponen Dashboard)**: Menghapus semua `onMounted(() => loadHistory())` manual di `ActivityGrid.vue`, `StatsOverview.vue`, dan `LibraryView.vue` — composable sekarang auto-load dan auto-refresh.
+
+- **Hasil**: 
+  - Saat user memasukkan URL di Studio (`handleLoadVideo`), job langsung muncul di Dashboard dengan status "Draft".
+  - Saat proses clip/compilation dimulai, status berubah menjadi "Processing".
+  - Saat selesai atau gagal, status menjadi "Completed" atau "Failed".
+  - Semua perubahan status **langsung terlihat** di Dashboard tanpa perlu refresh manual atau navigasi ulang.
+  - User bisa klik job di Dashboard/Library untuk melanjutkan proses yang gagal atau diulang.
+
+- **File yang diubah**:
+  - **Backend**: `src-tauri/src/orchestrator/scan.rs` (tambah `AppHandle` param + panggil `upsert_job_history`), `src-tauri/src/commands/video.rs` (tambah `use tauri::Emitter` + emit event).
+  - **Frontend**: `src/composables/useJobHistory.ts` (event listener), `src/components/dashboard/ActivityGrid.vue`, `src/components/dashboard/StatsOverview.vue`, `src/views/LibraryView.vue` (hapus manual `loadHistory`).
 - **Solusi**:
   1. **Backend Registry (`src-tauri/src/ai/onnx.rs`)**:
      - Membuat `OnnxModelInfo` struct (Serialize) + const `ONNX_MODEL_REGISTRY` — 6 model: `visual` (emotion_vit.onnx, ~330MB), `voice` (wav2vec2_superb_er.onnx, ~380MB), `audio` (ast_audioset.onnx, ~350MB), `text` (twitter_roberta_emotion.onnx, ~500MB), `text_tokenizer` (twitter_roberta_tokenizer.onnx → **tokenizer.json**, ~3.6MB), `face` (seeta_fd_frontal_v1.0.bin, ~2MB).

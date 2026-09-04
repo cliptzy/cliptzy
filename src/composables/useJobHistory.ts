@@ -1,5 +1,6 @@
-import { ref } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { load } from '@tauri-apps/plugin-store';
+import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 
 export interface JobHistory {
   video_id: string;
@@ -15,6 +16,7 @@ export function useJobHistory() {
   const jobs = ref<JobHistory[]>([]);
   const isLoading = ref(false);
   const error = ref<string | null>(null);
+  let unlistenFn: UnlistenFn | null = null;
 
   const loadHistory = async () => {
     isLoading.value = true;
@@ -33,6 +35,20 @@ export function useJobHistory() {
       isLoading.value = false;
     }
   };
+
+  // Auto-reload when backend emits update event
+  onMounted(async () => {
+    await loadHistory();
+    unlistenFn = await listen('job-history-updated', () => {
+      loadHistory();
+    });
+  });
+
+  onUnmounted(() => {
+    if (unlistenFn) {
+      unlistenFn();
+    }
+  });
 
   const formatTime = (timestamp: number) => {
     if (!timestamp) return 'Tidak diketahui';

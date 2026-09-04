@@ -16,6 +16,7 @@ pub struct ScanResult {
 
 #[tauri::command]
 pub async fn scan_video(
+    app: tauri::AppHandle,
     url: String,
     cookies_path: Option<String>,
 ) -> Result<ScanResult, CliptzyError> {
@@ -36,6 +37,19 @@ pub async fn scan_video(
             })?;
 
         log::info!("Berhasil menganalisis YouTube video: {}", analysis.title);
+        
+        // Save to job history as Draft
+        let _ = crate::commands::video::upsert_job_history(
+            &app,
+            &analysis.video_id,
+            Some(&analysis.title),
+            Some(&analysis.video_url),
+            Some(&analysis.thumbnail),
+            Some("clipper"),
+            "Draft",
+        )
+        .await;
+
         Ok(ScanResult {
             video_id: analysis.video_id,
             title: analysis.title,
@@ -97,8 +111,29 @@ pub async fn scan_video(
             "Berhasil menganalisis video lokal dengan {} segmen",
             segments.len()
         );
+        
+        let video_id = format!(
+            "local_{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs()
+        );
+        
+        // Save to job history as Draft
+        let _ = crate::commands::video::upsert_job_history(
+            &app,
+            &video_id,
+            Some(&title),
+            Some(&url),
+            None, // no thumbnail for local
+            Some("clipper"),
+            "Draft",
+        )
+        .await;
+        
         Ok(ScanResult {
-            video_id: "local".to_string(),
+            video_id,
             title,
             thumbnail: "".to_string(),
             duration,

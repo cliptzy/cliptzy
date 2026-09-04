@@ -61,7 +61,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
+import { computed } from 'vue';
 import IconActivity from '~icons/lucide/activity';
 import IconHardDrive from '~icons/lucide/hard-drive';
 import IconLink from '~icons/lucide/layers';
@@ -70,7 +70,7 @@ import { useSystemMetrics } from '../../composables/useSystemMetrics';
 import { useJobHistory } from '../../composables/useJobHistory';
 
 const { metrics } = useSystemMetrics();
-const { jobs, loadHistory } = useJobHistory();
+const { jobs } = useJobHistory();
 
 const cpuUsage = computed(() => metrics.value?.cpu_usage?.toFixed(0) || '0');
 const hasGpu = computed(() => metrics.value?.has_gpu || false);
@@ -99,9 +99,5 @@ const processingJobsCount = computed(() => {
 
 const draftJobsCount = computed(() => {
   return jobs.value.filter(j => j.status.toLowerCase() === 'draft' || j.status.toLowerCase() === 'queued').length;
-});
-
-onMounted(() => {
-  loadHistory();
 });
 </script>

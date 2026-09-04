@@ -35,7 +35,6 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useVideoStore } from '../../stores/video';
 import { useJobHistory, type JobHistory } from '../../composables/useJobHistory';
@@ -46,7 +45,7 @@ import IconCalendar from '~icons/lucide/calendar';
 
 const router = useRouter();
 const videoStore = useVideoStore();
-const { jobs: recentActivities, loadHistory, formatTime } = useJobHistory();
+const { jobs: recentActivities, formatTime } = useJobHistory();
 
 const handleResume = async (job: JobHistory) => {
   if (job.mode) {
@@ -56,10 +55,6 @@ const handleResume = async (job: JobHistory) => {
     }
   }
 };
-
-onMounted(() => {
-  loadHistory();
-});
 </script>
 
 <style scoped>

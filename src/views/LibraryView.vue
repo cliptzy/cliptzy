@@ -29,7 +29,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useVideoStore } from '../stores/video';
 import { useJobHistory, type JobHistory } from '../composables/useJobHistory';
@@ -39,7 +39,7 @@ const viewMode = ref<'grid' | 'list'>('grid');
 const router = useRouter();
 const videoStore = useVideoStore();
 
-const { jobs, isLoading, loadHistory, formatDate } = useJobHistory();
+const { jobs, isLoading, formatDate } = useJobHistory();
 
 const handleResume = async (job: JobHistory) => {
   if (job.mode) {
@@ -49,8 +49,4 @@ const handleResume = async (job: JobHistory) => {
     }
   }
 };
-
-onMounted(() => {
-  loadHistory();
-});
 </script>
