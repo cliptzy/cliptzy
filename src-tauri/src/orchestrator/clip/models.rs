@@ -20,6 +20,7 @@ pub(crate) struct EmotionCacheEntry {
 pub struct ClipPayload {
     pub url: String,
     pub video_id: String,
+    pub title: String,
     pub start: f64,
     pub end: f64,
     pub crop_mode: String,

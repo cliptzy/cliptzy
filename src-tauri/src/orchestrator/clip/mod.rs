@@ -11,7 +11,7 @@ pub use models::{ClipPayload, ClipResult};
 use crate::error::CliptzyError;
 use crate::orchestrator::pipeline::{emit_progress, PipelineContext, ProgressEvent};
 use crate::processing::cropper::OutputConfig;
-use helpers::{apply_segment_bounds, clip_paths, probe_output_dimensions};
+use helpers::{apply_segment_bounds, clip_paths, probe_output_dimensions, sanitize_title};
 
 pub struct ClipVideoUseCase {
     pub(super) ctx: PipelineContext,
@@ -76,6 +76,23 @@ impl ClipVideoUseCase {
         self.thumbnail_phase(&paths.final_video, &paths.thumb)
             .await?;
 
+        // Salin hasil final ke folder output dengan nama berdasarkan judul video.
+        let output_dir = crate::paths::app_data_dir().join("output");
+        std::fs::create_dir_all(&output_dir)?;
+        let base_name = format!("{}_{}", sanitize_title(&payload.title), payload.segment_index);
+        let final_output = output_dir.join(format!("{}.mp4", base_name));
+        let thumb_output = output_dir.join(format!("{}.jpg", base_name));
+        std::fs::copy(&paths.final_video, &final_output).map_err(|e| {
+            CliptzyError::Internal(format!(
+                "Gagal menyalin video final ke {:?}: {}",
+                final_output, e
+            ))
+        })?;
+        if paths.thumb.exists() {
+            let _ = std::fs::copy(&paths.thumb, &thumb_output);
+        }
+        log::info!("Video final disalin ke {:?}", final_output);
+
         emit_progress(
             &self.ctx.app_handle,
             &ProgressEvent {
@@ -89,8 +106,8 @@ impl ClipVideoUseCase {
 
         Ok(ClipResult {
             success: true,
-            output_path: paths.final_video.to_string_lossy().to_string(),
-            thumbnail_path: paths.thumb.to_string_lossy().to_string(),
+            output_path: final_output.to_string_lossy().to_string(),
+            thumbnail_path: thumb_output.to_string_lossy().to_string(),
         })
     }
 }

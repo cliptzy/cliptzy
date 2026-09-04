@@ -80,7 +80,7 @@ pub async fn get_face_keyframes(
 
     let model_path = crate::ai::onnx::ensure_model_downloaded(
         "seeta_fd_frontal_v1.0.bin",
-        "https://github.com/atomashpolskiy/rustface/raw/master/model/seeta_fd_frontal_v1.0.bin",
+        crate::ai::onnx::find_model("face").map(|m| m.url).unwrap_or(""),
     )
     .await
     .map_err(CliptzyError::Internal)?;
@@ -136,7 +136,7 @@ pub async fn get_two_faces_normalized_centers(
     // ---------------------------------------------------------------------
     let model_path = crate::ai::onnx::ensure_model_downloaded(
         "seeta_fd_frontal_v1.0.bin",
-        "https://github.com/atomashpolskiy/rustface/raw/master/model/seeta_fd_frontal_v1.0.bin",
+        crate::ai::onnx::find_model("face").map(|m| m.url).unwrap_or(""),
     )
     .await
     .map_err(CliptzyError::Internal)?;

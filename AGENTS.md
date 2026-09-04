@@ -1,4 +1,4 @@
-# 📜 AGENTS.md — Peraturan & Panduan Proyek Cliptzy (Tauri Desktop App)
+﻿# 📜 AGENTS.md — Peraturan & Panduan Proyek Cliptzy (Tauri Desktop App)
 
 Dokumen ini adalah **sumber kebenaran utama (single source of truth)** untuk seluruh AI Model dan pengembang yang bekerja pada proyek **Cliptzy Desktop** — sebuah aplikasi YouTube Clipper & Auto Uploader yang dibangun menggunakan arsitektur **Murni Rust & Tauri (Native)**.
 
@@ -371,3 +371,51 @@ Sebelum menulis kode, AI Model WAJIB menjawab pertanyaan berikut:
   2. Memperluas struct `DependencyStatus` dengan field `ytdlp_installed: bool` dan `ytdlp_version: String`, serta mengoptimalkan fungsi `check_dependencies` di `deps/manager.rs` agar mendeteksi keberadaan binary di PATH maupun folder bin lokal aplikasi via `find_executable`.
   3. Mengekspos command baru `install_ytdlp` di `deps/manager.rs` dan mendaftarkannya di `lib.rs::invoke_handler` serta menyertakannya dalam pipeline `install_dependencies`.
   4. Menambahkan card `yt-dlp` di `EngineSection.vue` dengan tombol aksi responsif ("Pasang" / "Perbarui" / status checkmark) dan sinkronisasi progress instalasi secara real-time.
+
+### 4.33. Integrasi Agen AI & Penanganan Bug rig-core (Custom Provider)
+
+- **Problem**: Pengguna mendapati error `JsonError` ketika menjalankan test Agen AI di UI, model dropdown di settings sering hilang, serta command `ask_agent` mengalami panic pada state management.
+- **Solusi**:
+  1. **Perbaikan Tauri State**: Fungsi `ask_agent` memicu panic karena mencoba menarik `AppConfig` melalui `tauri::State`. Ini diperbaiki dengan memuat config langsung dari disk (`AppConfig::load()`), sejalan dengan arsitektur Rust kita.
+  2. **Perbaikan UI Vue Lifecycle**: Model yang sedang aktif terhapus dari Vuex/Pinia state saat dropdown kosong. Diperbaiki di `AISection.vue` dengan menginjeksi opsi statis untuk nilai yang `tersimpan` (`<option :value="...">...</option>`) jika model belum di-fetch dari API.
+  3. **Injeksi `stream: false` pada reqwest (rig-core)**: Proxy kustom milik pengguna memaksa *Server-Sent Events (SSE)* streaming karena rig-core mengomit atribut stream. Memperbaikinya dengan memodifikasi builder: `.additional_params(serde_json::json!({ "stream": false }))`, sehingga proxy mengembalikan format JSON biasa.
+  4. **Migrasi API Legacy (rig-core 0.42.0)**: Update terbaru `rig-core` merubah endpoint default ke `Responses API` (mengharap `object: "response"`). Namun, mayoritas proxy masih memakai `Chat Completions` API (`chat.completion`). Diperbaiki dengan mengikat `client.completions_api()` saat inisialisasi Client builder.
+  5. **Smart Fallback (Tanpa Tool)**: Menambahkan blok retry otomatis pada pemanggilan LLM. Jika AI Proxy gagal memproses parameter `tools` (biasanya terjadi karena model/proxy tidak support spesifikasi *Function Calling* milik OpenAI), aplikasi akan seketika mengulang request secara polos (hanya Prompt biasa) dan orchestrator `moment_detection.rs` akan fallback menggunakan `extract_json_array` untuk mengambil output.
+
+
+### 4.34. Perbaikan Bias Pusat Pelacakan Wajah (Face Tracking Offset)
+
+- **Problem**: Pengguna mendapati bahwa wajah di video akhir sedikit melenceng ke kanan, serta pada mode `split_face`, wajah terlalu kecil di paruh bawah kanvas.
+- **Solusi**:
+  1. **Pusat Geometris Wajah**: Daripada menerapkan offset statis yang bergantung pada dimensi kanvas, perbaikan diterapkan langsung di *engine* pelacakan wajah (`face/tracker.rs` & `face/tracker_strategy.rs`). Bounding box dari *SeetaFace/rustface* sering mencakup kuping/rambut. Oleh karena itu, kita menggeser _center_ X (`cx`) menjadi **55% dari lebar bounding box** (`bbox.x() + bbox.width() * 0.55`) untuk memastikan target terpusat presisi pada fitur tengah wajah (hidung).
+  2. **Skala Mode `split_face`**: Memodifikasi _filter graph_ FFmpeg di `split_face.rs` untuk menerapkan _zoom_ ekstra (**1.3x**) khusus pada video `split_bottom`, dan **1.2x** pada `full_face.rs`, sehingga wajah terlihat lebih besar dan proporsional.
+
+### 4.35. Perbaikan Kompilasi Lintas OS (Cross-Compilation macOS) & Dead Code
+
+- **Problem**: Ketika pengguna melakukan _build_ untuk target macOS Apple Silicon (`aarch64-apple-darwin`) via GitHub Actions, _compiler_ Rust mengalami _error_ `file not found for module models` pada `src/ai/mod.rs` serta _warning_ `unreachable expression` di `hwaccel.rs`.
+- **Solusi**:
+  1. **Case-Sensitivity File System**: Menghapus deklarasi `pub mod models;` yang memanggil direktori kosong (`src/ai/models`) karena tidak digunakan. Hal ini menyelesaikan _error_ di OS dengan file system *case-sensitive* (seperti Linux/macOS runner) yang sensitif terhadap perubahan *case* folder Git.
+  2. **Unreachable Code**: Memperbaiki makro kondisional kompilasi di `hwaccel.rs` menggunakan `#[cfg(not(target_os = "macos"))]` pada cabang *fallback* CPU, sehingga *compiler* macOS tidak membuang ekspresi tersebut sebagai kode mati (_dead code_).
+
+### 4.36. Single Source of Truth (SSOT) Model ONNX & Command Manajemen UI
+
+- **Problem**: Model ONNX (ViT, Wav2Vec2, AST, RoBERTa, SeetaFace) sebelumnya memiliki URL hardcoded tersebar di 5+ file analyzer (`visual.rs`, `voice.rs`, `audio.rs`, `text.rs`, `face/tracker.rs`). Tidak ada sinkronisasi metadata (nama, kategori, ukuran) antara backend dan frontend. UI Settings tidak memiliki halaman manajemen model (list/download/delete). Bug: tokenizer RoBERTa mengunduh file salah (`model.onnx` bukan `tokenizer.json`).
+- **Solusi**:
+  1. **Backend Registry (`src-tauri/src/ai/onnx.rs`)**:
+     - Membuat `OnnxModelInfo` struct (Serialize) + const `ONNX_MODEL_REGISTRY` — 6 model: `visual` (emotion_vit.onnx, ~330MB), `voice` (wav2vec2_superb_er.onnx, ~380MB), `audio` (ast_audioset.onnx, ~350MB), `text` (twitter_roberta_emotion.onnx, ~500MB), `text_tokenizer` (twitter_roberta_tokenizer.onnx → **tokenizer.json**, ~3.6MB), `face` (seeta_fd_frontal_v1.0.bin, ~2MB).
+     - Setiap entry: `id`, `file`, `url`, `display_name`, `category`, `description`, `approx_size`, `tags[]`.
+     - Helper: `find_model(id)`, `find_model_by_file(file)`, `model_path_for(file)`, `models_dir()`, `model_statuses()`.
+     - `ensure_model_downloaded` refactor: memprioritaskan URL dari registry by filename (backward-compatible, fallback ke arg `url`).
+  2. **Tauri Commands** (registered `lib.rs` invoke handler):
+     - `list_onnx_models` → `Vec<OnnxModelStatus>` (`{ id, exists, size_bytes, path }`) — status disk aktual untuk UI.
+     - `download_onnx_model(id)` → streaming download via `reqwest::bytes_stream()` + `futures_util::StreamExt`, atomic write ke `.part` temp lalu rename; memancarkan event `onnx-download-progress` (ProgressEvent shape) untuk progress bar real-time.
+     - `delete_onnx_model(id)` → hapus file dari `AppData/models/`.
+  3. **Analyzer Refactor (SSOT Adoption)**:
+     - Semua `OnnxModelManager::new(file, url)` di `analysis/{visual,voice,audio,text}.rs` dan `face/tracker.rs` (2 sites) kini memanggil `find_model(id).map(|m| m.url).unwrap_or("")` — menghilangkan hardcoded URL duplikat.
+     - **Bug Fix**: `text.rs` tokenizer sekarang mengunduh `tokenizer.json` (sebelumnya salah pakai `model.onnx` URL).
+  4. **Frontend (`src/`)**:
+     - `constants/onnxModels.ts` — mirror registry backend (tokenizer URL diperbaiki, approx size → `~3.6 MB`).
+     - `components/settings/ModelsSection.vue` — UI baru: list 6 model (status dot, nama, kategori, ukuran, tags), tombol Unduh/Hapus/Unduh Ulang per model, tombol "Unduh Semua", inline progress bar per model, summary strip (terpasang count), listener `onnx-download-progress` (onMounted, unlisten onUnmounted) untuk progress streaming real-time.
+  5. **Cargo**: Menambahkan `futures-util = "0.3"` (sudah di lock, no version bump) untuk `StreamExt::next()`.
+  6. **Verifikasi**: `cargo check` clean (6.6s), `npm run build` clean (1.6s).
+- **Catatan**: File `.part` tidak dibersihkan otomatis saat download dibatalkan mid-way (next `list_onnx_models` mengabaikannya; retry overwrites). Registry sekarang SSOT tunggal untuk semua model ONNX — frontend hanya mirror pasif.

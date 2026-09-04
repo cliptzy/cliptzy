@@ -381,6 +381,7 @@ const handleRender = async () => {
             const payload = {
                 url: videoStore.currentUrl,
                 video_id: videoStore.metadata.video_id,
+                title: videoStore.metadata.title || "video",
                 start: seg.start,
                 end: seg.end,
                 crop_mode: settingsStore.config.crop_mode,

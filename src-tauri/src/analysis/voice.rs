@@ -18,7 +18,7 @@ impl VoiceEmotionAnalyzer {
         Self {
             model: OnnxModelManager::new(
                 "wav2vec2_superb_er.onnx",
-                "https://huggingface.co/onnx-community/wav2vec2-base-superb-er-ONNX/resolve/main/onnx/model.onnx",
+                crate::ai::onnx::find_model("voice").map(|m| m.url).unwrap_or(""),
             ),
         }
     }

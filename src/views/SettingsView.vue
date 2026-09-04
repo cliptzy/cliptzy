@@ -44,6 +44,7 @@ import IconFileVideo from '~icons/lucide/file-video';
 import IconLayers from '~icons/lucide/layers';
 import IconUpload from '~icons/lucide/upload';
 import IconImages from '~icons/lucide/image';
+import IconBoxes from '~icons/lucide/boxes';
 
 // Sections
 import ProfileSection from '../components/settings/ProfileSection.vue';
@@ -55,11 +56,13 @@ import OutputSection from '../components/settings/OutputSection.vue';
 import CompilationSettingsSection from '../components/settings/CompilationSettingsSection.vue';
 import UploadSection from '../components/settings/UploadSection.vue';
 import BrollAssetsSection from '../components/settings/BrollAssetsSection.vue';
+import ModelsSection from '../components/settings/ModelsSection.vue';
 
 const tabs = [
   { id: 'profile', label: 'Profil Sistem', icon: IconUser, component: ProfileSection },
   { id: 'engine', label: 'Engine & Storage', icon: IconCpu, component: EngineSection },
   { id: 'ai', label: 'AI & Automasi', icon: IconBrain, component: AISection },
+  { id: 'models', label: 'Model ONNX', icon: IconBoxes, component: ModelsSection },
   { id: 'subtitle', label: 'Subtitle & Teks', icon: IconCaptions, component: SubtitleSection },
   { id: 'media', label: 'Standar Pemotongan', icon: IconScissors, component: MediaSection },
   { id: 'broll', label: 'Aset B-Roll', icon: IconImages, component: BrollAssetsSection },

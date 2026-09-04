@@ -848,6 +848,7 @@ dependencies = [
  "ctrlc",
  "dirs",
  "dotenvy",
+ "futures-util",
  "hound",
  "image",
  "log",

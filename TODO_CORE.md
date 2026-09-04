@@ -29,38 +29,38 @@
 
 ### ✅ Sudah Selesai di Rust
 
-| Modul Python | File Rust | Catatan |
-|---|---|---|
-| `supabase_sync.py` | `supabase.rs` | Google OAuth PKCE, session, config sync, storage |
-| `config.py` (save/load) | `commands.rs` | `save_config_file`, `copy_asset_file` |
+| Modul Python            | File Rust          | Catatan                                                   |
+| ----------------------- | ------------------ | --------------------------------------------------------- |
+| `supabase_sync.py`      | `supabase.rs`      | Google OAuth PKCE, session, config sync, storage          |
+| `config.py` (save/load) | `commands.rs`      | `save_config_file`, `copy_asset_file`                     |
 | `youtube.py` (metadata) | `video/youtube.rs` | Heatmap analysis, video info, download via `yt-dlp` crate |
-| `utils.py` (paths) | `paths.rs` | `app_data_dir()` |
-| Cookies management | `commands.rs` | `copy_cookies_file`, `validate_cookies_file` |
-| System monitor | `monitor.rs` | CPU & RAM via `sysinfo` |
-| `security.py` | Tidak perlu | Obfuscation env vars sudah via `dotenvy` di `build.rs` |
+| `utils.py` (paths)      | `paths.rs`         | `app_data_dir()`                                          |
+| Cookies management      | `commands.rs`      | `copy_cookies_file`, `validate_cookies_file`              |
+| System monitor          | `monitor.rs`       | CPU & RAM via `sysinfo`                                   |
+| `security.py`           | Tidak perlu        | Obfuscation env vars sudah via `dotenvy` di `build.rs`    |
 
 ### ❌ Belum Dimigrasi (Scope Dokumen Ini)
 
-| Modul Python | Prioritas | Kompleksitas |
-|---|---|---|
-| `processor.py` (crop, burn subtitle, stack) | 🔴 Kritis | Sangat Tinggi |
-| `processing/cropper.py` (9 crop modes) | 🔴 Kritis | Tinggi |
-| `processing/subtitle.py` (burn + VFX overlay) | 🔴 Kritis | Tinggi |
-| `processing/stacker.py` (intro/outro/watermark) | 🟡 Penting | Sedang |
-| `subtitle.py` (Whisper transcription + ASS) | 🟡 Penting | Tinggi |
-| `face_tracker.py` (YuNet + keyframes) | 🟡 Penting | Tinggi |
-| `ai/detector.py` (highlight + metadata) | 🟡 Penting | Sedang |
-| `ai/providers (ollama, gemini, openai)` | 🟡 Penting | Rendah |
-| `uploaders/* (YouTube, TikTok, Instagram)` | 🟠 Nanti | Sedang |
-| `processing/emotion_analyzer.py` (DeepFace) | 🔵 Opsional | Sangat Tinggi |
-| `processing/audio_analyzer.py` (AST model) | 🔵 Opsional | Sangat Tinggi |
-| `processing/voice_analyzer.py` (Wav2Vec2) | 🔵 Opsional | Tinggi |
-| `processing/text_analyzer.py` (Roberta) | 🔵 Opsional | Tinggi |
-| `processing/tts_engine.py` (Kokoro TTS) | 🔵 Opsional | Tinggi |
-| `processing/brainrot_processor.py` | 🔵 Opsional | Sedang |
-| `channel_manager.py` | 🟢 Rendah | Rendah |
-| `dependency_manager.py` | 🟢 Rendah | Rendah |
-| `video_effects.py` | 🟡 Penting | Rendah |
+| Modul Python                                    | Prioritas   | Kompleksitas  |
+| ----------------------------------------------- | ----------- | ------------- |
+| `processor.py` (crop, burn subtitle, stack)     | 🔴 Kritis   | Sangat Tinggi |
+| `processing/cropper.py` (9 crop modes)          | 🔴 Kritis   | Tinggi        |
+| `processing/subtitle.py` (burn + VFX overlay)   | 🔴 Kritis   | Tinggi        |
+| `processing/stacker.py` (intro/outro/watermark) | 🟡 Penting  | Sedang        |
+| `subtitle.py` (Whisper transcription + ASS)     | 🟡 Penting  | Tinggi        |
+| `face_tracker.py` (YuNet + keyframes)           | 🟡 Penting  | Tinggi        |
+| `ai/detector.py` (highlight + metadata)         | 🟡 Penting  | Sedang        |
+| `ai/providers (ollama, gemini, openai)`         | 🟡 Penting  | Rendah        |
+| `uploaders/* (YouTube, TikTok, Instagram)`      | 🟠 Nanti    | Sedang        |
+| `processing/emotion_analyzer.py` (DeepFace)     | 🔵 Opsional | Sangat Tinggi |
+| `processing/audio_analyzer.py` (AST model)      | 🔵 Opsional | Sangat Tinggi |
+| `processing/voice_analyzer.py` (Wav2Vec2)       | 🔵 Opsional | Tinggi        |
+| `processing/text_analyzer.py` (Roberta)         | 🔵 Opsional | Tinggi        |
+| `processing/tts_engine.py` (Kokoro TTS)         | 🔵 Opsional | Tinggi        |
+| `processing/brainrot_processor.py`              | 🔵 Opsional | Sedang        |
+| `channel_manager.py`                            | 🟢 Rendah   | Rendah        |
+| `dependency_manager.py`                         | 🟢 Rendah   | Rendah        |
+| `video_effects.py`                              | 🟡 Penting  | Rendah        |
 
 ---
 
@@ -188,14 +188,14 @@ src-tauri/src/
 
 ### 1.3 Mengapa Struktur Ini?
 
-| Keputusan | Alasan |
-|---|---|
-| `commands/` terpisah dari logic | Commands hanyalah **thin adapter** yang memanggil orchestrator/service. Memudahkan testing tanpa Tauri context. |
-| `processing/ffmpeg/` sebagai sub-modul | FFmpeg adalah dependensi terbesar. Abstraksi di sini memungkinkan **swap ke library FFI** di masa depan tanpa mengubah consumer code. |
-| `uploaders/` dengan trait | Menambah platform baru (Facebook, X/Twitter) cukup implementasi trait tanpa menyentuh orchestrator. |
-| `orchestrator/` terpisah dari processing | Clean Architecture: use case **mengorkestrasi** modul processing, bukan sebaliknya. |
-| `analysis/` terpisah & opsional | Module ML berat ini bisa di-feature-gate (`#[cfg(feature = "analysis")]`) sehingga bundle ringan tanpa AI. |
-| `constants/` dengan `include_str!` | Embed JSON statis ke binary → zero runtime file I/O, satu binary portable. |
+| Keputusan                                | Alasan                                                                                                                                |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `commands/` terpisah dari logic          | Commands hanyalah **thin adapter** yang memanggil orchestrator/service. Memudahkan testing tanpa Tauri context.                       |
+| `processing/ffmpeg/` sebagai sub-modul   | FFmpeg adalah dependensi terbesar. Abstraksi di sini memungkinkan **swap ke library FFI** di masa depan tanpa mengubah consumer code. |
+| `uploaders/` dengan trait                | Menambah platform baru (Facebook, X/Twitter) cukup implementasi trait tanpa menyentuh orchestrator.                                   |
+| `orchestrator/` terpisah dari processing | Clean Architecture: use case **mengorkestrasi** modul processing, bukan sebaliknya.                                                   |
+| `analysis/` terpisah & opsional          | Module ML berat ini bisa di-feature-gate (`#[cfg(feature = "analysis")]`) sehingga bundle ringan tanpa AI.                            |
+| `constants/` dengan `include_str!`       | Embed JSON statis ke binary → zero runtime file I/O, satu binary portable.                                                            |
 
 ---
 
@@ -233,6 +233,7 @@ pub trait PipelineStage: Send + Sync {
 ```
 
 **Mengapa Pipeline?**
+
 - Python `process_single_clip()` adalah **God Function** 600+ baris. Pipeline memecahnya menjadi stage atomik.
 - Setiap stage bisa di-test independen.
 - Stage bisa di-reorder atau di-skip berdasarkan config (e.g., skip transcription jika `use_subtitle = false`).
@@ -255,6 +256,7 @@ pub trait CropStrategy: Send + Sync {
 ```
 
 **Mengapa Strategy?**
+
 - Python `build_crop_command()` adalah switch-case 400+ baris. Strategy memecahnya menjadi struct terpisah.
 - Menambah crop mode baru = tambah struct baru, **zero perubahan** di existing code.
 
@@ -358,12 +360,12 @@ impl From<CliptzyError> for String {
 
 ### 2.3 Concurrency Model
 
-| Aspek | Python (Lama) | Rust (Baru) |
-|---|---|---|
-| Threading | `ThreadPoolExecutor` + GIL bottleneck | `tokio` async + `tokio::task::spawn_blocking` untuk FFmpeg subprocess |
-| Cancellation | `is_cancelled` flag polling | `CancellationToken` dari `tokio-util` — propagasi otomatis ke child tasks |
-| Progress | `event_hook` callback | `broadcast::Sender<ProgressEvent>` + Tauri `emit()` |
-| Subprocess | `subprocess.Popen` + line reader | `tokio::process::Command` + `BufReader` async line streaming |
+| Aspek        | Python (Lama)                         | Rust (Baru)                                                               |
+| ------------ | ------------------------------------- | ------------------------------------------------------------------------- |
+| Threading    | `ThreadPoolExecutor` + GIL bottleneck | `tokio` async + `tokio::task::spawn_blocking` untuk FFmpeg subprocess     |
+| Cancellation | `is_cancelled` flag polling           | `CancellationToken` dari `tokio-util` — propagasi otomatis ke child tasks |
+| Progress     | `event_hook` callback                 | `broadcast::Sender<ProgressEvent>` + Tauri `emit()`                       |
+| Subprocess   | `subprocess.Popen` + line reader      | `tokio::process::Command` + `BufReader` async line streaming              |
 
 ---
 
@@ -489,7 +491,7 @@ impl From<CliptzyError> for String {
 
 ### 4.1 FFmpeg Probe Wrapper
 
-- [x] Buat `src/processing/ffmpeg/probe.rs`: *(Catatan: Diubah kebijakannya, sekarang langsung menggunakan crate `rust_ffprobe` dari ekosistem)*
+- [x] Buat `src/processing/ffmpeg/probe.rs`: _(Catatan: Diubah kebijakannya, sekarang langsung menggunakan crate `rust_ffprobe` dari ekosistem)_
   ```rust
   pub struct VideoProbeResult {
       pub duration: f64,
@@ -509,7 +511,7 @@ impl From<CliptzyError> for String {
 
 ### 4.2 FFmpeg Command Runner
 
-- [x] Buat `src/processing/ffmpeg/runner.rs`: *(Catatan: Diubah kebijakannya, sekarang langsung menggunakan crate `rust_ffmpeg` dari ekosistem)*
+- [x] Buat `src/processing/ffmpeg/runner.rs`: _(Catatan: Diubah kebijakannya, sekarang langsung menggunakan crate `rust_ffmpeg` dari ekosistem)_
   ```rust
   pub struct FFmpegCommand {
       args: Vec<String>,
@@ -634,6 +636,7 @@ impl From<CliptzyError> for String {
 ### 5.2 Crop Strategies (9 Mode)
 
 - [x] Buat `src/processing/cropper.rs` dengan trait `CropStrategy`:
+
   ```rust
   pub trait CropStrategy: Send + Sync {
       fn name(&self) -> &str;
@@ -648,7 +651,7 @@ impl From<CliptzyError> for String {
   }
   ```
 
-- [x] Implementasi per crop mode (dalam urutan prioritas): *(Catatan: Semua mode utama telah diimplementasikan dalam bentuk strategi modular di folder `cropper/`)*
+- [x] Implementasi per crop mode (dalam urutan prioritas): _(Catatan: Semua mode utama telah diimplementasikan dalam bentuk strategi modular di folder `cropper/`)_
 
   1. **`DefaultCrop`** — Scale to cover + center crop
      - [x] Paling simpel, test pertama kali
@@ -680,7 +683,7 @@ impl From<CliptzyError> for String {
   9. **`PassthroughCrop`** — No crop
      - [x] Mempertahankan resolusi asli video tanpa crop.
 
-- [x] Factory function: *(Catatan: Sudah diperbarui untuk mendukung seluruh mode secara dinamis)*
+- [x] Factory function: _(Catatan: Sudah diperbarui untuk mendukung seluruh mode secara dinamis)_
   ```rust
   pub fn create_crop_strategy(mode: &str) -> Box<dyn CropStrategy> {
       match mode {
@@ -743,14 +746,14 @@ impl From<CliptzyError> for String {
 
 **Rekomendasi: Gunakan `whisper-rs` (binding ke `whisper.cpp`)**
 
-| Aspek | `whisper-rs` (C++ binding) | CLI (`whisper-cli`) |
-|---|---|---|
-| Bundle size | +5-10MB (library) | +50-100MB (standalone binary) |
-| Latency | Rendah (in-process) | Tinggi (spawn process + load model) |
-| Word timestamps | ✅ Didukung | ✅ Didukung |
-| GPU support | CUDA, Metal, Vulkan | Tergantung build |
-| Maintenance | Aktif, ikut whisper.cpp | Manual binary management |
-| **Rekomendasi** | ✅ **Pilihan utama** | Fallback jika build gagal |
+| Aspek           | `whisper-rs` (C++ binding) | CLI (`whisper-cli`)                 |
+| --------------- | -------------------------- | ----------------------------------- |
+| Bundle size     | +5-10MB (library)          | +50-100MB (standalone binary)       |
+| Latency         | Rendah (in-process)        | Tinggi (spawn process + load model) |
+| Word timestamps | ✅ Didukung                | ✅ Didukung                         |
+| GPU support     | CUDA, Metal, Vulkan        | Tergantung build                    |
+| Maintenance     | Aktif, ikut whisper.cpp    | Manual binary management            |
+| **Rekomendasi** | ✅ **Pilihan utama**       | Fallback jika build gagal           |
 
 ### 6.2 Implementasi Whisper
 
@@ -1112,7 +1115,7 @@ impl From<CliptzyError> for String {
 > **Rekomendasi:** Tunda modul ini. Gunakan AI provider (Gemini/OpenAI) untuk analisis emosi
 > berbasis teks, bukan model ML lokal. Ini mengurangi bundle size **~2GB+**.
 
-- [ ] Jika tetap ingin implementasi:
+- [x] Jika tetap ingin implementasi:
   - Gunakan `ort` (ONNX Runtime) untuk semua model:
     - Face emotion: Convert HuggingFace model ke ONNX
     - Audio event: Convert AST model ke ONNX
@@ -1134,15 +1137,15 @@ impl From<CliptzyError> for String {
 
 ### 11.1 Estimasi Ukuran Bundle
 
-| Komponen | Ukuran Estimasi | Catatan |
-|---|---|---|
-| Tauri + Vue + Webview | ~15-20 MB | Base app |
-| Rust binary (compiled) | ~5-10 MB | Semua logic native |
-| `whisper.cpp` model (small) | ~466 MB | Download on demand, BUKAN bundled |
-| FFmpeg binary | ~80-120 MB | Download on demand atau expect system install |
-| yt-dlp binary | ~10-15 MB | Managed oleh `yt-dlp` crate |
-| ONNX models (face/emotion) | ~50-200 MB | Download on demand |
-| **Total installer** | **~25-35 MB** | Tanpa models, models di-download saat pertama kali dipakai |
+| Komponen                    | Ukuran Estimasi | Catatan                                                    |
+| --------------------------- | --------------- | ---------------------------------------------------------- |
+| Tauri + Vue + Webview       | ~15-20 MB       | Base app                                                   |
+| Rust binary (compiled)      | ~5-10 MB        | Semua logic native                                         |
+| `whisper.cpp` model (small) | ~466 MB         | Download on demand, BUKAN bundled                          |
+| FFmpeg binary               | ~80-120 MB      | Download on demand atau expect system install              |
+| yt-dlp binary               | ~10-15 MB       | Managed oleh `yt-dlp` crate                                |
+| ONNX models (face/emotion)  | ~50-200 MB      | Download on demand                                         |
+| **Total installer**         | **~25-35 MB**   | Tanpa models, models di-download saat pertama kali dipakai |
 
 ### 11.2 Strategi "Download on Demand"
 
@@ -1190,17 +1193,17 @@ Foundation   Acquire    FFmpeg       Whisper      AI          Upload     Orchest
 
 ### Milestone Deliverables
 
-| Milestone | Deskripsi | Apa yang Bisa Dilakukan User |
-|---|---|---|
-| **M1: Foundation** | Phase 0 selesai | Tidak ada perubahan visible, tapi codebase lebih bersih |
-| **M2: Scan & Preview** | Phase 1 selesai | User bisa scan video YouTube, lihat heatmap, preview metadata |
-| **M3: Basic Clip** | Phase 2 (crop mode default + full) | User bisa **crop video** dengan mode default dan full |
-| **M4: Subtitle** | Phase 3 selesai | User bisa crop + **subtitle otomatis** |
-| **M5: AI Highlights** | Phase 4 selesai | User bisa **scan highlight via AI** dan generate metadata |
-| **M6: Auto Upload** | Phase 5 selesai | User bisa upload otomatis ke YouTube |
-| **M7: End-to-End** | Phase 6 selesai | **Full workflow** dari scan → clip → upload |
-| **M8: All Crop Modes** | Phase 2 lanjutan (face tracking) | Semua 9 crop mode berfungsi |
-| **M9: Compilation** | Phase 7 | Mode kompilasi Top N |
+| Milestone              | Deskripsi                          | Apa yang Bisa Dilakukan User                                  |
+| ---------------------- | ---------------------------------- | ------------------------------------------------------------- |
+| **M1: Foundation**     | Phase 0 selesai                    | Tidak ada perubahan visible, tapi codebase lebih bersih       |
+| **M2: Scan & Preview** | Phase 1 selesai                    | User bisa scan video YouTube, lihat heatmap, preview metadata |
+| **M3: Basic Clip**     | Phase 2 (crop mode default + full) | User bisa **crop video** dengan mode default dan full         |
+| **M4: Subtitle**       | Phase 3 selesai                    | User bisa crop + **subtitle otomatis**                        |
+| **M5: AI Highlights**  | Phase 4 selesai                    | User bisa **scan highlight via AI** dan generate metadata     |
+| **M6: Auto Upload**    | Phase 5 selesai                    | User bisa upload otomatis ke YouTube                          |
+| **M7: End-to-End**     | Phase 6 selesai                    | **Full workflow** dari scan → clip → upload                   |
+| **M8: All Crop Modes** | Phase 2 lanjutan (face tracking)   | Semua 9 crop mode berfungsi                                   |
+| **M9: Compilation**    | Phase 7                            | Mode kompilasi Top N                                          |
 
 ### Minimum Viable Product (MVP)
 
@@ -1218,15 +1221,16 @@ Foundation   Acquire    FFmpeg       Whisper      AI          Upload     Orchest
 
 **Keputusan: CLI (`std::process::Command` / `tokio::process::Command`)**
 
-| Pro CLI | Contra FFI |
-|---|---|
-| Tidak perlu compile FFmpeg dari source | `ffmpeg-sys` butuh ~30 menit compile |
-| Mudah debug (lihat command yang dijalankan) | FFI error sulit di-debug |
-| User bisa pakai FFmpeg versi mereka sendiri | Binding sering out-of-date |
-| Filter complex string sudah battle-tested | FFI API berbeda dari CLI API |
-| Bundle size lebih kecil (FFmpeg terpisah) | Static link menambah ~50MB+ ke binary |
+| Pro CLI                                     | Contra FFI                            |
+| ------------------------------------------- | ------------------------------------- |
+| Tidak perlu compile FFmpeg dari source      | `ffmpeg-sys` butuh ~30 menit compile  |
+| Mudah debug (lihat command yang dijalankan) | FFI error sulit di-debug              |
+| User bisa pakai FFmpeg versi mereka sendiri | Binding sering out-of-date            |
+| Filter complex string sudah battle-tested   | FFI API berbeda dari CLI API          |
+| Bundle size lebih kecil (FFmpeg terpisah)   | Static link menambah ~50MB+ ke binary |
 
 **Mitigasi risiko CLI:**
+
 - Abstraksi di `FFmpegCommand` builder — jika suatu hari mau switch ke FFI, hanya ganti implementasi internal
 - Proper error handling dari exit code + stderr parsing
 
@@ -1289,24 +1293,24 @@ Untuk job cancellation, gunakan `CancellationToken` yang disimpan di `JobManager
 
 ## 📎 Lampiran: Crate Rust yang Direkomendasikan
 
-| Kebutuhan | Crate | Catatan |
-|---|---|---|
-| Error handling | `thiserror` | Derive macro untuk error types |
-| Async runtime | `tokio` | ✅ Sudah ada |
-| HTTP client | `reqwest` | ✅ Sudah ada |
-| JSON | `serde`, `serde_json` | ✅ Sudah ada |
-| Cancellation | `tokio-util` | `CancellationToken` |
-| Whisper STT | `whisper-rs` | Binding ke whisper.cpp |
-| ONNX inference | `ort` | Untuk face detection + ML models |
-| YouTube download | `yt-dlp` | ✅ Sudah ada (crate) |
-| Regex | `regex` | Untuk parse AI JSON responses |
-| Date/Time | `chrono` | Untuk scheduled uploads |
-| URL parsing | `url` | ✅ Sudah ada |
-| Concurrent map | `dashmap` | Untuk in-memory cache |
-| UUID | `uuid` | Untuk job IDs |
-| Temp files | `tempfile` | Untuk FFmpeg intermediate files |
-| File watcher | `notify` | Opsional: watch output directory |
-| Async trait | `async-trait` | Untuk trait dengan async methods |
+| Kebutuhan        | Crate                 | Catatan                          |
+| ---------------- | --------------------- | -------------------------------- |
+| Error handling   | `thiserror`           | Derive macro untuk error types   |
+| Async runtime    | `tokio`               | ✅ Sudah ada                     |
+| HTTP client      | `reqwest`             | ✅ Sudah ada                     |
+| JSON             | `serde`, `serde_json` | ✅ Sudah ada                     |
+| Cancellation     | `tokio-util`          | `CancellationToken`              |
+| Whisper STT      | `whisper-rs`          | Binding ke whisper.cpp           |
+| ONNX inference   | `ort`                 | Untuk face detection + ML models |
+| YouTube download | `yt-dlp`              | ✅ Sudah ada (crate)             |
+| Regex            | `regex`               | Untuk parse AI JSON responses    |
+| Date/Time        | `chrono`              | Untuk scheduled uploads          |
+| URL parsing      | `url`                 | ✅ Sudah ada                     |
+| Concurrent map   | `dashmap`             | Untuk in-memory cache            |
+| UUID             | `uuid`                | Untuk job IDs                    |
+| Temp files       | `tempfile`            | Untuk FFmpeg intermediate files  |
+| File watcher     | `notify`              | Opsional: watch output directory |
+| Async trait      | `async-trait`         | Untuk trait dengan async methods |
 
 ---
 

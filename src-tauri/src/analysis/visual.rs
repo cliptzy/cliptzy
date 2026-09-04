@@ -17,7 +17,7 @@ impl VisualEmotionAnalyzer {
         Self {
             model: OnnxModelManager::new(
                 "emotion_vit.onnx",
-                "https://huggingface.co/Xenova/facial_emotions_image_detection/resolve/main/onnx/model.onnx",
+                crate::ai::onnx::find_model("visual").map(|m| m.url).unwrap_or(""),
             ),
         }
     }

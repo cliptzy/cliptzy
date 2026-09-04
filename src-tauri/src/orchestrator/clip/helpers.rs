@@ -35,6 +35,34 @@ pub(crate) fn clip_paths(job_dir: &Path, idx: u32) -> ClipPaths {
     }
 }
 
+/// Membersihkan judul video agar aman dipakai sebagai nama file.
+/// Hanya membuang karakter yang ilegal pada file system (Windows/macOS/Linux),
+/// memangkas spasi berlebih, dan membatasi panjang agar tidak melebihi MAX_PATH.
+pub(crate) fn sanitize_title(title: &str) -> String {
+    const MAX_LEN: usize = 120;
+    let cleaned: String = title
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == ' ' || c == '-' || c == '_' {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect();
+    let trimmed = cleaned.trim().trim_matches('_').trim();
+    let collapsed: String = trimmed.split_whitespace().collect::<Vec<_>>().join(" ");
+    let mut result = if collapsed.is_empty() {
+        "video".to_string()
+    } else {
+        collapsed
+    };
+    if result.chars().count() > MAX_LEN {
+        result = result.chars().take(MAX_LEN).collect::<String>().trim().to_string();
+    }
+    result
+}
+
 pub(crate) async fn probe_output_dimensions(
     current_video: &Path,
     mut out_config: OutputConfig,

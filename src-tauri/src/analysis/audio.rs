@@ -19,7 +19,7 @@ impl AudioEventAnalyzer {
         Self {
             model: OnnxModelManager::new(
                 "ast_audioset.onnx",
-                "https://huggingface.co/onnx-community/ast-finetuned-audioset-10-10-0.4593-ONNX/resolve/main/onnx/model.onnx",
+                crate::ai::onnx::find_model("audio").map(|m| m.url).unwrap_or(""),
             ),
         }
     }

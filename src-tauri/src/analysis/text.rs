@@ -18,7 +18,7 @@ impl TextSentimentAnalyzer {
         Self {
             model: OnnxModelManager::new(
                 "twitter_roberta_emotion.onnx",
-                "https://huggingface.co/onnx-community/twitter-roberta-base-emotion-ONNX/resolve/main/onnx/model.onnx",
+                crate::ai::onnx::find_model("text").map(|m| m.url).unwrap_or(""),
             ),
         }
     }
@@ -32,7 +32,7 @@ impl TextSentimentAnalyzer {
         // Download tokenizer.json
         let tokenizer_path = ensure_model_downloaded(
             "twitter_roberta_tokenizer.onnx",
-            "https://huggingface.co/onnx-community/twitter-roberta-base-emotion-ONNX/resolve/main/onnx/model.onnx"
+            crate::ai::onnx::find_model("text_tokenizer").map(|m| m.url).unwrap_or(""),
         ).await.map_err(|e| CliptzyError::Model(e))?;
 
         Ok(tokenizer_path)
