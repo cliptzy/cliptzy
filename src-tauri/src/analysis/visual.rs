@@ -15,10 +15,8 @@ pub struct VisualEmotionAnalyzer {
 impl VisualEmotionAnalyzer {
     pub fn new() -> Self {
         Self {
-            model: OnnxModelManager::new(
-                "emotion_vit.onnx",
-                crate::ai::onnx::find_model("visual").map(|m| m.url).unwrap_or(""),
-            ),
+            model: OnnxModelManager::from_registry("visual")
+                .unwrap_or_else(|_| OnnxModelManager::new("face_emotion_detection.onnx", "")),
         }
     }
 
@@ -113,20 +111,48 @@ impl VisualEmotionAnalyzer {
             }
         }
 
-        // Mapping id2label Xenova:
-        // 0: sad, 1: disgust, 2: angry, 3: neutral, 4: fear, 5: surprise, 6: happy
-        let emotion = match max_idx {
-            0 => EmotionLabel::Sad,
-            1 => EmotionLabel::Unknown, // Disgust (Tidak ada label spesifik, map ke Unknown/Neutral)
-            2 => EmotionLabel::Angry,
-            3 => EmotionLabel::Neutral,
-            4 => EmotionLabel::Fear,
-            5 => EmotionLabel::Shock, // Surprise
-            6 => EmotionLabel::Happy,
-            _ => EmotionLabel::Unknown,
+        // Jika confidence tertinggi sangat rendah (< 0.28), wajah berada dalam keadaan ambient netral
+        if max_val < 0.28 {
+            return (EmotionLabel::Neutral, max_val);
+        }
+
+        // Mapping id2label onnx-community/face-emotion-detection-ONNX (FER2013):
+        // 0: Angry, 1: Disgust, 2: Fear, 3: Happy, 4: Sad, 5: Surprise, 6: Neutral
+        let (emotion, score) = match max_idx {
+            0 => {
+                // Kalibrasi Anti-False Angry:
+                // Gamer/streamer sering mengerutkan alis saat fokus melihat monitor.
+                // FER2013 sering mendeteksi ini sebagai Angry dengan probabilitas tipis (0.25 - 0.38).
+                // Hanya klasifikasikan sebagai Angry jika benar-benar intens (>= 0.42) dan selisih terhadap Neutral >= 0.10.
+                let neutral_prob = probs[6];
+                if max_val >= 0.42 && (max_val - neutral_prob) >= 0.10 {
+                    (EmotionLabel::Angry, max_val)
+                } else {
+                    // Ekspresi konsentrasi / resting face normal -> Neutral
+                    (EmotionLabel::Neutral, neutral_prob.max(max_val * 0.75))
+                }
+            }
+            1 => {
+                // Disgust sering kali artefak pergerakan bibir saat berbicara
+                (EmotionLabel::Neutral, probs[6].max(0.40))
+            }
+            2 => (EmotionLabel::Fear, max_val),
+            3 => (EmotionLabel::Happy, max_val),
+            4 => {
+                // Sadness ringan sering kali hanya wajah menunduk melihat keyboard
+                let neutral_prob = probs[6];
+                if max_val >= 0.36 && (max_val - neutral_prob) >= 0.08 {
+                    (EmotionLabel::Sad, max_val)
+                } else {
+                    (EmotionLabel::Neutral, neutral_prob.max(max_val * 0.75))
+                }
+            }
+            5 => (EmotionLabel::Shock, max_val), // Surprise -> Shock
+            6 => (EmotionLabel::Neutral, max_val),
+            _ => (EmotionLabel::Neutral, max_val),
         };
 
-        (emotion, max_val)
+        (emotion, score)
     }
 }
 

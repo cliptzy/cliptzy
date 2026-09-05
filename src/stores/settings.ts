@@ -34,6 +34,7 @@ export interface AIConfig {
   use_audio_analysis: boolean;
   use_text_analysis: boolean;
   use_add_meme: boolean;
+  use_builtin_fx: boolean;
 }
 
 export interface YoutubeConfig {
@@ -187,6 +188,7 @@ const defaultSettings: AppConfig = {
     use_audio_analysis: true,
     use_text_analysis: true,
     use_add_meme: true,
+    use_builtin_fx: true,
   },
   youtube: {
     upload: false,

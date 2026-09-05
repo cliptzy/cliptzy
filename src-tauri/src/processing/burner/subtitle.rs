@@ -11,11 +11,12 @@ pub fn apply_subtitle(
     let escaped_ass = safe_path.replace(":", "\\:");
     let final_ass = format!("'{}'", escaped_ass);
 
+    let output_name = format!("v_subbed_{}", graph.nodes.len());
     let sub_node = FilterNode::new("subtitles")
         .param("", &final_ass)
         .inputs(&[input_v])
-        .outputs(&["v_subbed"]);
+        .outputs(&[&output_name]);
 
     graph.add_node(sub_node);
-    "v_subbed".to_string()
+    output_name
 }

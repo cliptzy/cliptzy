@@ -3,10 +3,10 @@ mod download;
 mod emotion;
 mod finalize;
 mod helpers;
-mod models;
+pub mod models;
 mod subtitle;
 
-pub use models::{ClipPayload, ClipResult};
+pub use models::{ClipPayload, ClipResult, EmotionCacheEntry};
 
 use crate::error::CliptzyError;
 use crate::orchestrator::pipeline::{emit_progress, PipelineContext, ProgressEvent};
@@ -32,7 +32,7 @@ impl ClipVideoUseCase {
         let total_duration = payload.end - payload.start;
 
         self.download_phase(&payload, &paths.source).await?;
-        self.emotion_phase(&paths.source, payload.segment_index)
+        self.emotion_phase(&payload, &paths.source, payload.segment_index)
             .await?;
 
         let hw_accel =

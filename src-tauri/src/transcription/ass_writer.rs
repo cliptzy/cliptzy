@@ -93,6 +93,237 @@ pub async fn try_generate_emotion_debug_ass(
     Some(output_ass_path.to_path_buf())
 }
 
+/// Generates an MSI Afterburner / RTSS styled on-screen display (OSD) ASS overlay
+/// showing real-time multi-modal AI metrics (Fusion, Vision, Voice, Audio, Whisper STT, VFX meme, Engine).
+pub async fn generate_msi_afterburner_osd(
+    video_path: &Path,
+    emotion_cache_path: &Path,
+    scheduled_effects: &[crate::processing::effects::ScheduledEffect],
+    config: &crate::config::models::AppConfig,
+    _hw_accel: &crate::processing::ffmpeg::hwaccel::HwAccel,
+    transcript: Option<&[crate::transcription::models::TranscriptionSegment]>,
+    total_duration: f64,
+    output_ass_path: &Path,
+) -> Option<PathBuf> {
+    use std::io::Write;
+
+    let probe = crate::video::local::probe_local_video(video_path)
+        .await
+        .ok();
+    let mut v_w = 1080u32;
+    let mut v_h = 1920u32;
+    if let Some(ref p) = probe {
+        for stream in &p.streams {
+            if stream.codec_type == Some("video".to_string()) {
+                if let Some(w) = stream.width {
+                    v_w = w as u32;
+                }
+                if let Some(h) = stream.height {
+                    v_h = h as u32;
+                }
+                break;
+            }
+        }
+    }
+
+    let cache_entry: Option<crate::orchestrator::clip::EmotionCacheEntry> =
+        if emotion_cache_path.exists() {
+            std::fs::read_to_string(emotion_cache_path)
+                .ok()
+                .and_then(|s| serde_json::from_str(&s).ok())
+        } else {
+            None
+        };
+
+    let font_size = if v_h >= 1920 {
+        24
+    } else if v_h >= 1080 {
+        20
+    } else {
+        16
+    };
+
+    let mut file = std::fs::File::create(output_ass_path).ok()?;
+
+    writeln!(file, "[Script Info]").ok()?;
+    writeln!(file, "ScriptType: v4.00+").ok()?;
+    writeln!(file, "PlayResX: {}", v_w).ok()?;
+    writeln!(file, "PlayResY: {}", v_h).ok()?;
+    writeln!(file, "WrapStyle: 0").ok()?;
+    writeln!(file, "").ok()?;
+    writeln!(file, "[V4+ Styles]").ok()?;
+    writeln!(
+        file,
+        "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding"
+    ).ok()?;
+    writeln!(
+        file,
+        "Style: MSI_OSD,Consolas,{},&H00FFFFFF,&H00000000,&H00000000,&HA0101010,1,0,0,0,100,100,0,0,3,6,0,7,25,25,25,1",
+        font_size
+    ).ok()?;
+    writeln!(file, "").ok()?;
+    writeln!(file, "[Events]").ok()?;
+    writeln!(
+        file,
+        "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text"
+    ).ok()?;
+
+    let duration_secs = if total_duration > 0.0 {
+        total_duration
+    } else {
+        60.0
+    };
+    let num_slices = duration_secs.ceil() as usize;
+
+    let hw_label = match config.hw_accel.to_lowercase().as_str() {
+        "nvidia" => "NVENC (GPU)",
+        "amd" => "AMF (GPU)",
+        "mac" => "VIDEOTOOLBOX (Apple)",
+        _ => "CPU (libx264)",
+    };
+
+    for b in 0..num_slices {
+        let start_t = b as f64;
+        let end_t = ((b + 1) as f64).min(duration_secs);
+        let start_ts = format_timestamp(start_t);
+        let end_ts = format_timestamp(end_t);
+
+        // 1. FUSION
+        let fusion_line = if let Some(ref entry) = cache_entry {
+            if let Some(seg) = entry.segments.iter().find(|s| s.start_time <= end_t && s.end_time >= start_t) {
+                let emo_str = format!("{:?}", seg.emotion).to_uppercase();
+                let score_pct = (seg.score * 100.0).clamp(0.0, 100.0);
+                format!("{{\\c&H002080FF&}}FUSION   {{\\c&H00A0A0A0&}}: {{\\c&H00FFFF00&}}{} {{\\c&H0000FF00&}}[{:.1}%]", emo_str, score_pct)
+            } else {
+                "{\\c&H002080FF&}FUSION   {\\c&H00A0A0A0&}: {\\c&H00FFFF00&}NEUTRAL {\\c&H0000FF00&}[0.0%]".to_string()
+            }
+        } else {
+            "{\\c&H002080FF&}FUSION   {\\c&H00A0A0A0&}: {\\c&H00A0A0A0&}NO DATA".to_string()
+        };
+
+        // 2. VISION (Face / Bbox / ViT)
+        let vision_line = if let Some(ref entry) = cache_entry {
+            let vis_seg = entry.visual.iter().find(|s| s.start_time <= end_t && s.end_time >= start_t)
+                .or_else(|| entry.segments.iter().find(|s| s.start_time <= end_t && s.end_time >= start_t && s.bounding_box.is_some()));
+
+            if let Some(seg) = vis_seg {
+                let emo_str = format!("{:?}", seg.emotion).to_uppercase();
+                let score_pct = (seg.score * 100.0).clamp(0.0, 100.0);
+                if let Some(ref bbox) = seg.bounding_box {
+                    let xp = (bbox.x * 100.0) as i32;
+                    let yp = (bbox.y * 100.0) as i32;
+                    let wp = (bbox.w * 100.0) as i32;
+                    let hp = (bbox.h * 100.0) as i32;
+                    format!("{{\\c&H002080FF&}}VISION   {{\\c&H00A0A0A0&}}: {{\\c&H00FFFF00&}}FACE [{}%X {}%Y {}x{}%] {{\\c&H0000FF00&}}[{} {:.0}%]", xp, yp, wp, hp, emo_str, score_pct)
+                } else {
+                    format!("{{\\c&H002080FF&}}VISION   {{\\c&H00A0A0A0&}}: {{\\c&H00FFFF00&}}FACE DETECTED {{\\c&H0000FF00&}}[{} {:.0}%]", emo_str, score_pct)
+                }
+            } else {
+                "{\\c&H002080FF&}VISION   {\\c&H00A0A0A0&}: {\\c&H00A0A0A0&}NO FACE / AMBIENT".to_string()
+            }
+        } else {
+            "{\\c&H002080FF&}VISION   {\\c&H00A0A0A0&}: {\\c&H00A0A0A0&}NO DATA".to_string()
+        };
+
+        // 3. VOICE (Tone / Pitch)
+        let voice_line = if let Some(ref entry) = cache_entry {
+            if let Some(seg) = entry.voice.iter().find(|s| s.start_time <= end_t && s.end_time >= start_t) {
+                let emo_str = format!("{:?}", seg.emotion).to_uppercase();
+                let score_pct = (seg.score * 100.0).clamp(0.0, 100.0);
+                format!("{{\\c&H002080FF&}}VOICE    {{\\c&H00A0A0A0&}}: {{\\c&H00FFFF00&}}{} {{\\c&H0000FF00&}}[{:.1}%] {{\\c&H00A0A0A0&}}| PITCH: ACTIVE", emo_str, score_pct)
+            } else {
+                "{\\c&H002080FF&}VOICE    {\\c&H00A0A0A0&}: {\\c&H00A0A0A0&}CALM / NORMAL".to_string()
+            }
+        } else {
+            "{\\c&H002080FF&}VOICE    {\\c&H00A0A0A0&}: {\\c&H00A0A0A0&}NO DATA".to_string()
+        };
+
+        // 4. AUDIO (Energy / Sound Events)
+        let audio_line = if let Some(ref entry) = cache_entry {
+            if let Some(seg) = entry.audio.iter().find(|s| s.start_time <= end_t && s.end_time >= start_t) {
+                let emo_str = format!("{:?}", seg.emotion).to_uppercase();
+                let score_pct = (seg.score * 100.0).clamp(0.0, 100.0);
+                format!("{{\\c&H002080FF&}}AUDIO    {{\\c&H00A0A0A0&}}: {{\\c&H00FFFF00&}}{} {{\\c&H0000FF00&}}[{:.1}%] {{\\c&H00A0A0A0&}}| ENERGY: {:.2}", emo_str, score_pct, seg.score)
+            } else {
+                "{\\c&H002080FF&}AUDIO    {\\c&H00A0A0A0&}: {\\c&H00A0A0A0&}NORMAL / AMBIENT".to_string()
+            }
+        } else {
+            "{\\c&H002080FF&}AUDIO    {\\c&H00A0A0A0&}: {\\c&H00A0A0A0&}NO DATA".to_string()
+        };
+
+        // 5. TEXT / WHISPER
+        let whisper_line = if let Some(trans) = transcript {
+            let matching_words: Vec<&str> = trans.iter()
+                .flat_map(|seg| &seg.words)
+                .filter(|w| w.start <= end_t && w.end >= start_t)
+                .map(|w| w.word.trim())
+                .filter(|s| !s.is_empty())
+                .collect();
+
+            if !matching_words.is_empty() {
+                let words_preview = matching_words.iter().take(4).cloned().collect::<Vec<_>>().join(" ");
+                format!("{{\\c&H002080FF&}}WHISPER  {{\\c&H00A0A0A0&}}: {{\\c&H00FFFFFF&}}\"{}\"", words_preview)
+            } else {
+                "{\\c&H002080FF&}WHISPER  {\\c&H00A0A0A0&}: {\\c&H00A0A0A0&}[NO SPEECH]".to_string()
+            }
+        } else {
+            "{\\c&H002080FF&}WHISPER  {\\c&H00A0A0A0&}: {\\c&H00A0A0A0&}[INACTIVE]".to_string()
+        };
+
+        // 6. VFX MEME & CAMERA FX
+        let active_builtin = if let Some(ref entry) = cache_entry {
+            entry
+                .scheduled_builtin_effects
+                .iter()
+                .find(|e| e.start_time <= end_t && e.end_time >= start_t)
+        } else {
+            None
+        };
+        let active_meme = scheduled_effects
+            .iter()
+            .find(|e| e.start_time <= end_t && e.start_time + 4.0 >= start_t);
+
+        let vfx_line = match (active_meme, active_builtin) {
+            (Some(m), Some(b)) => format!(
+                "{{\\c&H002080FF&}}VFX      {{\\c&H00A0A0A0&}}: {{\\c&H0000FF00&}}{} {{\\c&H00FFFF00&}}+ {:?} [ACTIVE]",
+                m.effect.name, b.effect_type
+            ),
+            (Some(m), None) => format!(
+                "{{\\c&H002080FF&}}VFX      {{\\c&H00A0A0A0&}}: {{\\c&H0000FF00&}}{} [ACTIVE]",
+                m.effect.name
+            ),
+            (None, Some(b)) => format!(
+                "{{\\c&H002080FF&}}VFX      {{\\c&H00A0A0A0&}}: {{\\c&H00FFFF00&}}{:?} [CAMERA FX]",
+                b.effect_type
+            ),
+            (None, None) => "{\\c&H002080FF&}VFX      {\\c&H00A0A0A0&}: {\\c&H00A0A0A0&}IDLE".to_string(),
+        };
+
+        // 7. ENGINE STATS
+        let engine_line = format!("{{\\c&H00A0A0A0&}}ENGINE   : {} | {}x{} | THR: {}", hw_label, v_w, v_h, config.max_workers);
+
+        let full_text = format!(
+            "{{\\an7\\pos(30,40)}}{{\\c&H002080FF&}}CLIPTZY AI ENGINE OSD\\N{}\\N{}\\N{}\\N{}\\N{}\\N{}\\N{}",
+            fusion_line,
+            vision_line,
+            voice_line,
+            audio_line,
+            whisper_line,
+            vfx_line,
+            engine_line
+        );
+
+        writeln!(
+            file,
+            "Dialogue: 0,{},{},MSI_OSD,,0,0,0,,{}",
+            start_ts, end_ts, full_text
+        ).ok()?;
+    }
+
+    log::info!("MSI Afterburner Debug OSD ASS generated at {:?}", output_ass_path);
+    Some(output_ass_path.to_path_buf())
+}
+
 fn get_emotion_color(
     time: f64,
     timeline: Option<&crate::analysis::fusion::EmotionTimeline>,

@@ -114,6 +114,7 @@ impl CropStrategy for SplitBrollCrop {
                 "aac".to_string(),
                 "-shortest".to_string(), // Stop when shortest stream ends (main video)
             ])
+            .overwrite()
             .output_path(output.to_path_buf());
 
         log::info!(

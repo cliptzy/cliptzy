@@ -88,6 +88,13 @@ pub async fn cut_local_segment(
     end: f64,
     output_path: &Path,
 ) -> Result<(), CliptzyError> {
+    if let Some(parent) = output_path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    if output_path.exists() {
+        let _ = std::fs::remove_file(output_path);
+    }
+
     let mut builder = FFmpegBuilder::new().map_err(|e| CliptzyError::FFmpeg {
         code: -1,
         message: format!("FFmpeg builder error: {}", e),
@@ -98,6 +105,7 @@ pub async fn cut_local_segment(
         .raw_args(vec!["-ss".to_string(), start.to_string()])
         .raw_args(vec!["-to".to_string(), end.to_string()])
         .raw_args(vec!["-c".to_string(), "copy".to_string()])
+        .overwrite()
         .output_path(output_path.to_path_buf());
 
     log::info!("FFmpeg Local Cut Command: {:?}", builder);

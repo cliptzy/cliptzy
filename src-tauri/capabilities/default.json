@@ -8,6 +8,7 @@
     "opener:default",
     "fs:default",
     "dialog:default",
-    "core:window:allow-start-dragging"
+    "core:window:allow-start-dragging",
+    "store:default"
   ]
 }

@@ -82,8 +82,7 @@ pub async fn get_face_keyframes(
         "seeta_fd_frontal_v1.0.bin",
         crate::ai::onnx::find_model("face").map(|m| m.url).unwrap_or(""),
     )
-    .await
-    .map_err(CliptzyError::Internal)?;
+    .await?;
 
     let mut detector = FaceDetectorWrapper::new(&model_path).map_err(CliptzyError::Internal)?;
 
@@ -138,8 +137,7 @@ pub async fn get_two_faces_normalized_centers(
         "seeta_fd_frontal_v1.0.bin",
         crate::ai::onnx::find_model("face").map(|m| m.url).unwrap_or(""),
     )
-    .await
-    .map_err(CliptzyError::Internal)?;
+    .await?;
 
     let mut detector = FaceDetectorWrapper::new(&model_path).map_err(CliptzyError::Internal)?;
 

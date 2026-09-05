@@ -44,15 +44,12 @@ impl ClipVideoUseCase {
         );
 
         let keyframes = self.resolve_face_keyframes(payload, source_video).await;
-        let debug_ass_path = self
-            .resolve_debug_ass_path(source_video, payload.segment_index)
-            .await;
 
         let hw_accel =
             crate::processing::ffmpeg::hwaccel::HwAccel::detect(Some(&self.ctx.config.hw_accel));
         let crop_out_config = OutputConfig {
             hw_accel: hw_accel.clone(),
-            debug_ass_path,
+            debug_ass_path: None, // Debug OSD (MSI Afterburner style) is burned post-crop in subtitle phase
             broll_dir: self.ctx.config.broll_dir.clone(),
             ..OutputConfig::default()
         };
@@ -210,6 +207,7 @@ impl ClipVideoUseCase {
         }
     }
 
+    #[allow(dead_code)]
     async fn resolve_debug_ass_path(&self, source_video: &Path, idx: u32) -> Option<String> {
         if !self.ctx.config.debug_mode {
             return None;

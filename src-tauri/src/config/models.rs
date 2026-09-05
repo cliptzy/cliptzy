@@ -36,6 +36,7 @@ pub struct AIConfig {
     pub use_audio_analysis: bool,
     pub use_text_analysis: bool,
     pub use_add_meme: bool,
+    pub use_builtin_fx: bool,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

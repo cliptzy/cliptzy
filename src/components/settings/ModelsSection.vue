@@ -20,14 +20,14 @@
     >
       <span class="flex items-center gap-1.5">
         <span class="w-1.5 h-1.5 rounded-none" :class="summaryDotClass"></span>
-        {{ installedCount }} / {{ ONNX_MODELS.length }} terpasang
+        {{ installedCount }} / {{ models.length }} terpasang
       </span>
       <span class="hidden sm:inline">·</span>
       <span class="hidden sm:inline">AppData/models/</span>
       <span class="ml-auto">
         <button
           @click="downloadAll"
-          :disabled="isDownloadingAll || installedCount === ONNX_MODELS.length"
+          :disabled="isDownloadingAll || models.length === 0 || installedCount === models.length"
           class="px-2.5 py-1 rounded-none text-[10px] font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           :class="installedCount > 0 ? 'bg-base-300 text-base-content hover:bg-neutral' : 'bg-primary text-primary-content hover:bg-primary/90'"
         >
@@ -39,7 +39,7 @@
     <!-- Model rows -->
     <div class="flex flex-col divide-y divide-neutral border border-neutral rounded-none">
       <div
-        v-for="model in ONNX_MODELS"
+        v-for="model in models"
         :key="model.id"
         class="flex flex-col gap-3 p-4 bg-base-100 hover:bg-base-200/40 transition-colors"
       >
@@ -48,13 +48,13 @@
           <div class="flex items-center gap-2.5 min-w-0">
             <span
               class="w-2 h-2 rounded-none shrink-0 mt-1"
-              :class="statusDotClass(model.id)"
-              :title="statusLabel(model.id)"
+              :class="statusDotClass(model)"
+              :title="statusLabel(model)"
             ></span>
             <div class="flex flex-col min-w-0">
               <div class="flex items-center gap-2">
                 <span class="text-sm font-bold text-base-content truncate">
-                  {{ model.displayName }}
+                  {{ model.display_name }}
                 </span>
                 <CBadge variant="neutral" size="sm">{{ model.category }}</CBadge>
               </div>
@@ -66,10 +66,10 @@
 
           <div class="flex items-center gap-2 ml-auto shrink-0">
             <span class="text-[10px] font-mono text-secondary mr-1 hidden md:inline">
-              {{ currentSize(model.id) }}
+              {{ currentSize(model) }}
             </span>
             <button
-              v-if="isInstalled(model.id)"
+              v-if="model.exists"
               @click="deleteModel(model)"
               :disabled="busy.has(model.id)"
               class="px-2.5 py-1.5 rounded-none text-[10px] font-bold transition-colors bg-transparent text-error hover:bg-error/15 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -80,11 +80,11 @@
               @click="downloadModel(model)"
               :disabled="busy.has(model.id)"
               class="px-2.5 py-1.5 rounded-none text-[10px] font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
-              :class="isInstalled(model.id) ? 'bg-base-300 text-base-content hover:bg-neutral' : 'bg-primary text-primary-content hover:bg-primary/90'"
+              :class="model.exists ? 'bg-base-300 text-base-content hover:bg-neutral' : 'bg-primary text-primary-content hover:bg-primary/90'"
             >
               <IconLoader v-if="busy.has(model.id)" class="w-3 h-3 animate-spin" />
               <IconDownload v-else class="w-3 h-3" />
-              {{ isInstalled(model.id) ? 'Unduh Ulang' : 'Unduh' }}
+              {{ model.exists ? 'Unduh Ulang' : 'Unduh' }}
             </button>
           </div>
         </div>
@@ -116,10 +116,10 @@
 
         <!-- Installed path -->
         <div
-          v-if="isInstalled(model.id) && !busy.has(model.id)"
+          v-if="model.exists && !busy.has(model.id)"
           class="text-[9px] font-mono text-secondary/70 truncate"
         >
-          {{ modelPath(model.id) }}
+          {{ model.path }}
         </div>
       </div>
     </div>
@@ -144,11 +144,6 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { useAppStore } from "../../stores/app";
 import CProgress from "../CProgress.vue";
 import CBadge from "../CBadge.vue";
-import {
-  ONNX_MODELS,
-  type OnnxModelDef,
-  type OnnxModelKind,
-} from "../../constants/onnxModels";
 
 // Icons
 import IconBoxes from "~icons/lucide/boxes";
@@ -157,25 +152,24 @@ import IconDownload from "~icons/lucide/download";
 import IconLoader from "~icons/lucide/loader-2";
 import IconPlugZap from "~icons/lucide/plug-zap";
 
+export interface OnnxModelItem {
+  id: string;
+  file: string;
+  url: string;
+  display_name: string;
+  category: string;
+  description: string;
+  approx_size: string;
+  tags: string[];
+  exists: boolean;
+  size_bytes?: number;
+  path?: string;
+}
+
 const appStore = useAppStore();
 
-/**
- * STATUS STATE
- * `installed`  : Set of model ids that exist on disk (AppData/models/).
- * `busy`       : Set of model ids currently downloading/deleting.
- * `backendConnected` : null = unknown, true = ok, false = command not yet wired.
- *
- * NOTE (invoke-ready): Karena backend command belum dibuat (tugas terpisah),
- * seluruh panggilan `invoke(...)` di bawah DIRANCANG dengan nama command final:
- *   - list_onnx_models    -> { id, exists, size_bytes, path }[]
- *   - download_onnx_model -> { id }
- *   - delete_onnx_model   -> { id }
- * Saat backend disambungkan, cukup pastikan command di lib.rs memakai nama
- * & payload yang sama — TANPA perlu mengubah UI ini.
- */
-
-const installed = ref<Set<OnnxModelKind>>(new Set());
-const busy = ref<Set<OnnxModelKind>>(new Set());
+const models = ref<OnnxModelItem[]>([]);
+const busy = ref<Set<string>>(new Set());
 const isLoading = ref(false);
 const isDownloadingAll = ref(false);
 const backendConnected = ref<boolean | null>(null);
@@ -185,41 +179,29 @@ const progressPercent = ref(0);
 
 let unlistenProgress: UnlistenFn | null = null;
 
-/**
- * Snapshot ukuran file aktual (byte) & path per model dari backend.
- * Fallback ke `approxSize` bila backend belum mengembalikan nilai.
- */
-const sizes = ref<Partial<Record<OnnxModelKind, number>>>({});
-const paths = ref<Partial<Record<OnnxModelKind, string>>>({});
-
-const installedCount = computed(() => installed.value.size);
+const installedCount = computed(() => models.value.filter((m) => m.exists).length);
 
 const summaryDotClass = computed(() => {
+  if (models.value.length === 0) return "bg-neutral";
   if (installedCount.value === 0) return "bg-error";
-  if (installedCount.value === ONNX_MODELS.length) return "bg-success";
+  if (installedCount.value === models.value.length) return "bg-success";
   return "bg-warning";
 });
 
-const isInstalled = (id: OnnxModelKind) => installed.value.has(id);
-
-const statusLabel = (id: OnnxModelKind) => {
-  if (busy.value.has(id)) return "Memproses...";
-  return isInstalled(id) ? "Terpasang" : "Belum diunduh";
+const statusLabel = (model: OnnxModelItem) => {
+  if (busy.value.has(model.id)) return "Memproses...";
+  return model.exists ? "Terpasang" : "Belum diunduh";
 };
 
-const statusDotClass = (id: OnnxModelKind) => {
-  if (busy.value.has(id)) return "bg-accent";
-  return isInstalled(id) ? "bg-success" : "bg-error";
+const statusDotClass = (model: OnnxModelItem) => {
+  if (busy.value.has(model.id)) return "bg-accent";
+  return model.exists ? "bg-success" : "bg-error";
 };
 
-const currentSize = (id: OnnxModelKind) => {
-  const bytes = sizes.value[id];
-  if (bytes != null) return formatBytes(bytes);
-  const def = ONNX_MODELS.find((m) => m.id === id);
-  return def?.approxSize ?? "";
+const currentSize = (model: OnnxModelItem) => {
+  if (model.size_bytes != null) return formatBytes(model.size_bytes);
+  return model.approx_size || "";
 };
-
-const modelPath = (id: OnnxModelKind) => paths.value[id] ?? "";
 
 function formatBytes(bytes: number): string {
   if (bytes <= 0) return "0 B";
@@ -230,43 +212,26 @@ function formatBytes(bytes: number): string {
 }
 
 /**
- * Ambil daftar status model dari backend.
+ * Ambil daftar model beserta status nyata dari backend.
  */
 const refreshModels = async () => {
   isLoading.value = true;
   try {
-    const res: any[] = await invoke("list_onnx_models");
+    const res = await invoke<OnnxModelItem[]>("list_onnx_models");
+    models.value = res;
     backendConnected.value = true;
-
-    const nextInstalled = new Set<OnnxModelKind>();
-    const nextSizes: Partial<Record<OnnxModelKind, number>> = {};
-    const nextPaths: Partial<Record<OnnxModelKind, string>> = {};
-
-    for (const item of res) {
-      const id = item.id as OnnxModelKind;
-      if (item.exists) {
-        nextInstalled.add(id);
-        if (item.size_bytes != null) nextSizes[id] = item.size_bytes;
-        if (item.path) nextPaths[id] = item.path;
-      }
-    }
-
-    installed.value = nextInstalled;
-    sizes.value = nextSizes;
-    paths.value = nextPaths;
   } catch (e) {
     backendConnected.value = false;
-    console.warn("list_onnx_models gagal (belum di-wire):", e);
+    console.warn("list_onnx_models gagal:", e);
   } finally {
     isLoading.value = false;
   }
 };
 
 /**
- * Unduh / unduh ulang satu model.
- * Progress channel opsional `onnx-download-progress` bisa dipakai backend.
+ * Unduh / unduh ulang satu model via backend streaming.
  */
-const downloadModel = async (model: OnnxModelDef) => {
+const downloadModel = async (model: OnnxModelItem) => {
   if (busy.value.has(model.id)) return;
   busy.value = new Set(busy.value).add(model.id);
   progressText.value = `Mengunduh ${model.file}...`;
@@ -275,7 +240,7 @@ const downloadModel = async (model: OnnxModelDef) => {
     await invoke("download_onnx_model", { id: model.id });
     appStore.addToast({
       title: "Model Diunduh",
-      message: `${model.displayName} siap digunakan.`,
+      message: `${model.display_name} siap digunakan.`,
       type: "success",
     });
   } catch (e: any) {
@@ -295,7 +260,7 @@ const downloadModel = async (model: OnnxModelDef) => {
 /**
  * Hapus satu model dari disk.
  */
-const deleteModel = async (model: OnnxModelDef) => {
+const deleteModel = async (model: OnnxModelItem) => {
   if (busy.value.has(model.id)) return;
   busy.value = new Set(busy.value).add(model.id);
   try {
@@ -320,14 +285,14 @@ const deleteModel = async (model: OnnxModelDef) => {
 };
 
 /**
- * Unduh semua model yang belum terpasang (berurutan).
+ * Unduh semua model yang belum terpasang secara berurutan.
  */
 const downloadAll = async () => {
   if (isDownloadingAll.value) return;
   isDownloadingAll.value = true;
   try {
-    for (const model of ONNX_MODELS) {
-      if (isInstalled(model.id)) continue;
+    for (const model of models.value) {
+      if (model.exists) continue;
       await downloadModel(model);
     }
   } finally {
@@ -336,7 +301,7 @@ const downloadAll = async () => {
 };
 
 onMounted(async () => {
-  refreshModels();
+  await refreshModels();
 
   // Dengarkan progres unduhan real-time dari backend (`onnx-download-progress`).
   try {

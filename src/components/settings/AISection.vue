@@ -172,8 +172,12 @@
  <CToggle v-model="settings.config.ai.use_text_analysis" />
  </label>
  <label class="flex items-center justify-between bg-base-200/50 p-3 rounded-none cursor-pointer">
- <div class="flex flex-col pr-2"><span class="text-sm font-bold">Auto B-Roll</span><span class="text-[10px] text-secondary">Overlay meme/b-roll</span></div>
+ <div class="flex flex-col pr-2"><span class="text-sm font-bold">VFX Meme (Auto B-Roll)</span><span class="text-[10px] text-secondary">Video reaksi greenscreen (The Rock, Vineboom, dll)</span></div>
  <CToggle v-model="settings.config.ai.use_add_meme" />
+ </label>
+ <label class="flex items-center justify-between bg-base-200/50 p-3 rounded-none cursor-pointer">
+ <div class="flex flex-col pr-2"><span class="text-sm font-bold">Efek Kamera Visual</span><span class="text-[10px] text-secondary">Guncang, flash, B&W, zoom</span></div>
+ <CToggle v-model="settings.config.ai.use_builtin_fx" />
  </label>
  </div>
  </div>

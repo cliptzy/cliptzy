@@ -234,7 +234,7 @@
  >
  <span
  class="text-[10px] font-medium text-secondary"
- >Render hasil analisis emosi</span
+ >Render MSI Afterburner OSD HUD (analisis AI & performa mesin)</span
  >
  </div>
  <button

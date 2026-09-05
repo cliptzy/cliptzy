@@ -38,6 +38,7 @@ impl Default for AIConfig {
             use_audio_analysis: true,
             use_text_analysis: true,
             use_add_meme: true,
+            use_builtin_fx: true,
         }
     }
 }

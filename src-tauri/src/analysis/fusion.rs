@@ -1,4 +1,4 @@
-﻿use super::audio::AudioEventAnalyzer;
+use super::audio::AudioEventAnalyzer;
 use super::text::TextSentimentAnalyzer;
 use super::visual::VisualEmotionAnalyzer;
 use super::voice::VoiceEmotionAnalyzer;
@@ -24,6 +24,18 @@ pub struct EmotionTimeline {
     pub segments: Vec<AnalysisSegment>,
     pub dominant_emotion: EmotionLabel,
     pub emotion_distribution: HashMap<String, f32>, // Using String for EmotionLabel for simpler serialization
+    #[serde(default)]
+    pub visual: Vec<AnalysisSegment>,
+    #[serde(default)]
+    pub audio: Vec<AnalysisSegment>,
+    #[serde(default)]
+    pub voice: Vec<AnalysisSegment>,
+    #[serde(default)]
+    pub text: Vec<AnalysisSegment>,
+    #[serde(default)]
+    pub scheduled_effects: Vec<crate::processing::effects::ScheduledEffect>,
+    #[serde(default)]
+    pub scheduled_builtin_effects: Vec<crate::processing::burner::builtin::ScheduledBuiltinEffect>,
 }
 
 impl EmotionFusion {
@@ -105,12 +117,37 @@ impl EmotionFusion {
             log::warn!("Text analyzer failed: {}", e);
             vec![]
         });
-        let timeline = self.merge_timelines(
-            visual_segments,
-            audio_segments,
-            voice_segments,
-            text_segments,
-        );
+        let transcript_snippets = super::arbiter::load_transcript_snippets(transcript_path);
+        let arbiter = super::arbiter::ContextArbiter::new();
+        let (
+            fused_segments,
+            dominant_emotion,
+            distribution,
+            scheduled_effects,
+            scheduled_builtin_effects,
+        ) = arbiter
+            .arbitrate(
+                &visual_segments,
+                &audio_segments,
+                &voice_segments,
+                &text_segments,
+                &transcript_snippets,
+                config,
+                progress,
+            )
+            .await;
+
+        let timeline = EmotionTimeline {
+            segments: fused_segments,
+            dominant_emotion,
+            emotion_distribution: distribution,
+            visual: visual_segments,
+            audio: audio_segments,
+            voice: voice_segments,
+            text: text_segments,
+            scheduled_effects,
+            scheduled_builtin_effects,
+        };
 
         let _ = progress.send(ProgressEvent {
             stage: "fusion".into(),
@@ -123,6 +160,7 @@ impl EmotionFusion {
         Ok(timeline)
     }
 
+    #[allow(dead_code)]
     fn merge_timelines(
         &self,
         visual: Vec<AnalysisSegment>,
@@ -249,6 +287,12 @@ impl EmotionFusion {
             segments: fused_segments,
             dominant_emotion,
             emotion_distribution: distribution_scores,
+            visual,
+            audio,
+            voice,
+            text,
+            scheduled_effects: vec![],
+            scheduled_builtin_effects: vec![],
         }
     }
 }

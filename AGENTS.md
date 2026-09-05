@@ -1,4 +1,4 @@
-﻿# 📜 AGENTS.md — Peraturan & Panduan Proyek Cliptzy (Tauri Desktop App)
+# 📜 AGENTS.md — Peraturan & Panduan Proyek Cliptzy (Tauri Desktop App)
 
 Dokumen ini adalah **sumber kebenaran utama (single source of truth)** untuk seluruh AI Model dan pengembang yang bekerja pada proyek **Cliptzy Desktop** — sebuah aplikasi YouTube Clipper & Auto Uploader yang dibangun menggunakan arsitektur **Murni Rust & Tauri (Native)**.
 
@@ -446,3 +446,174 @@ Sebelum menulis kode, AI Model WAJIB menjawab pertanyaan berikut:
   5. **Cargo**: Menambahkan `futures-util = "0.3"` (sudah di lock, no version bump) untuk `StreamExt::next()`.
   6. **Verifikasi**: `cargo check` clean (6.6s), `npm run build` clean (1.6s).
 - **Catatan**: File `.part` tidak dibersihkan otomatis saat download dibatalkan mid-way (next `list_onnx_models` mengabaikannya; retry overwrites). Registry sekarang SSOT tunggal untuk semua model ONNX — frontend hanya mirror pasif.
+
+### 4.38. Perbaikan VFX Durasi, Normalisasi Audio Mix, & Debug Mode MSI Afterburner OSD HUD
+
+- **Problem**:
+  1. **Visual VFX Terpotong**: Efek meme video (mis. durasi 5 detik) terpotong secara visual hanya tampil 1-2 detik mengikuti *bounding window* emosi AI, meskipun audionya tetap lanjut berbunyi.
+  2. **Audio Video Utama Redup Drastis**: Setiap penambahan efek video membuat audio utama game semakin pelan secara eksponensial.
+  3. **Debug Mode Terbatas & Terpotong**: Mode debug lama hanya membakar *bounding box* wajah sebelum video di-crop ke 9:16 sehingga teks dan kotak terdistorsi/hilang, serta belum menampilkan telemetri analisis AI secara menyeluruh.
+
+- **Solusi**:
+  1. **Durasi Visual Penuh VFX (`vfx.rs`)**: Mengganti ekspresi enable pada filter `overlay` FFmpeg dari `'between(t, start, end)'` menjadi `'gte(t, start)'` dengan opsi `eof_action=pass`. Dengan ini, video efek berjalan sesuai durasi alaminya sampai EOF selesai secara independen. Selain itu, memberi jarak minimal 4 detik antar pemicu efek di `effects.rs`.
+  2. **Single-Pass Audio Mix (`amix` dengan `normalize=0`)**: Membuang chaining pairwise `amix` berulang di `apply_vfx` yang membagi sinyal input ($1/2^N$). Seluruh *stream* audio efek yang telah diberi `adelay` dikumpulkan dan dicampur sekaligus bersama track audio utama (`0:a`) dalam satu node tunggal: `amix=inputs=N+1:duration=first:dropout_transition=0:normalize=0`. Volume asli game tetap 100% utuh tanpa redaman.
+  3. **MSI Afterburner / RTSS OSD HUD (`ass_writer.rs` & `subtitle.rs`)**:
+     - Memperluas `EmotionTimeline` dan `EmotionCacheEntry` untuk menyimpan seluruh modalitas AI (`fusion`, `visual`, `audio`, `voice`, `text`).
+     - Mengimplementasikan `generate_msi_afterburner_osd(...)` yang menghasilkan subtitle ASS dengan style `MSI_OSD`: font monospace `Consolas`, `BorderStyle: 3` dengan box latar belakang gelap transparan (`&HA0101010`), teks label amber RTSS (`&H002080FF&`), nilai cyan (`&H00FFFF00&`), skor hijau (`&H0000FF00&`), dan cuplikan teks Whisper putih (`&H00FFFFFF&`).
+     - Memindahkan pembakaran debug ASS dari fase *pre-crop* ke fase *post-crop* (setelah watermark) di `burn_video_effects` sehingga HUD selalu tajam, presisi pada resolusi vertikal (1080x1920), dan tidak tertutup elemen visual lainnya.
+     - Memperbarui label deskripsi di `EngineSection.vue`.
+
+### 4.39. Migrasi Model Visual ViT FER2013 & Audit Best Practice Arsitektur ONNX
+
+- **Problem**:
+  1. Model emosi visual lama dari Xenova perlu dimigrasi ke model komunitas modern `onnx-community/face-emotion-detection-ONNX` (fine-tuned pada FER2013). Urutan label output model baru (Angry=0, Disgust=1, Fear=2, Happy=3, Sad=4, Surprise=5, Neutral=6) berbeda dari model lama, sehingga jika tidak disesuaikan, deteksi emosi visual akan salah klasifikasi secara fatal.
+  2. Audit arsitektur pada `src-tauri/src/ai/onnx.rs`:
+     - *Separation of Concerns*: Handler Tauri IPC (`list_onnx_models`, `download_onnx_model`, `delete_onnx_model`) bercampur di dalam modul domain AI `ai/onnx.rs`, melanggar konvensi di mana semua perintah IPC berada di `commands/*.rs`.
+     - *Concurrency Race Condition*: `OnnxModelManager::ensure_loaded` dapat melempar `CliptzyError` jika dua thread concurrent mencoba mengisi `OnceCell` secara simultan.
+     - *Inefisiensi Memori (RAM Spikes)*: `ensure_model_downloaded` lama memuat 350-500 MB file model sekaligus ke dalam buffer RAM (`response.bytes()`) sebelum menulisnya secara blocking ke disk.
+     - *Ketiadaan Fallback GPU*: Session builder DirectML langsung melempar error dan membatalkan analisis jika sistem/driver tidak kompatibel dengan DirectML, alih-alih fallback ke CPU.
+
+- **Solusi**:
+  1. **Update Registry & Frontend SSOT**:
+     - Memperbarui entri `visual` di `ONNX_MODEL_REGISTRY` dan `src/constants/onnxModels.ts` ke URL `https://huggingface.co/onnx-community/face-emotion-detection-ONNX/resolve/main/onnx/model.onnx`, nama file `face_emotion_detection.onnx` (~343 MB), dan tag 7 emosi.
+  2. **Penyesuaian Input/Output di `visual.rs`**:
+     - Input tensor tetap `pixel_values` (224×224 RGB dengan normalisasi mean=[0.5, 0.5, 0.5] & std=[0.5, 0.5, 0.5]).
+     - Output `logits` di-mapping akurat sesuai urutan FER2013: Index 0=Angry, 1=Unknown (Disgust), 2=Fear, 3=Happy, 4=Sad, 5=Shock (Surprise), 6=Neutral.
+     - Menggunakan konstruktor cerdas `OnnxModelManager::from_registry("visual")`.
+  3. **Refaktor Arsitektur & Best Practice Rust**:
+     - **Separation of Concerns**: Memindahkan fungsi Tauri command decorator ke `src-tauri/src/commands/ai.rs`, dan mendaftarkannya seragam di `src-tauri/src/lib.rs` sebagai `commands::ai::*`. `ai/onnx.rs` tetap mengekspor fungsi tersebut untuk backward compatibility.
+     - **Thread-Safety OnceCell**: Jika `OnceCell::set` mengembalikan error karena sudah diisi thread lain, aplikasi tidak lagi panik/gagal melainkan melanjutkan eksekusi dengan aman.
+     - **Streaming Zero-Cost Download**: `ensure_model_downloaded` kini menggunakan stream chunking langsung ke file temporary `.part` dan rename atomik, menghilangkan alokasi RAM 500 MB dan mencegah file model korup.
+      - **DirectML Graceful Fallback**: Jika DirectML execution provider gagal di Windows, sistem otomatis mencatat `log::warn!` dan fallback ke CPU session builder tanpa menggagalkan proses clip video.
+
+### 4.40. Backend SSOT untuk Model ONNX & Eliminasi Duplikasi `onnxModels.ts`
+
+- **Problem**: Metadata model ONNX didefinisikan ganda di backend Rust (`ONNX_MODEL_REGISTRY` di `src-tauri/src/ai/onnx.rs`) dan frontend TypeScript (`src/constants/onnxModels.ts`). Jika model diubah, ditambahkan, atau dihapus di backend, frontend rentan desinkronisasi atau membutuhkan pembaruan manual di dua tempat.
+- **Solusi**:
+  1. **Ekspansi Kontrak Data `OnnxModelStatus`**: Menjadikan struct `OnnxModelStatus` di Rust sebagai pembawa data lengkap (metadata registry: `id`, `file`, `url`, `display_name`, `category`, `description`, `approx_size`, `tags` + status disk: `exists`, `size_bytes`, `path`).
+  2. **Penghapusan Total `src/constants/onnxModels.ts`**: Menghapus file konstanta frontend tersebut secara permanen.
+  3. **Refaktor Frontend `ModelsSection.vue`**: Mengganti ketergantungan statis dengan pemanggilan asinkron `invoke<OnnxModelItem[]>("list_onnx_models")`. Semua aksi unduh, unduh ulang, hapus, dan unduh semua kini beroperasi langsung pada status dinamis yang dikembalikan backend.
+
+### 4.41. Model Emosi Teks Multilingual (MiniLM) & Perbaikan Pipeline Spektrogram Audio (AST)
+
+- **Problem**:
+  1. `text: []` kosong di `emotions_{idx}.json`: `emotion_phase` berjalan mendahului transkripsi Whisper sehingga file transkrip belum ada di disk; path transkrip di-hardcode ke `transcript_{idx}_tiny.json` bukannya folder `cache/`; dan format deserialisasi JSON tidak cocok dengan objek pembungkus `SegmentTranscriptCacheEntry`. Selain itu, model teks lama (`twitter_roberta_emotion.onnx`) hanya mendukung bahasa Inggris.
+  2. `audio: []` kosong di `emotions_{idx}.json`: Pemetaan label AudioSet pada `audio.rs` salah total (indeks 27 & 28 dimapping sebagai scream/yell padahal sebenarnya singing & choir; teriakan asli indeks 8..14 tidak terdaftar); perhitungan Mel filterbank lama belum mengimplementasikan proyeksi filterbank segitiga standar sehingga logits tidak mencapai threshold.
+- **Solusi**:
+  1. **Migrasi Model Teks Multilingual (`tanaos-emotion-detection-v1-ONNX`)**:
+     - Mengganti model `text` di `ONNX_MODEL_REGISTRY` ke model Multilingual MiniLM-L12 (~180 MB) yang mendukung 100+ bahasa termasuk Bahasa Indonesia secara native.
+     - Memperbarui `text.rs` untuk memetakan 8 kelas emosi (*joy, anger, fear, sadness, surprise, disgust, excitement, neutral*).
+     - Mengimplementasikan parser transkrip fleksibel yang mendukung format objek `SegmentTranscriptCacheEntry` maupun array flat.
+  2. **Sinkronisasi Pipeline Transkripsi & Audio 16kHz**:
+     - Menyatukan ekstraksi audio menjadi `audio_16k_{idx}.wav` bersama yang digunakan baik oleh `emotion_phase` maupun `subtitle_phase`.
+     - `emotion_phase` memicu pemuatan transkrip Whisper (`load_or_transcribe_segment`) terlebih dahulu jika analisis teks aktif. Hasilnya disimpan ke cache sehingga `subtitle_phase` langsung mendapatkan *cache hit* instan (0 ms).
+  3. **Implementasi Spektrogram Mel Filterbank & AudioSet Mapping Lengkap**:
+     - Mengimplementasikan `build_mel_filterbank` 128-bin segitiga kontinu (20 Hz - 8000 Hz) dengan proteksi filter sempit di frekuensi rendah.
+     - Memperbaiki pemetaan AudioSet secara komprehensif: teriakan (*shout, bellow, yell, screaming*, grunt), tawa (*laughter, giggle, snicker, chortle*), tangis (*crying, whimper, moan, sigh*), dan ledakan/tembakan (*gunshot, explosion*).
+     - Menyimpan beberapa emosi berbeda per chunk audio (multi-label) dengan threshold probabilitas > 0.15.
+
+### 4.42. AI Context Arbiter & VFX Meme Director (Multimodal Fusion & Kurasi Efek Cerdas)
+
+- **Problem**:
+  1. `fusion.rs` sebelumnya menggunakan pembobotan linear statis (`visual: 0.4, audio: 0.2, voice: 0.3, text: 0.1`) tanpa pemahaman konteks semantik lintas modalitas. Sebagai contoh, ketika streamer mengucapkan ucapan menyerah *"udah bang / ampun bang"* dengan ekspresi wajah meringis ketakutan (ViT mendeteksi *Angry*), sistem linear secara salah mengklasifikasikannya sebagai *Angry*, mengabaikan konteks kepanikan/komedi.
+  2. `effects.rs` memilih efek video (`video_effects.json`) secara acak murni hanya berdasarkan kecocokan string emosi (`matching.choose(&mut rng)`), tanpa memperhatikan timing komedi, punchline, maupun narasi momen.
+- **Solusi**:
+  1. **Modul `ContextArbiter` (`src-tauri/src/analysis/arbiter.rs`)**:
+     - Mengumpulkan dan menyatukan 4 modalitas sensorik (*Visual Face & Bounding Box, Voice Acoustic Tone, Audio Events Sound Classifier, dan Transkrip Whisper*) ke dalam *multimodal timeline buckets*.
+     - Memberikan katalog efek video lengkap (35+ meme) beserta deskripsi semantik humor, intensitas, dan emosinya kepada model AI.
+     - **Integrasi LLM Provider**: Jika provider AI aktif (OpenAI / Gemini / Ollama), sistem memanggil model untuk mengarbitrase emosi sejati per segmen dan menentukan jadwal 0–2 VFX meme pada titik klimaks/punchline dengan jeda minimal (*cooldown*).
+     - **Smart Contextual Heuristics Arbiter (Offline Engine)**: Jika pengguna tidak mengonfigurasi API key atau sedang offline, sistem deterministik kontekstual mengevaluasi frasa slang/gaming Indonesia (*"udah bang" / "ampun" / "mati gua"* meng-override wajah marah menjadi *Fear*; *"lah kok" / "gimana dah"* menjadi *Confused*; *"anjir" / "kaget"* menjadi *Shock*) serta memilih VFX yang relevan secara semantik (misal: menyerah → *GTA CJ Ah Shit Here We Go Again* atau *KSI NoNoNo*; kaget → *Vineboom* / *IShowSpeed Scream*; bingung → *The Rock Sus*).
+  2. **Persistensi Cache & Dekopling Pembakaran Efek**:
+     - `EmotionTimeline` dan `EmotionCacheEntry` kini menyimpan `scheduled_effects`.
+     - Jadwal efek langsung terintegrasi dengan MSI Afterburner Debug OSD (`VFX MEME: {name} [ACTIVE]`) dan pembakaran greenscreen di `subtitle_phase` (terhubung ke toggle *"Auto B-Roll"*).
+
+### 4.43. Penumpukan VFX Meme (VFX Stacking & Fast Reaction) & Kalibrasi Anti-False-Angry
+
+- **Problem**:
+  1. **Visual Emotion Terlalu Sering "Angry"**: Model FER2013 sering mendeteksi wajah fokus gamer/streamer (alis sedikit bertaut saat menatap layar) sebagai *Angry*, karena indeks probabilitas kelas 0 (Angry) lebih tinggi tipis dibanding Neutral, membanjiri klip dengan meme kemarahan (misal: *cat slamming table*) yang tidak sesuai situasi.
+  2. **Efek Meme Terlalu Kaku & Lambat**: Jadwal efek video sebelumnya dibatasi jeda *cooldown* kaku sehingga efek tidak dapat saling tumpang tindih (*stacking*) dan membatasi variasi komedi cepat yang dinamis.
+
+- **Solusi**:
+  1. **Kalibrasi Margin Netral Emosi Visual (`src-tauri/src/analysis/visual.rs`)**:
+     - Memperkenalkan threshold keyakinan minimum: Jika probabilitas tertinggi `< 0.28`, otomatis diklasifikasikan sebagai `Neutral`.
+     - Untuk kelas *Angry* (indeks 0): wajib memiliki probabilitas `probs[0] >= 0.42` DAN selisih margin terhadap *Neutral* `(probs[0] - probs[6]) >= 0.10`. Wajah konsentrasi biasa kini secara akurat dideteksi sebagai `Neutral`.
+     - Kalibrasi serupa pada *Disgust* (gerakan bibir saat berbicara) dan *Sad* (menunduk melihat keyboard/gamepad).
+  2. **Supresi Multimodal Lintas Sensor (`src-tauri/src/analysis/arbiter.rs`)**:
+     - Heuristik dan prompt AI Arbiter secara tegas menyaring wajah *Angry*: jika suara audio/nada vokal tenang dan transkrip tidak mengandung umpatan/teriakan, emosi sejati dikembalikan ke `Neutral`.
+  3. **Penumpukan Efek Video Bersusun (VFX Stacking / Combo)**:
+     - Mengizinkan penumpukan hingga 2 efek video bersamaan (`active_count < 2`) dengan interval pemicu cepat (0.8s – 1.5s), memungkinkan kombinasi *punchline* (contoh: SFX Vineboom seketika diikuti video reaksi FlightReacts tumpang tindih).
+     - Menjaga batas variasi dengan memilih 2–6 efek berbeda per segmen tanpa duplikasi efek yang sama dalam jeda 4 detik.
+  4. **Pembersihan Bersih FFmpeg Filtergraph (`vfx.rs` & `burner/mod.rs`)**:
+     - Mengubah filter overlay dari `'gte(t, start)'` menjadi `'between(t, start, end)'` dengan durasi efek terhitung presisi (`effect.end_time`), sehingga layer efek yang selesai tidak menumpuk permanen di buffer video.
+     - Mempertahankan mixing audio satu arah `amix` dengan `normalize=0` agar game audio tetap 100% lantang tanpa reduksi volume saat efek bersusun berbunyi bersamaan.
+
+### 4.44. Efek Visual Kamera & Filter Bawaan FFmpeg (Zero-Asset Builtin VFX) & Proteksi Panjang Command Windows
+
+- **Problem**:
+  1. Penambahan banyak efek video pada klip Shorts berisiko menyebabkan *command-line buffer overflow* di OS Windows jika setiap filter ditambahkan sebagai node terpisah secara naif.
+  2. Aset video greenscreen eksternal memerlukan dependensi storage dan I/O decode disk, sedangkan video gaming membutuhkan efek dinamis berbasis kamera (guncangan layar / *screen shake*, kilatan *flashbang*, desaturasi *black & white*, distorsi *deep-fried*, *punch zoom*, *red tint*, *negate*, *blur*, *sepia*, dan *rainbow cycling*) yang bereaksi langsung pada video utama.
+
+- **Solusi**:
+  1. **Modul `BuiltinVfx` (`src-tauri/src/processing/burner/builtin.rs`)**:
+     - Mengimplementasikan 10 efek visual bawaan murni filter internal FFmpeg tanpa dependensi aset file:
+       * **Screen Shake**: Guncangan rotasi sudut kamera 1.4 derajat pada frekuensi 45 rad/s (`rotate='sin(t*45)*0.025':ow=iw:oh=ih`) saat amarah/teriakan.
+       * **White Flash**: Kilatan putih dramatis saat momen jumpscare/punchline (`eq=brightness='if(between(...),0.65,0.0)'`).
+       * **Dramatic B&W**: Grayscale + vignette gelap saat menyerah / pasrah / mati (`hue=s=0,vignette=PI/4`).
+       * **Deep-Fried**: Kontras 2.0x dan saturasi 3.0x saat momen kemarahan ekstrem / ear-rape scream (`eq=contrast=2.0:saturation=3.0`).
+       * **Punch Zoom**: Snap zoom in 18% ke tengah kanvas saat momen bingung / canggung (`crop=w='...':h='...',scale=1080:1920`).
+       * **Red Tint**: Nuansa merah pekat darah (`colorchannelmixer=rr=1.8:gg=0.4:bb=0.4`) saat amarah tinggi, bahaya, atau low HP.
+       * **Negate**: Inversi warna negatif horor (`negate`) saat momen cursed, jumpscare menyeramkan, atau plot twist tak terduga.
+       * **Focus Blur**: Gaussian blur dramatis (`gblur=sigma=12`) saat momen bengong, freeze otak, pusing, atau keheningan canggung.
+       * **Sepia**: Nada hangat klasik sepia vintage (`colorchannelmixer=.393:.769:...`) untuk kilas balik sedih, refleksi kekalahan, atau kenangan.
+       * **Rainbow Hue**: Rotasi siklus warna pelangi dinamis (`hue=H=8*PI*t`) saat momen kemenangan, selebrasi GG, atau tawa lepas renyah.
+  2. **Proteksi Buffer Command Windows (Boolean Span Consolidation)**:
+     - Menggabungkan seluruh rentang waktu aktif untuk tipe efek yang sama menjadi satu ekspresi boolean tunggal: `between(t, s1, e1) + between(t, s2, e2) + ...`.
+     - Jumlah node filter yang disuntikkan ke FFmpeg **dijamin tidak pernah melebihi 11 node** bahkan jika ada puluhan kemunculan efek, dengan total panjang string command `< 800 karakter`, menghilangkan 100% risiko limit `CreateProcess` (32.767 karakter) di Windows.
+  3. **Penjadwalan Cerdas di Arbiter (`arbiter.rs`)**:
+     - Heuristik dan AI Arbiter otomatis memicu:
+       * *Shock* → *WhiteFlash*, extreme shock (score >= 0.88) combo dengan *Negate*.
+       * *Angry* → *ScreenShake*, kemarahan tinggi (score >= 0.80) combo dengan *RedTint*, dan amarah klimaks (score >= 0.88) combo dengan *DeepFried*.
+       * *Confused* → *PunchZoom*, kebingungan tinggi (score >= 0.85) combo dengan *FocusBlur*.
+       * *Sad / Surrender* → *DramaticBW*, kesedihan mendalam (score >= 0.85) combo dengan *Sepia*.
+       * *Happy* → *RainbowHue*.
+     - Durasi mikro (0.2s - 2.5s) dengan cooldown 3.0s antar efek sejenis dan batas maksimal 6 efek per klip.
+  4. **Integrasi UI & Telemetri**:
+     - Toggle baru `"use_builtin_fx"` di Settings (`AISection.vue`) dan Studio (`InspectorPanel.vue`).
+     - MSI Afterburner Debug OSD HUD menampilkan telemetri kamera secara real-time (`VFX : ScreenShake [CAMERA FX]` / `sfx_vineboom + WhiteFlash [ACTIVE]`).
+
+### 4.45. Perbaikan Sinkronisasi Render VFX Meme, FFmpeg Filter WhiteFlash, & Durasi Media Aktual
+
+- **Problem**:
+  1. Pada segmen render klip (misal `emotions_16.json`), OSD HUD menampilkan `VFX: the rock_sus [ACTIVE]` dan `VFX: flightreact_woah woah hey hey [ACTIVE]`, namun video overlay meme tidak muncul sama sekali di video hasil render.
+  2. Efek `WhiteFlash` tidak terlihat (kecerahan video tidak berubah sama sekali).
+  3. Efek kamera `ScreenShake` di detik ke-9 terasa tidak terasa / terlalu samar.
+  4. Efek `the rock_sus` di OSD ditampilkan aktif hingga 37.5 detik, namun video aslinya berdurasi lebih pendek.
+
+- **Penyebab Utama & Solusi**:
+  1. **Desinkronisasi OSD vs Burner & Pengaturan `use_add_meme`**:
+     - Di `config.json`, `"use_add_meme": false`. Di [`subtitle.rs`](file:///C:/cliptzy/src-tauri/src/orchestrator/clip/subtitle.rs), filter membuang seluruh `scheduled_effects` saat `use_add_meme == false` sehingga FFmpeg tidak menerima input meme sama sekali. Namun pembuatan teks OSD di [`ass_writer.rs`](file:///C:/cliptzy/src-tauri/src/transcription/ass_writer.rs) menerima daftar efek mentah sebelum difilter.
+     - **Solusi**: Menyinkronkan variabel `effective_scheduled_effects` dan `effective_builtin_effects` ke OSD dan `VideoBurnerConfig`, mengaktifkan `"use_add_meme": true` di konfigurasi default, dan memperjelas label UI menjadi *"VFX Meme (Auto B-Roll)"*.
+  2. **Evaluasi `eval=init` pada Filter `eq` FFmpeg**:
+     - Filter `eq` pada FFmpeg secara default mengevaluasi ekspresi matematika satu kali di timestamp `t=0.0` (`eval=init`). Ekspresi `eq=brightness='if(between(t,...),0.65,0.0)'` menghasilkan `0.0` permanen karena pada `t=0.0` kondisi `between` bernilai salah, membuat kilatan putih 100% tidak tampak.
+     - **Solusi**: Mengganti filter menjadi aktivasi linier timeline murni: `eq=brightness=0.85:enable='between(t,s,e)'`. Pengujian luminance (`signalstats`) membuktikan `YAVG` melonjak instan ke `255` (putih maksimal).
+  3. **Durasi Aset Media Dinamis (`get_duration`)**:
+     - Sebelumnya durasi setiap efek di-hardcode 3.5 detik di `arbiter.rs`. Namun file `the rock_sus.mp4` durasi aslinya hanya 2.02 detik, sehingga efek menghilang di detik ke-36.02 sementara HUD OSD terus menampilkan `[ACTIVE]` hingga detik ke-37.5.
+     - **Solusi**: Menambahkan method [`VideoEffect::get_duration(&self)`](file:///C:/cliptzy/src-tauri/src/processing/effects.rs) yang memetakan durasi riil seluruh 38 aset media, dan menghitung `end_t` arbiter berdasarkan durasi aktual file.
+  4. **Peningkatan Amplitudo `ScreenShake`**:
+     - Menaikkan sudut getaran kamera dari `0.025` rad (~1.4°) menjadi `0.05` rad (~2.9° pada 50 rad/s) agar getaran terasa jelas di video Shorts vertikal.
+
+### 4.46. Penanganan Error FFmpeg Exit Code 0xffffffef (EEXIST Overwrite Protection)
+
+- **Problem**:
+  - Saat merender ulang klip video yang sama tanpa menghapus folder `jobs/` sebelumnya, proses gagal tepat di akhir tahap stacking dengan pesan:
+    `Command Error: FFmpeg { code: -1, message: "Process failed: Process execution failed: Process exited with status: exit code: 0xffffffef" }`
+- **Root Cause**:
+  - Kode exit `0xffffffef` merupakan representasi heksadesimal 32-bit dari `-17`, yaitu `-EEXIST` (POSIX `File exists`) dari FFmpeg `AVERROR(EEXIST)`.
+  - Tahap pembuatan thumbnail ([`src-tauri/src/processing/thumbnail.rs`](file:///C:/cliptzy/src-tauri/src/processing/thumbnail.rs)) menggunakan `FFmpegBuilder` tanpa memanggil `.overwrite()`.
+  - Ketika `thumbnail_16.jpg` sudah ada di disk dari proses render sebelumnya, FFmpeg menunggu konfirmasi interaktif `Overwrite? [y/N]` di stdin. Karena stdin tertutup/null, FFmpeg otomatis membatalkan eksekusi dengan pesan *"Not overwriting - exiting. Error opening output files: File exists"* dan melempar exit code `0xffffffef`.
+- **Solusi**:
+  1. Menambahkan pembersihan proaktif file lama (`if output_path.exists() { std::fs::remove_file(output_path); }`) dan pembuatan folder induk jika belum ada.
+  2. Menyuntikkan method `.overwrite()` (flag `-y`) pada seluruh builder FFmpeg yang sebelumnya terlewat:
+     - [`src-tauri/src/processing/thumbnail.rs`](file:///C:/cliptzy/src-tauri/src/processing/thumbnail.rs) (`generate_thumbnail`)
+     - [`src-tauri/src/video/local.rs`](file:///C:/cliptzy/src-tauri/src/video/local.rs) (`cut_local_segment`)
+     - [`src-tauri/src/processing/cropper/split_broll.rs`](file:///C:/cliptzy/src-tauri/src/processing/cropper/split_broll.rs) (`build_command`)

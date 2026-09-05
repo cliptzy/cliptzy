@@ -85,10 +85,17 @@
           </div>
           <div class="flex items-center justify-between">
             <div class="flex flex-col">
-              <span class="text-sm font-bold text-base-content">Auto B-Roll</span>
-              <span class="text-[10px] text-secondary font-medium">Sisipkan overlay meme/b-roll</span>
+              <span class="text-sm font-bold text-base-content">VFX Meme (Auto B-Roll)</span>
+              <span class="text-[10px] text-secondary font-medium">Video reaksi greenscreen (The Rock, Vineboom, dll)</span>
             </div>
             <CToggle v-model="settings.config.ai.use_add_meme" />
+          </div>
+          <div class="flex items-center justify-between">
+            <div class="flex flex-col">
+              <span class="text-sm font-bold text-base-content">Efek Kamera Visual</span>
+              <span class="text-[10px] text-secondary font-medium">Guncang, flash, B&W, deep-fried</span>
+            </div>
+            <CToggle v-model="settings.config.ai.use_builtin_fx" />
           </div>
 
           <!-- Pemisah -->

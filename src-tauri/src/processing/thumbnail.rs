@@ -7,6 +7,13 @@ pub async fn generate_thumbnail(
     output_path: &Path,
     time_offset: f64,
 ) -> Result<(), CliptzyError> {
+    if let Some(parent) = output_path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    if output_path.exists() {
+        let _ = std::fs::remove_file(output_path);
+    }
+
     let builder = FFmpegBuilder::new()
         .map_err(|e| CliptzyError::FFmpeg {
             code: -1,
@@ -20,6 +27,7 @@ pub async fn generate_thumbnail(
             "-q:v".to_string(),
             "2".to_string(),
         ])
+        .overwrite()
         .output_path(output_path.to_path_buf());
 
     let process = builder.spawn().await.map_err(|e| CliptzyError::FFmpeg {

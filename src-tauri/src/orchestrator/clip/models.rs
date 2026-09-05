@@ -11,9 +11,21 @@ pub(crate) struct SegmentTranscriptCacheEntry {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub(crate) struct EmotionCacheEntry {
+pub struct EmotionCacheEntry {
     pub source_fingerprint: FileFingerprint,
     pub segments: Vec<AnalysisSegment>,
+    #[serde(default)]
+    pub visual: Vec<AnalysisSegment>,
+    #[serde(default)]
+    pub audio: Vec<AnalysisSegment>,
+    #[serde(default)]
+    pub voice: Vec<AnalysisSegment>,
+    #[serde(default)]
+    pub text: Vec<AnalysisSegment>,
+    #[serde(default)]
+    pub scheduled_effects: Vec<crate::processing::effects::ScheduledEffect>,
+    #[serde(default)]
+    pub scheduled_builtin_effects: Vec<crate::processing::burner::builtin::ScheduledBuiltinEffect>,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug)]

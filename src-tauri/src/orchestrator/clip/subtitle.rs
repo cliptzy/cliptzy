@@ -68,25 +68,84 @@ impl ClipVideoUseCase {
             crate::orchestrator::job_cache::read_json_cache(&emotion_cache_path).unwrap_or(None);
 
         let mut scheduled_effects = Vec::new();
-        if let Some(cache) = emotion_cache {
-            let timeline = crate::analysis::fusion::EmotionTimeline {
-                segments: cache.segments,
-                dominant_emotion: crate::analysis::EmotionLabel::Neutral,
-                emotion_distribution: std::collections::HashMap::new(),
-            };
-            let effects_manager = crate::processing::effects::EffectsManager::new();
-            scheduled_effects = effects_manager.get_effects_for_timeline(&timeline);
+        let mut scheduled_builtin_effects = Vec::new();
+        if let Some(ref cache) = emotion_cache {
+            if !cache.scheduled_effects.is_empty() {
+                scheduled_effects = cache.scheduled_effects.clone();
+            } else {
+                let timeline = crate::analysis::fusion::EmotionTimeline {
+                    segments: cache.segments.clone(),
+                    dominant_emotion: crate::analysis::EmotionLabel::Neutral,
+                    emotion_distribution: std::collections::HashMap::new(),
+                    visual: cache.visual.clone(),
+                    audio: cache.audio.clone(),
+                    voice: cache.voice.clone(),
+                    text: cache.text.clone(),
+                    scheduled_effects: vec![],
+                    scheduled_builtin_effects: vec![],
+                };
+                let effects_manager = crate::processing::effects::EffectsManager::new();
+                scheduled_effects = effects_manager.get_effects_for_timeline(&timeline);
+            }
+            scheduled_builtin_effects = cache.scheduled_builtin_effects.clone();
         }
+
+        let effective_scheduled_effects = if self.ctx.config.ai.use_add_meme {
+            scheduled_effects
+        } else {
+            vec![]
+        };
+
+        let effective_builtin_effects = if self.ctx.config.ai.use_builtin_fx {
+            scheduled_builtin_effects
+        } else {
+            vec![]
+        };
+
+        let debug_ass_path = if self.ctx.config.debug_mode {
+            let whisper_model = if self.ctx.config.subtitle.whisper_model.is_empty() {
+                "tiny".to_string()
+            } else {
+                self.ctx.config.subtitle.whisper_model.clone()
+            };
+            let transcript_cache_path = cache_file(
+                &self.ctx.job_dir,
+                &format!(
+                    "transcript_{}_{}.json",
+                    idx,
+                    sanitize_cache_token(&whisper_model)
+                ),
+            );
+            let transcript_cache: Option<SegmentTranscriptCacheEntry> =
+                read_json_cache(&transcript_cache_path);
+
+            let osd_out = self.ctx.job_dir.join(format!("debug_osd_{}.ass", idx));
+            crate::transcription::ass_writer::generate_msi_afterburner_osd(
+                current_video,
+                &emotion_cache_path,
+                &effective_scheduled_effects,
+                &self.ctx.config,
+                hw_accel,
+                transcript_cache.as_ref().map(|c| c.segments.as_slice()),
+                total_duration,
+                &osd_out,
+            )
+            .await
+            .map(|p| p.to_string_lossy().to_string())
+        } else {
+            None
+        };
 
         let burn_config = crate::processing::burner::VideoBurnerConfig {
             ass_path: ass_path_opt,
-            scheduled_effects,
+            scheduled_effects: effective_scheduled_effects,
+            scheduled_builtin_effects: effective_builtin_effects,
             normalize_audio: true,
             config: sub_config_opt,
             watermark_path,
             watermark_position: self.ctx.config.watermark_position.clone(),
             hw_accel: hw_accel.clone(),
-            debug_ass_path: None,
+            debug_ass_path,
         };
         crate::processing::burner::burn_video_effects(
             current_video,
@@ -121,10 +180,17 @@ impl ClipVideoUseCase {
         );
         let ass_path = self.ctx.job_dir.join(format!("subtitles_{}.ass", idx));
 
+        let source_video = self.ctx.job_dir.join(format!("source_{}.mp4", idx));
+        let video_for_transcript = if source_video.exists() {
+            &source_video
+        } else {
+            current_video
+        };
+
         let transcript = self
             .load_or_transcribe_segment(
                 payload,
-                current_video,
+                video_for_transcript,
                 idx,
                 &whisper_model,
                 &transcript_cache_path,
@@ -171,6 +237,12 @@ impl ClipVideoUseCase {
                 segments: c.segments,
                 dominant_emotion: crate::analysis::EmotionLabel::Neutral, // Dummy
                 emotion_distribution: std::collections::HashMap::new(),
+                visual: c.visual,
+                audio: c.audio,
+                voice: c.voice,
+                text: c.text,
+                scheduled_effects: c.scheduled_effects,
+                scheduled_builtin_effects: c.scheduled_builtin_effects,
             });
 
             crate::transcription::ass_writer::generate_ass_file(
@@ -190,7 +262,7 @@ impl ClipVideoUseCase {
         Ok((ass_path.to_string_lossy().to_string(), sub_config))
     }
 
-    async fn load_or_transcribe_segment(
+    pub(super) async fn load_or_transcribe_segment(
         &self,
         payload: &ClipPayload,
         current_video: &Path,

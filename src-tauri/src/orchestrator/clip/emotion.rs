@@ -1,9 +1,10 @@
-use super::models::EmotionCacheEntry;
+use super::models::{ClipPayload, EmotionCacheEntry};
 use super::ClipVideoUseCase;
 use crate::analysis::fusion::EmotionFusion;
 use crate::error::CliptzyError;
 use crate::orchestrator::job_cache::{
-    cache_file, fingerprint, is_fingerprint_valid, read_json_cache, write_json_cache,
+    cache_file, fingerprint, is_fingerprint_valid, read_json_cache, sanitize_cache_token,
+    write_json_cache,
 };
 use crate::orchestrator::pipeline::{emit_progress, ProgressEvent};
 use std::path::Path;
@@ -11,6 +12,7 @@ use std::path::Path;
 impl ClipVideoUseCase {
     pub(super) async fn emotion_phase(
         &self,
+        payload: &ClipPayload,
         source_video: &Path,
         idx: u32,
     ) -> Result<(), CliptzyError> {
@@ -46,59 +48,79 @@ impl ClipVideoUseCase {
             return Ok(());
         }
 
+        // Gunakan audio 16kHz mono standar yang juga dipakai pada fase transkripsi
+        let audio_wav_path = self.ctx.job_dir.join(format!("audio_16k_{}.wav", idx));
+        if !audio_wav_path.exists() {
+            emit_progress(
+                &self.ctx.app_handle,
+                &ProgressEvent {
+                    stage: "analyze".into(),
+                    label: "Mengekstrak audio 16kHz untuk analisis AI...".into(),
+                    current: 25,
+                    total: 100,
+                    detail: None,
+                },
+            );
+
+            let duration = payload.end - payload.start;
+            crate::transcription::audio::extract_audio_segment(
+                &source_video.to_string_lossy(),
+                0.0,
+                duration,
+                &audio_wav_path,
+                None,
+                &self.ctx.deps.ytdlp,
+            )
+            .await?;
+        }
+
+        let whisper_model = if self.ctx.config.subtitle.whisper_model.is_empty() {
+            "tiny".to_string()
+        } else {
+            self.ctx.config.subtitle.whisper_model.clone()
+        };
+        let transcript_cache_path = cache_file(
+            &self.ctx.job_dir,
+            &format!(
+                "transcript_{}_{}.json",
+                idx,
+                sanitize_cache_token(&whisper_model)
+            ),
+        );
+
+        // Jika analisis teks atau subtitle aktif, pastikan transkrip Whisper tersedia untuk Text Emotion Analyzer
+        if ai.use_text_analysis || self.ctx.config.burn_subtitle {
+            if let Err(e) = self
+                .load_or_transcribe_segment(
+                    payload,
+                    source_video,
+                    idx,
+                    &whisper_model,
+                    &transcript_cache_path,
+                )
+                .await
+            {
+                log::warn!("Transkripsi awal untuk analisis emosi teks gagal: {}", e);
+            }
+        }
+
         emit_progress(
             &self.ctx.app_handle,
             &ProgressEvent {
                 stage: "analyze".into(),
-                label: "Mengekstrak audio untuk analisis multi-modal...".into(),
-                current: 25,
+                label: "Menjalankan Multi-Modal Emotion Fusion (Visual, Voice, Audio, Text)...".into(),
+                current: 30,
                 total: 100,
                 detail: None,
             },
         );
-
-        // Extract WAV for audio analysis
-        let audio_wav_path = self.ctx.job_dir.join(format!("audio_{}.wav", idx));
-        if !audio_wav_path.exists() {
-            // Using ffmpeg to extract wav
-            let status = tokio::process::Command::new("ffmpeg")
-                .args(&[
-                    "-y",
-                    "-i",
-                    source_video.to_string_lossy().as_ref(),
-                    "-vn",
-                    "-acodec",
-                    "pcm_s16le",
-                    "-ar",
-                    "16000",
-                    "-ac",
-                    "1",
-                    audio_wav_path.to_string_lossy().as_ref(),
-                ])
-                .stdout(std::process::Stdio::null())
-                .stderr(std::process::Stdio::null())
-                .status()
-                .await
-                .map_err(|e| CliptzyError::Internal(format!("Failed to spawn ffmpeg: {}", e)))?;
-
-            if !status.success() {
-                log::warn!("Failed to extract audio for emotion analysis");
-            }
-        }
-
-        // Ideally transcript is created before this. For now, we look for it if it exists.
-        // It might be generated in subtitle phase, so text sentiment could fail gracefully.
-        let transcript_path = self
-            .ctx
-            .job_dir
-            .join(format!("transcript_{}_tiny.json", idx));
 
         let fusion = EmotionFusion::new();
         match fusion
             .analyze_fusion(
                 source_video,
                 &audio_wav_path,
-                &transcript_path,
+                &transcript_cache_path,
                 ai,
                 &self.ctx.cancel_token,
                 &self.ctx.progress_tx,
@@ -112,6 +134,12 @@ impl ClipVideoUseCase {
                         &EmotionCacheEntry {
                             source_fingerprint: source_fp,
                             segments: timeline.segments.clone(),
+                            visual: timeline.visual.clone(),
+                            audio: timeline.audio.clone(),
+                            voice: timeline.voice.clone(),
+                            text: timeline.text.clone(),
+                            scheduled_effects: timeline.scheduled_effects.clone(),
+                            scheduled_builtin_effects: timeline.scheduled_builtin_effects.clone(),
                         },
                     );
                 }

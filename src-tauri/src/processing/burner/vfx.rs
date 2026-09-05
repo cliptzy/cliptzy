@@ -3,7 +3,6 @@ use crate::processing::ffmpeg::filters::{FilterGraph, FilterNode};
 pub fn apply_vfx(
     graph: &mut FilterGraph,
     input_v: &str,
-    input_a: &str,
     input_idx: &mut usize,
     start_time: f64,
     end_time: f64,
@@ -24,11 +23,17 @@ pub fn apply_vfx(
         .outputs(&[vfx_keyed_name.as_str()]);
 
     let output_name = format!("v_vfx_{}", input_idx);
+    let enable_param = if end_time > start_time {
+        format!("'between(t,{:.2},{:.2})'", start_time, end_time)
+    } else {
+        format!("'gte(t,{:.2})'", start_time)
+    };
+
     let overlay = FilterNode::new("overlay")
         .param("x", "(W-w)/2")
         .param("y", "(H-h)/2")
         .param("eof_action", "pass")
-        .param("enable", &format!("between(t,{},{})", start_time, end_time))
+        .param("enable", &enable_param)
         .inputs(&[input_v, vfx_keyed_name.as_str()])
         .outputs(&[output_name.as_str()]);
 
@@ -44,17 +49,8 @@ pub fn apply_vfx(
         .inputs(&[a_input.as_str()])
         .outputs(&[a_delayed.as_str()]);
 
-    let a_mixed = format!("a_vfx_mixed_{}", input_idx);
-    let amix = FilterNode::new("amix")
-        .param("inputs", "2")
-        .param("duration", "first")
-        .param("dropout_transition", "0")
-        .inputs(&[input_a, a_delayed.as_str()])
-        .outputs(&[a_mixed.as_str()]);
-
     graph.add_node(adelay);
-    graph.add_node(amix);
 
     *input_idx += 1;
-    (output_name, a_mixed)
+    (output_name, a_delayed)
 }

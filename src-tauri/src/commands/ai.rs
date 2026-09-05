@@ -72,3 +72,25 @@ pub async fn ask_agent(prompt: String) -> Result<String, CliptzyError> {
         Err(e) => Err(CliptzyError::AIProvider(format!("Agent error: {}", e))),
     }
 }
+
+/// Daftar seluruh model ONNX beserta status keberadaan + ukuran di disk.
+#[tauri::command]
+pub async fn list_onnx_models() -> Result<Vec<crate::ai::onnx::OnnxModelStatus>, CliptzyError> {
+    Ok(crate::ai::onnx::model_statuses())
+}
+
+/// Unduh satu model (streaming) ke `AppData/models/`.
+/// Memancarkan event `onnx-download-progress` untuk progress bar frontend.
+#[tauri::command]
+pub async fn download_onnx_model(
+    app: tauri::AppHandle,
+    id: String,
+) -> Result<(), CliptzyError> {
+    crate::ai::onnx::download_onnx_model_streaming(&app, &id).await
+}
+
+/// Hapus satu model dari disk.
+#[tauri::command]
+pub async fn delete_onnx_model(id: String) -> Result<(), CliptzyError> {
+    crate::ai::onnx::delete_model_file(&id)
+}

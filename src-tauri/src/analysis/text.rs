@@ -15,11 +15,11 @@ pub struct TextSentimentAnalyzer {
 
 impl TextSentimentAnalyzer {
     pub fn new() -> Self {
+        let model_info = crate::ai::onnx::find_model("text");
+        let file = model_info.map(|m| m.file).unwrap_or("multilingual_emotion.onnx");
+        let url = model_info.map(|m| m.url).unwrap_or("");
         Self {
-            model: OnnxModelManager::new(
-                "twitter_roberta_emotion.onnx",
-                crate::ai::onnx::find_model("text").map(|m| m.url).unwrap_or(""),
-            ),
+            model: OnnxModelManager::new(file, url),
         }
     }
 
@@ -29,24 +29,29 @@ impl TextSentimentAnalyzer {
     ) -> Result<std::path::PathBuf, CliptzyError> {
         self.model.ensure_loaded().await?;
 
-        // Download tokenizer.json
-        let tokenizer_path = ensure_model_downloaded(
-            "twitter_roberta_tokenizer.onnx",
-            crate::ai::onnx::find_model("text_tokenizer").map(|m| m.url).unwrap_or(""),
-        ).await.map_err(|e| CliptzyError::Model(e))?;
+        let tokenizer_info = crate::ai::onnx::find_model("text_tokenizer");
+        let tok_file = tokenizer_info
+            .map(|m| m.file)
+            .unwrap_or("multilingual_emotion_tokenizer.json");
+        let tok_url = tokenizer_info.map(|m| m.url).unwrap_or("");
 
+        let tokenizer_path = ensure_model_downloaded(tok_file, tok_url).await?;
         Ok(tokenizer_path)
     }
 }
 
-// Map Twitter Roberta classes to EmotionLabel
-fn map_roberta_to_emotion(idx: usize) -> Option<EmotionLabel> {
-    // 0: anger, 1: joy, 2: optimism, 3: sadness
+// Map tanaos-emotion-detection-v1 (Multilingual MiniLM) classes to EmotionLabel:
+// 0: joy, 1: anger, 2: fear, 3: sadness, 4: surprise, 5: disgust, 6: excitement, 7: neutral
+fn map_multilingual_emotion(idx: usize) -> Option<EmotionLabel> {
     match idx {
-        0 => Some(EmotionLabel::Angry),
-        1 => Some(EmotionLabel::Happy),
-        2 => Some(EmotionLabel::Happy), // Map optimism to happy
+        0 => Some(EmotionLabel::Happy),
+        1 => Some(EmotionLabel::Angry),
+        2 => Some(EmotionLabel::Fear),
         3 => Some(EmotionLabel::Sad),
+        4 => Some(EmotionLabel::Shock),
+        5 => Some(EmotionLabel::Angry),
+        6 => Some(EmotionLabel::Happy),
+        7 => Some(EmotionLabel::Neutral),
         _ => None,
     }
 }
@@ -58,10 +63,23 @@ struct TranscriptSegment {
     text: String,
 }
 
+#[derive(serde::Deserialize)]
+struct TranscriptWrapper {
+    #[serde(default)]
+    segments: Vec<TranscriptSegment>,
+}
+
+#[derive(serde::Deserialize)]
+#[serde(untagged)]
+enum TranscriptData {
+    Wrapped(TranscriptWrapper),
+    Direct(Vec<TranscriptSegment>),
+}
+
 #[async_trait::async_trait]
 impl EmotionAnalyzer for TextSentimentAnalyzer {
     fn name(&self) -> &str {
-        "Text Sentiment Analyzer (RoBERTa ONNX)"
+        "Multilingual Text Emotion Analyzer (MiniLM ONNX)"
     }
 
     async fn analyze(
@@ -75,24 +93,44 @@ impl EmotionAnalyzer for TextSentimentAnalyzer {
         let tokenizer = Tokenizer::from_file(&tokenizer_path)
             .map_err(|e| CliptzyError::Model(format!("Failed to load tokenizer: {}", e)))?;
 
-        // Parse transcript file (assuming JSON array of TranscriptSegment)
+        // Parse transcript file: support either SegmentTranscriptCacheEntry or flat array
         let file_content = std::fs::read_to_string(input_path).map_err(|e| {
             CliptzyError::Io(std::io::Error::new(
                 std::io::ErrorKind::Other,
-                format!("Failed to read transcript: {}", e),
+                format!("Failed to read transcript at {:?}: {}", input_path, e),
             ))
         })?;
 
-        let transcript: Vec<TranscriptSegment> = serde_json::from_str(&file_content)?;
+        let transcript = match serde_json::from_str::<TranscriptData>(&file_content) {
+            Ok(TranscriptData::Wrapped(w)) => w.segments,
+            Ok(TranscriptData::Direct(d)) => d,
+            Err(e) => {
+                return Err(CliptzyError::Model(format!(
+                    "Failed to parse transcript JSON at {:?}: {}",
+                    input_path, e
+                )));
+            }
+        };
+
+        if transcript.is_empty() {
+            info!("Transcript is empty, returning 0 text emotions");
+            return Ok(vec![]);
+        }
 
         let mut guard = self.model.get_session()?;
         let session = &mut *guard;
+        let has_token_type_ids = session.inputs().iter().any(|inp| inp.name() == "token_type_ids");
 
         let mut segments = Vec::new();
 
         for (i, t_seg) in transcript.iter().enumerate() {
             if cancel.is_cancelled() {
                 return Err(CliptzyError::Cancelled);
+            }
+
+            let text = t_seg.text.trim();
+            if text.is_empty() {
+                continue;
             }
 
             if i % 10 == 0 {
@@ -106,7 +144,7 @@ impl EmotionAnalyzer for TextSentimentAnalyzer {
             }
 
             let encoding = tokenizer
-                .encode(t_seg.text.as_str(), true)
+                .encode(text, true)
                 .map_err(|e| CliptzyError::Model(format!("Tokenizer encode failed: {}", e)))?;
 
             let input_ids = encoding.get_ids().to_vec();
@@ -141,14 +179,24 @@ impl EmotionAnalyzer for TextSentimentAnalyzer {
                 let mask_ort = ort::value::Tensor::from_array(mask_tensor)
                     .map_err(|e| CliptzyError::Model(format!("Tensor error: {}", e)))?;
 
-                let inputs = ort::inputs![
-                    "input_ids" => ids_ort,
-                    "attention_mask" => mask_ort
-                ];
+                let outputs_res = if has_token_type_ids {
+                    let type_ids = Array2::<i64>::zeros((1, seq_len));
+                    let type_ort = ort::value::Tensor::from_array(type_ids)
+                        .map_err(|e| CliptzyError::Model(format!("Tensor error: {}", e)))?;
+                    session.run(ort::inputs![
+                        "input_ids" => ids_ort,
+                        "attention_mask" => mask_ort,
+                        "token_type_ids" => type_ort
+                    ])
+                } else {
+                    session.run(ort::inputs![
+                        "input_ids" => ids_ort,
+                        "attention_mask" => mask_ort
+                    ])
+                };
 
-                if let Ok(outputs) = session.run(inputs) {
+                if let Ok(outputs) = outputs_res {
                     if let Ok((_shape, logits)) = outputs["logits"].try_extract_tensor::<f32>() {
-                        // Logits is [1, 4]
                         let max_logit = logits.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
                         let exp_sum: f32 = logits.iter().map(|&x| (x - max_logit).exp()).sum();
 
@@ -159,15 +207,15 @@ impl EmotionAnalyzer for TextSentimentAnalyzer {
                             let prob = (logit - max_logit).exp() / exp_sum;
                             if prob > max_prob {
                                 max_prob = prob;
-                                if let Some(emotion) = map_roberta_to_emotion(idx) {
+                                if let Some(emotion) = map_multilingual_emotion(idx) {
                                     best_label = Some(emotion);
                                 }
                             }
                         }
 
                         if let Some(emotion) = best_label {
-                            // Only record strong sentiments
-                            if max_prob > 0.4 {
+                            // Only record distinct emotional expressions
+                            if max_prob > 0.35 {
                                 segments.push(AnalysisSegment {
                                     start_time: t_seg.start + (c as f64 * chunk_duration),
                                     end_time: t_seg.start + ((c + 1) as f64 * chunk_duration),
@@ -182,7 +230,70 @@ impl EmotionAnalyzer for TextSentimentAnalyzer {
             }
         }
 
-        info!("Extracted {} text sentiments from RoBERTa", segments.len());
+        info!("Extracted {} text emotions from Multilingual MiniLM", segments.len());
         Ok(segments)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_map_multilingual_emotion() {
+        assert_eq!(map_multilingual_emotion(0), Some(EmotionLabel::Happy)); // joy
+        assert_eq!(map_multilingual_emotion(1), Some(EmotionLabel::Angry)); // anger
+        assert_eq!(map_multilingual_emotion(2), Some(EmotionLabel::Fear)); // fear
+        assert_eq!(map_multilingual_emotion(3), Some(EmotionLabel::Sad)); // sadness
+        assert_eq!(map_multilingual_emotion(4), Some(EmotionLabel::Shock)); // surprise
+        assert_eq!(map_multilingual_emotion(6), Some(EmotionLabel::Happy)); // excitement
+        assert_eq!(map_multilingual_emotion(7), Some(EmotionLabel::Neutral)); // neutral
+        assert_eq!(map_multilingual_emotion(99), None);
+    }
+
+    #[test]
+    fn test_deserialize_transcript_formats() {
+        // Flat array
+        let flat_json = r#"[{"start": 1.0, "end": 2.5, "text": "Ampun bang!"}]"#;
+        let res: TranscriptData = serde_json::from_str(flat_json).unwrap();
+        match res {
+            TranscriptData::Direct(d) => {
+                assert_eq!(d.len(), 1);
+                assert_eq!(d[0].text, "Ampun bang!");
+            }
+            _ => panic!("Expected Direct variant"),
+        }
+
+        // Wrapped cache object
+        let wrapped_json = r#"{
+            "whisper_model": "large-v3-turbo",
+            "segments": [
+                {"id": 0, "start": 0.0, "end": 2.0, "text": "Lorong kematian"}
+            ]
+        }"#;
+        let res2: TranscriptData = serde_json::from_str(wrapped_json).unwrap();
+        match res2 {
+            TranscriptData::Wrapped(w) => {
+                assert_eq!(w.segments.len(), 1);
+                assert_eq!(w.segments[0].text, "Lorong kematian");
+            }
+            _ => panic!("Expected Wrapped variant"),
+        }
+    }
+
+    #[test]
+    fn test_load_real_tokenizer_if_present() {
+        let path = crate::paths::app_data_dir()
+            .join("models")
+            .join("multilingual_emotion_tokenizer.json");
+        if path.exists() {
+            let tok = tokenizers::Tokenizer::from_file(&path).expect("Failed to load tokenizer");
+            let encoding = tok
+                .encode("Ampun bang, jangan bunuh saya!", true)
+                .expect("Failed to encode Indonesian text");
+            assert!(!encoding.get_ids().is_empty());
+            println!("Tokens: {:?}", encoding.get_tokens());
+        }
+    }
+}
+
